@@ -1,0 +1,37 @@
+{
+  "entity": "Servicos Modelo Ltda",
+  "period": "2025-09",
+  "currency": "R$",
+
+  "materiality": {
+    "pct": 5,
+    "abs": 10000
+  },
+
+  "line_items": [
+    { "name": "Receita de servicos", "type": "revenue", "group": "Receita",
+      "budget": 520000, "actual": 468000 },
+    { "name": "Receita recorrente", "type": "revenue", "group": "Receita",
+      "budget": 180000, "actual": 194000 },
+
+    { "name": "Folha", "type": "expense", "group": "Pessoal",
+      "budget": 260000, "actual": 274000 },
+    { "name": "Comissoes", "type": "expense", "group": "Pessoal",
+      "budget": 46000, "actual": 39000 },
+
+    { "name": "Marketing digital", "type": "expense", "group": "Marketing",
+      "budget": 85000, "actual": 118000 },
+
+    { "name": "Ferramentas SaaS", "type": "expense", "group": "Tecnologia",
+      "budget": 32000, "actual": 35500 },
+    { "name": "Infraestrutura cloud", "type": "expense", "group": "Tecnologia",
+      "budget": 54000, "actual": 51200 },
+
+    { "name": "Aluguel", "type": "expense", "group": "Estrutura",
+      "budget": 38000, "actual": 38000 },
+    { "name": "Consultoria juridica", "type": "expense", "group": "Estrutura",
+      "budget": 0, "actual": 27500 },
+    { "name": "Viagens", "type": "expense", "group": "Estrutura",
+      "budget": 18000, "actual": 9400 }
+  ]
+}

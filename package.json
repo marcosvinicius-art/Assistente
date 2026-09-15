@@ -1,0 +1,9 @@
+{
+  "name": "wonner-sols",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend de contas (autenticação + dados) para o app Wonner Sols na Vercel.",
+  "dependencies": {
+    "pg": "^8.11.5"
+  }
+}

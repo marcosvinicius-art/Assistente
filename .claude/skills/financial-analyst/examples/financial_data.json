@@ -1,0 +1,78 @@
+{
+  "company": "Varejo Modelo S.A.",
+  "period": "2025",
+  "currency": "BRL",
+
+  "income_statement": {
+    "revenue": 480000000,
+    "cogs": 312000000,
+    "operating_expenses": 112000000,
+    "depreciation_amortization": 18000000,
+    "interest_expense": 16000000,
+    "net_income": 27000000
+  },
+
+  "balance_sheet": {
+    "cash": 22000000,
+    "short_term_investments": 8000000,
+    "accounts_receivable": 64000000,
+    "inventory": 78000000,
+    "current_assets": 182000000,
+    "total_assets": 395000000,
+    "current_liabilities": 138000000,
+    "total_debt": 142000000,
+    "total_liabilities": 246000000,
+    "equity": 149000000
+  },
+
+  "market": {
+    "share_price": 11.5,
+    "shares_outstanding": 38000000,
+    "eps_growth_pct": 12
+  },
+
+  "debt_service": {
+    "principal": 24000000,
+    "interest": 16000000
+  },
+
+  "previous_period": {
+    "income_statement": {
+      "revenue": 430000000,
+      "cogs": 283000000,
+      "operating_expenses": 104000000,
+      "depreciation_amortization": 16000000,
+      "interest_expense": 15000000,
+      "net_income": 21000000
+    },
+    "balance_sheet": {
+      "cash": 19000000,
+      "short_term_investments": 6000000,
+      "accounts_receivable": 58000000,
+      "inventory": 71000000,
+      "current_assets": 165000000,
+      "total_assets": 365000000,
+      "current_liabilities": 130000000,
+      "total_debt": 136000000,
+      "total_liabilities": 231000000,
+      "equity": 134000000
+    }
+  },
+
+  "benchmark": {
+    "roe": 0.14,
+    "roa": 0.06,
+    "margem_bruta": 0.36,
+    "margem_liquida": 0.045,
+    "liquidez_corrente": 1.6,
+    "liquidez_seca": 0.9,
+    "divida_pl": 0.9,
+    "cobertura_juros": 4.0,
+    "giro_ativos": 1.2,
+    "giro_estoque": 5.5,
+    "dso": 38,
+    "pe": 14.0,
+    "pb": 2.2,
+    "ev_ebitda": 8.0
+  }
+}
