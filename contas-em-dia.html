@@ -341,7 +341,21 @@
   .salary-panel .salary-text { flex: 1; min-width: 180px; }
   .salary-panel h2 { font-size: 15px; }
   .salary-panel .hint { display: block; margin-top: 2px; }
+  .salary-panel .hint.error { color: var(--expense); font-weight: 600; }
   .salary-panel input { max-width: 140px; }
+  .salary-remove-btn {
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--ease), border-color var(--ease), color var(--ease);
+  }
+  .salary-remove-btn:hover { background: var(--expense-soft); border-color: var(--expense); color: var(--expense); }
 
   /* ---- Layout grid ---- */
   .grid {
@@ -993,7 +1007,7 @@
       <div class="sub" id="avgSub">carregando…</div>
     </div>
 
-    <div class="panel salary-panel">
+    <form class="panel salary-panel" id="salaryForm">
       <div class="salary-text">
         <h2>Salário do mês</h2>
         <span class="hint" id="salaryStatus">carregando…</span>
@@ -1002,8 +1016,9 @@
         <input id="salaryInput" type="text" inputmode="decimal" placeholder="0,00">
         <span class="amount-preview" id="salaryPreview">&nbsp;</span>
       </div>
-      <button class="btn-add" id="salarySaveBtn" type="button">Salvar</button>
-    </div>
+      <button class="salary-remove-btn" id="salaryRemoveBtn" type="button" hidden>Remover</button>
+      <button class="btn-add" id="salarySaveBtn" type="submit">Salvar</button>
+    </form>
 
     <div class="grid">
       <div class="col-main">
@@ -1334,15 +1349,18 @@
 
   // Gravação na nuvem é assíncrona: sem checar o resultado, uma falha fica invisível
   // e o app parece ter salvado (foi exatamente assim que o salário sumia).
-  function cloudWrite(promise, oque) {
-    if (!promise || typeof promise.then !== "function") return;
+  // onSettle (opcional) roda sempre — sucesso ou falha — pra quem chamou poder
+  // reverter um estado de "salvando…" mesmo quando a gravação não completa nunca
+  // (senão um botão desabilitado otimisticamente ficaria travado pra sempre).
+  function cloudWrite(promise, oque, onSettle) {
+    if (!promise || typeof promise.then !== "function") { if (onSettle) onSettle(); return; }
     promise.then(function () {
       setStorageAlert(false);
     }).catch(function (e) {
       setStorageAlert(true, "Não consegui salvar " + oque + " na nuvem: " +
         ((e && e.message) ? e.message : "erro desconhecido") +
         ". O que está na tela pode sumir ao recarregar.");
-    });
+    }).finally(function () { if (onSettle) onSettle(); });
   }
 
   function loadLocal() {
@@ -1440,13 +1458,13 @@
   function serverDelete(resource, id) { return apiJson("DELETE", "/api/data/" + resource + "?id=" + encodeURIComponent(id)); }
 
   // Mesmo padrão do cloudWrite: nunca falha em silêncio.
-  function serverWrite(promise, oque) {
+  function serverWrite(promise, oque, onSettle) {
     promise.then(function () {
       setStorageAlert(false);
     }).catch(function (e) {
       setStorageAlert(true, "Não consegui salvar " + oque + " na sua conta: " +
         ((e && e.message) ? e.message : "erro desconhecido") + ". Tenta de novo.");
-    });
+    }).finally(function () { if (onSettle) onSettle(); });
   }
 
   function showAuthGate(sub) {
@@ -1581,18 +1599,19 @@
     });
   }
 
-  function addTransaction(tx) {
+  function addTransaction(tx, onSettle) {
     if (state.storage === "cloud" && state.db) {
-      cloudWrite(state.db.collection(userCol("transactions")).add(tx), "o lançamento");
+      cloudWrite(state.db.collection(userCol("transactions")).add(tx), "o lançamento", onSettle);
     } else if (state.storage === "server") {
       serverWrite(serverAdd("transactions", tx).then(function (saved) {
         state.transactions.push(saved); render();
-      }), "o lançamento");
+      }), "o lançamento", onSettle);
     } else {
       tx.id = "t" + Date.now() + Math.random().toString(36).slice(2, 7);
       state.transactions.push(tx);
       saveLocal();
       render();
+      if (onSettle) onSettle();
     }
   }
   function deleteTransaction(id) {
@@ -1608,17 +1627,18 @@
       render();
     }
   }
-  function updateTransactionAmount(id, amount) {
+  function updateTransactionAmount(id, amount, onSettle) {
     if (state.storage === "cloud" && state.db) {
-      cloudWrite(state.db.doc(userCol("transactions") + "/" + id).update({ amount: amount }), "o salário");
+      cloudWrite(state.db.doc(userCol("transactions") + "/" + id).update({ amount: amount }), "o salário", onSettle);
     } else if (state.storage === "server") {
       serverWrite(serverUpdate("transactions", id, { amount: amount }).then(function (saved) {
         var t = state.transactions.find(function (t) { return t.id === id; });
         if (t) Object.assign(t, saved); render();
-      }), "o salário");
+      }), "o salário", onSettle);
     } else {
       var t = state.transactions.find(function (t) { return t.id === id; });
       if (t) { t.amount = amount; saveLocal(); render(); }
+      if (onSettle) onSettle();
     }
   }
   function addGoal(goal) {
@@ -1974,16 +1994,39 @@
   });
 
   // ---------- Salary quick-set ----------
-  document.getElementById("salarySaveBtn").addEventListener("click", function () {
+  var salarySaveBtn = document.getElementById("salarySaveBtn");
+  var salaryRemoveBtn = document.getElementById("salaryRemoveBtn");
+
+  document.getElementById("salaryForm").addEventListener("submit", function (e) {
+    e.preventDefault();
     var input = document.getElementById("salaryInput");
+    var status = document.getElementById("salaryStatus");
     var amount = parseAmount(input.value);
-    if (!amount || amount <= 0) return;
+    if (!amount || amount <= 0) {
+      // Antes disso, um valor inválido simplesmente não fazia nada — mesmo defeito
+      // que já corrigimos em todo o resto do app: falha precisa aparecer.
+      status.textContent = "Digite um valor válido pra salvar.";
+      status.classList.add("error");
+      input.focus();
+      return;
+    }
+    salarySaveBtn.disabled = true;
+    salarySaveBtn.textContent = "Salvando…";
+    // render() (chamado de dentro de add/updateTransactionAmount) já reescreve o
+    // botão pelo que renderSalaryWidget definir — isso só cobre o caso raro de a
+    // gravação na nuvem falhar sem nunca chegar a re-renderizar.
+    function reabilitar() { salarySaveBtn.disabled = false; salarySaveBtn.textContent = "Salvar"; }
     var existingId = input.dataset.txId;
     if (existingId) {
-      updateTransactionAmount(existingId, amount);
+      updateTransactionAmount(existingId, amount, reabilitar);
     } else {
-      addTransaction({ desc: "Salário", amount: amount, type: "receita", category: "salario", date: currentMonthKey() + "-01", createdAt: new Date().toISOString() });
+      addTransaction({ desc: "Salário", amount: amount, type: "receita", category: "salario", date: currentMonthKey() + "-01", createdAt: new Date().toISOString() }, reabilitar);
     }
+  });
+
+  salaryRemoveBtn.addEventListener("click", function () {
+    var input = document.getElementById("salaryInput");
+    if (input.dataset.txId) deleteTransaction(input.dataset.txId);
   });
 
   function renderSalaryWidget(mk) {
@@ -1991,16 +2034,21 @@
     var input = document.getElementById("salaryInput");
     var status = document.getElementById("salaryStatus");
     var preview = document.getElementById("salaryPreview");
+    status.classList.remove("error");
+    salarySaveBtn.disabled = false;
+    salarySaveBtn.textContent = "Salvar";
     if (salaryTx) {
       input.value = salaryTx.amount;
       input.dataset.txId = salaryTx.id;
       status.textContent = "Registrado: " + fmt(salaryTx.amount);
       preview.textContent = "= " + fmt(salaryTx.amount);
+      salaryRemoveBtn.hidden = false;
     } else {
       input.value = "";
       input.dataset.txId = "";
       status.textContent = "Ainda não registrado este mês";
       preview.textContent = "";
+      salaryRemoveBtn.hidden = true;
     }
   }
 
