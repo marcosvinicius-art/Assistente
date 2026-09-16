@@ -121,6 +121,33 @@
     padding: 28px 24px 64px;
   }
 
+  /* Tela cheia e opaca, cobrindo o app por baixo — mesmo truque do .auth-gate,
+     então nunca precisa mexer na visibilidade do .app em si. */
+  .admin-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--bg);
+    overflow-y: auto;
+  }
+  .admin-panel:not([hidden]) { animation: panel-in 0.22s var(--ease); }
+  .admin-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 24px 64px;
+  }
+  .admin-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-row:last-child { border-bottom: none; }
+  .admin-row .admin-email { font-size: 13.5px; font-weight: 500; }
+  .admin-row .admin-date { font-size: 12px; color: var(--ink-faint); }
+
   /* ---- Topbar ---- */
   .topbar {
     display: flex;
@@ -1052,6 +1079,37 @@
   </form>
 </div>
 
+<div class="admin-panel" id="adminPanel" hidden>
+  <div class="admin-inner">
+    <div class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="27" height="27" rx="7" fill="var(--ink)"/>
+          <rect x="5.3" y="15.4" width="4.2" height="5.8" rx="1.3" fill="var(--bg)"/>
+          <rect x="11.9" y="11.2" width="4.2" height="10" rx="1.3" fill="var(--bg)"/>
+          <rect x="18.5" y="6.8" width="4.2" height="14.4" rx="1.3" fill="var(--bg)"/>
+        </svg>
+        <h1>Wonner Sols</h1>
+        <span class="status"><span class="status-dot"></span>admin</span>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="qr-btn" id="adminLogoutBtn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span class="qr-btn-label">Sair</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Clientes cadastrados</h2>
+        <span class="hint" id="adminCount">carregando…</span>
+      </div>
+      <div id="adminClientList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <div class="storage-alert" id="storageAlert" hidden></div>
@@ -1655,9 +1713,10 @@
     document.getElementById("authGate").hidden = true;
   }
 
-  function enterServerMode(email) {
-    state.storage = "server";
+  function enterServerMode(email, isAdmin) {
     hideAuthGate();
+    if (isAdmin) { enterAdminMode(email); return; }
+    state.storage = "server";
     setSyncStatus("server", email);
     setChatStatus(false);
     document.getElementById("logoutBtn").hidden = false;
@@ -1673,6 +1732,33 @@
     }).catch(function (e) {
       setStorageAlert(true, "Entrei na conta, mas não consegui carregar seus dados: " +
         ((e && e.message) ? e.message : "tenta recarregar a página") + ".");
+    });
+  }
+
+  // O admin nunca toca nos endpoints de dados financeiros: o "id" dele ("admin")
+  // não é um UUID válido, e a query no banco quebraria. Por isso é uma tela
+  // completamente separada, que só chama /api/admin/clients.
+  function enterAdminMode(email) {
+    document.getElementById("adminPanel").hidden = false;
+    var lista = document.getElementById("adminClientList");
+    var contador = document.getElementById("adminCount");
+    apiJson("GET", "/api/admin/clients").then(function (clientes) {
+      contador.textContent = clientes.length + (clientes.length === 1 ? " cliente" : " clientes");
+      if (!clientes.length) {
+        lista.innerHTML = '<div class="empty-note">Nenhum cliente cadastrado ainda.</div>';
+        return;
+      }
+      lista.innerHTML = clientes.map(function (c) {
+        var data = new Date(c.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        return '<div class="admin-row">' +
+          '<span class="admin-email">' + escapeHtml(c.email) + '</span>' +
+          '<span class="admin-date">desde ' + data + '</span>' +
+        '</div>';
+      }).join("");
+    }).catch(function (e) {
+      contador.textContent = "";
+      lista.innerHTML = '<div class="empty-note">Não consegui carregar a lista: ' +
+        escapeHtml((e && e.message) || "tenta recarregar a página") + '.</div>';
     });
   }
 
@@ -1705,7 +1791,7 @@
     apiJson("POST", authMode === "login" ? "/api/auth/login" : "/api/auth/signup", { email: email, password: password })
       .then(function (data) {
         document.getElementById("authPassword").value = "";
-        enterServerMode(data.email);
+        enterServerMode(data.email, data.isAdmin);
       })
       .catch(function (e) {
         authError.textContent = (e && e.message) || "Não consegui completar — tenta de novo.";
@@ -1722,6 +1808,11 @@
       window.location.reload();
     });
   });
+  document.getElementById("adminLogoutBtn").addEventListener("click", function () {
+    apiJson("POST", "/api/auth/logout").finally(function () {
+      window.location.reload();
+    });
+  });
 
   function initPersistence() {
     if (!(window.claude && window.claude.use)) {
@@ -1729,7 +1820,7 @@
       // ele) ou o site publicado de verdade (Vercel, com o backend de contas). Tenta o
       // backend primeiro; se a rede falhar (arquivo local), cai pro modo local sozinho.
       apiJson("GET", "/api/auth/me")
-        .then(function (data) { enterServerMode(data.email); })
+        .then(function (data) { enterServerMode(data.email, data.isAdmin); })
         .catch(function (e) {
           if (e && e.status === 401) { showAuthGate(); setChatStatus(false); return; }
           state.storage = "local"; loadLocal(); setSyncStatus("local"); setChatStatus(false);

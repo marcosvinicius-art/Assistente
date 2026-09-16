@@ -7,6 +7,10 @@ module.exports = async function handler(req, res) {
   var session = auth.getSession(req);
   if (!session) return res.status(401).json({ error: "not_authenticated" });
 
+  if (session.isAdmin) {
+    return res.status(200).json({ email: process.env.ADMIN_EMAIL || "admin", isAdmin: true });
+  }
+
   try {
     var result = await db.query("SELECT email FROM users WHERE id = $1", [session.uid]);
     if (!result.rows.length) {

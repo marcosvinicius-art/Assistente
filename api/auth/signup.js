@@ -15,6 +15,11 @@ module.exports = async function handler(req, res) {
   if (!auth.validPassword(password)) {
     return res.status(400).json({ error: "invalid_password", message: "A senha precisa de pelo menos 8 caracteres." });
   }
+  // Sem isso, alguém criaria um cliente com o mesmo email do admin — o cadastro
+  // ficaria pra sempre inacessível, porque o login sempre trata esse email como admin.
+  if (auth.isAdminEmail(email)) {
+    return res.status(409).json({ error: "email_in_use", message: "Já existe uma conta com este email." });
+  }
 
   try {
     var existe = await db.query("SELECT id FROM users WHERE email = $1", [email]);
