@@ -183,6 +183,12 @@
     padding: 24px;
     z-index: 50;
   }
+  .qr-overlay:not([hidden]) { animation: overlay-in 0.18s var(--ease); }
+  @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes card-in {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
   .qr-card {
     position: relative;
     background: var(--surface);
@@ -193,6 +199,7 @@
     max-width: 320px;
     width: 100%;
     text-align: center;
+    animation: card-in 0.22s var(--ease);
   }
   .qr-card h2 { font-size: 19px; margin-bottom: 6px; }
   .qr-hint { font-size: 13px; color: var(--ink-muted); margin: 0 0 18px; }
@@ -278,6 +285,13 @@
   .tab-btn:hover { color: var(--ink-muted); }
   .tab-btn.active { color: var(--ink); border-bottom-color: var(--accent); }
   .tab-panel[hidden] { display: none; }
+  /* Só dispara quando a aba troca de fato (hidden sai) — render() atualizando
+     algo por dentro da aba já visível não retoca essa animação. */
+  .tab-panel:not([hidden]) { animation: panel-in 0.22s var(--ease); }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
   /* ---- Spendable highlight ---- */
   .spend-panel { margin-bottom: 18px; }
@@ -659,6 +673,7 @@
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    animation: card-in 0.22s var(--ease);
   }
   .auth-card h1 { font-size: 20px; margin-top: 10px; }
   .auth-sub { font-size: 13px; color: var(--ink-muted); margin: 4px 0 20px; text-align: center; }
@@ -699,6 +714,11 @@
     font-size: 13px;
     font-weight: 500;
     line-height: 1.5;
+  }
+  .storage-alert:not([hidden]) { animation: alert-in 0.22s var(--ease); }
+  @keyframes alert-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   /* ---- Investment cards ---- */
@@ -891,6 +911,11 @@
     font-size: 13.5px;
     line-height: 1.5;
     white-space: pre-wrap;
+    animation: bubble-in 0.22s var(--ease);
+  }
+  @keyframes bubble-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .chat-bubble.user {
     align-self: flex-end;
