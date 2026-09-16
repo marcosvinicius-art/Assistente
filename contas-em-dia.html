@@ -1022,6 +1022,12 @@
     .month-card { width: 76px; }
     .admin-row { grid-template-columns: 1fr; row-gap: 2px; }
     .admin-row .admin-date { justify-self: start; }
+
+    /* min-width:160px nas duas colunas passava do espaço disponível — o flexbox
+       não quebrava linha direito e os dois valores ficavam sobrepostos. Empilhar
+       resolve de vez, sem depender dessa conta de largura. */
+    .spend-panel.two-col { flex-direction: column; gap: 16px; }
+    .spend-panel.two-col > div { min-width: 0; }
   }
 
   @media (prefers-reduced-motion: reduce) {
