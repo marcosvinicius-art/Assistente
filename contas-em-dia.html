@@ -290,6 +290,99 @@
   }
   .spend-panel .value { font-size: 32px; font-weight: 600; }
   .spend-panel .sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 6px; }
+  .spend-panel.two-col { display: flex; gap: 28px; flex-wrap: wrap; }
+  .spend-panel.two-col > div { flex: 1; min-width: 160px; }
+
+  /* ---- Filtros rápidos de período ---- */
+  .quick-filters { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .qf-btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-muted);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--ease), border-color var(--ease), color var(--ease);
+  }
+  .qf-btn:hover { background: var(--accent-soft); }
+  .qf-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* ---- Linha do tempo de meses ---- */
+  .month-timeline-panel { margin-bottom: 18px; }
+  .month-timeline-wrap { display: flex; align-items: center; gap: 6px; }
+  .month-timeline {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding: 4px 2px 8px;
+    flex: 1;
+    scrollbar-width: thin;
+  }
+  .month-card {
+    flex: none;
+    width: 92px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--surface-2);
+    transition: background var(--ease), border-color var(--ease);
+  }
+  .month-card:hover { border-color: var(--accent); }
+  .month-card.current { border-color: var(--accent); background: var(--accent-soft); }
+  .month-card .mc-label { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .month-card .mc-value { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  .month-card .mc-value.income { color: var(--income); }
+  .month-card .mc-value.expense { color: var(--expense); }
+  .timeline-nav {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .timeline-nav:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+
+  /* ---- Pago/recebido ---- */
+  .paid-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .paid-toggle input { width: auto; accent-color: var(--accent); cursor: pointer; }
+  .tx-status {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .tx-status.paid { background: var(--income-soft); color: var(--income); }
+  .tx-status.pending { background: var(--expense-soft); color: var(--expense); }
+  .tx-status:hover { filter: brightness(0.95); }
 
   /* ---- Stat tiles ---- */
   .stats {
@@ -497,7 +590,7 @@
   .tx-row:hover { background: var(--surface-2); }
 
   .tx-desc { font-size: 13.5px; font-weight: 500; }
-  .tx-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .tx-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
 
   .chip {
     display: inline-flex;
@@ -975,17 +1068,38 @@
   </div>
 
   <div class="tab-panel" data-panel="lancamentos">
+    <div class="quick-filters" id="quickFilters">
+      <button type="button" class="qf-btn" data-qf="hoje">Hoje</button>
+      <button type="button" class="qf-btn" data-qf="7dias">7 dias</button>
+      <button type="button" class="qf-btn active" data-qf="mes">Este mês</button>
+      <button type="button" class="qf-btn" data-qf="ano">Este ano</button>
+    </div>
+
+    <div class="panel month-timeline-panel">
+      <div class="panel-head">
+        <h2>Linha do tempo</h2>
+        <span class="hint">saldo por mês — toque num mês pra ir direto nele</span>
+      </div>
+      <div class="month-timeline-wrap">
+        <button type="button" class="timeline-nav" id="timelinePrev" aria-label="Meses anteriores">‹</button>
+        <div class="month-timeline" id="monthTimeline"></div>
+        <button type="button" class="timeline-nav" id="timelineNext" aria-label="Próximos meses">›</button>
+      </div>
+    </div>
+
     <div class="stats">
       <div class="stat">
-        <div class="label">Receitas do mês</div>
+        <div class="label" id="statIncomeLabel">Receitas do mês</div>
         <div class="value income num" id="statIncome">R$ 0,00</div>
+        <div class="sub" id="statIncomeSub"></div>
       </div>
       <div class="stat">
-        <div class="label">Despesas do mês</div>
+        <div class="label" id="statExpenseLabel">Despesas do mês</div>
         <div class="value expense num" id="statExpense">R$ 0,00</div>
+        <div class="sub" id="statExpenseSub"></div>
       </div>
       <div class="stat">
-        <div class="label">Saldo do mês</div>
+        <div class="label" id="statBalanceLabel">Saldo do mês</div>
         <div class="value num" id="statBalance">R$ 0,00</div>
       </div>
       <div class="stat">
@@ -995,10 +1109,17 @@
       </div>
     </div>
 
-    <div class="panel spend-panel">
-      <div class="label">Quanto você pode gastar este mês</div>
-      <div class="value num spendable-value">R$ 0,00</div>
-      <div class="sub">receitas + dividendos − despesas já lançadas − investido este mês</div>
+    <div class="panel spend-panel two-col">
+      <div>
+        <div class="label">Saldo disponível</div>
+        <div class="value num saldo-disponivel-value">R$ 0,00</div>
+        <div class="sub">só o que já foi pago/recebido este mês</div>
+      </div>
+      <div>
+        <div class="label">Saldo previsto</div>
+        <div class="value num saldo-previsto-value">R$ 0,00</div>
+        <div class="sub">incluindo o que ainda está pendente</div>
+      </div>
     </div>
 
     <div class="panel spend-panel">
@@ -1046,11 +1167,15 @@
               <label for="txDate">Data</label>
               <input id="txDate" type="date" required>
             </div>
-            <div class="field" style="flex-direction: row; gap: 8px;">
+            <div class="field" style="flex-direction: row; gap: 8px; align-items: center;">
               <div class="type-toggle" id="typeToggle">
                 <button type="button" data-type="despesa" class="active">Despesa</button>
                 <button type="button" data-type="receita">Receita</button>
               </div>
+              <label class="paid-toggle">
+                <input type="checkbox" id="txPaid" checked>
+                <span id="txPaidLabel">Já paguei</span>
+              </label>
               <button type="submit" class="btn-add">Adicionar</button>
             </div>
           </form>
@@ -1063,7 +1188,7 @@
         <div class="panel">
           <div class="panel-head">
             <h2>Por categoria</h2>
-            <span class="hint">despesas do mês</span>
+            <span class="hint" id="catBarsHint">despesas do mês</span>
           </div>
           <div class="cat-bars" id="catBars"></div>
         </div>
@@ -1087,10 +1212,17 @@
   </div>
 
   <div class="tab-panel" data-panel="investimentos" hidden>
-    <div class="panel spend-panel">
-      <div class="label">Quanto você pode gastar este mês</div>
-      <div class="value num spendable-value">R$ 0,00</div>
-      <div class="sub">receitas + dividendos − despesas já lançadas − investido este mês</div>
+    <div class="panel spend-panel two-col">
+      <div>
+        <div class="label">Saldo disponível</div>
+        <div class="value num saldo-disponivel-value">R$ 0,00</div>
+        <div class="sub">só o que já foi pago/recebido este mês</div>
+      </div>
+      <div>
+        <div class="label">Saldo previsto</div>
+        <div class="value num saldo-previsto-value">R$ 0,00</div>
+        <div class="sub">incluindo o que ainda está pendente</div>
+      </div>
     </div>
 
     <div class="grid">
@@ -1308,6 +1440,9 @@
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
   function monthKey(dateStr) { return dateStr.slice(0, 7); }
+  // Lançamentos salvos antes desta função existir não têm o campo "paid" —
+  // tratá-los como pagos por padrão evita que tudo que já existia vire "pendente" do nada.
+  function isPaid(t) { return t.paid !== false; }
 
   var INVESTMENT_TYPES = [
     { key: "renda_fixa", label: "Renda fixa", color: "#4F7CAC" },
@@ -1332,6 +1467,7 @@
     imageLimits: null,
     chatAI: false,
     chatTurns: [],
+    quickFilter: "mes", // 'mes' | 'hoje' | '7dias' | 'ano'
     storage: "local" // 'local' | 'cloud'
   };
 
@@ -1641,6 +1777,20 @@
       if (onSettle) onSettle();
     }
   }
+
+  function setTransactionPaid(id, paid) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.doc(userCol("transactions") + "/" + id).update({ paid: paid }), "o status do lançamento");
+    } else if (state.storage === "server") {
+      serverWrite(serverUpdate("transactions", id, { paid: paid }).then(function (saved) {
+        var t = state.transactions.find(function (t) { return t.id === id; });
+        if (t) Object.assign(t, saved); render();
+      }), "o status do lançamento");
+    } else {
+      var t = state.transactions.find(function (t) { return t.id === id; });
+      if (t) { t.paid = paid; saveLocal(); render(); }
+    }
+  }
   function addGoal(goal) {
     if (state.storage === "cloud" && state.db) {
       cloudWrite(state.db.collection(userCol("goals")).add(goal), "a meta");
@@ -1742,6 +1892,7 @@
     currentType = btn.getAttribute("data-type");
     Array.prototype.forEach.call(typeToggle.querySelectorAll("button"), function (b) { b.classList.toggle("active", b === btn); });
     populateCategories();
+    document.getElementById("txPaidLabel").textContent = currentType === "receita" ? "Já recebi" : "Já paguei";
   });
   populateCategories();
   document.getElementById("txDate").value = todayISO();
@@ -1932,8 +2083,9 @@
     var amount = parseAmount(document.getElementById("txAmount").value);
     var date = document.getElementById("txDate").value || todayISO();
     var category = txCategory.value;
+    var paid = document.getElementById("txPaid").checked;
     if (!desc || !amount || amount <= 0) return;
-    addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, createdAt: new Date().toISOString() });
+    addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, createdAt: new Date().toISOString() });
     document.getElementById("txDesc").value = "";
     document.getElementById("txAmount").value = "";
     document.getElementById("txDesc").focus();
@@ -2020,7 +2172,7 @@
     if (existingId) {
       updateTransactionAmount(existingId, amount, reabilitar);
     } else {
-      addTransaction({ desc: "Salário", amount: amount, type: "receita", category: "salario", date: currentMonthKey() + "-01", createdAt: new Date().toISOString() }, reabilitar);
+      addTransaction({ desc: "Salário", amount: amount, type: "receita", category: "salario", date: currentMonthKey() + "-01", paid: true, createdAt: new Date().toISOString() }, reabilitar);
     }
   });
 
@@ -2097,13 +2249,36 @@
   });
 
   // ---------- Month nav ----------
+  // Navegar de mês reseta o filtro rápido pra "Este mês" — senão dava pra ficar em
+  // "Hoje" olhando o mês errado sem perceber, já que a fatia mostrada é sempre a
+  // data real, não a do mês selecionado.
+  function setQuickFilter(qf) {
+    state.quickFilter = qf;
+    Array.prototype.forEach.call(document.querySelectorAll(".qf-btn"), function (b) {
+      b.classList.toggle("active", b.getAttribute("data-qf") === qf);
+    });
+  }
   document.getElementById("prevMonth").addEventListener("click", function () {
     state.current = new Date(state.current.getFullYear(), state.current.getMonth() - 1, 1);
+    setQuickFilter("mes");
     render();
   });
   document.getElementById("nextMonth").addEventListener("click", function () {
     state.current = new Date(state.current.getFullYear(), state.current.getMonth() + 1, 1);
+    setQuickFilter("mes");
     render();
+  });
+  document.getElementById("quickFilters").addEventListener("click", function (e) {
+    var btn = e.target.closest(".qf-btn");
+    if (!btn) return;
+    setQuickFilter(btn.getAttribute("data-qf"));
+    render();
+  });
+  document.getElementById("timelinePrev").addEventListener("click", function () {
+    document.getElementById("monthTimeline").scrollBy({ left: -110, behavior: "smooth" });
+  });
+  document.getElementById("timelineNext").addEventListener("click", function () {
+    document.getElementById("monthTimeline").scrollBy({ left: 110, behavior: "smooth" });
   });
 
   // ---------- Export ----------
@@ -2141,21 +2316,68 @@
     var real = state.transactions;
     var monthTx = real.filter(function (t) { return monthKey(t.date) === mk; });
 
-    var income = 0, expense = 0;
-    monthTx.forEach(function (t) { if (t.type === "receita") income += Number(t.amount); else expense += Number(t.amount); });
+    // Os filtros rápidos (Hoje/7 dias/Este ano) recortam uma fatia diferente pra ver —
+    // mas a "média mensal" e o widget de salário continuam sempre olhando pro mês
+    // inteiro, senão comparar "hoje" com uma média mensal não faz sentido nenhum.
+    var QF_LABELS = {
+      mes: { receitas: "Receitas do mês", despesas: "Despesas do mês", saldo: "Saldo do mês", cat: "despesas do mês", vazio: "neste mês" },
+      hoje: { receitas: "Receitas de hoje", despesas: "Despesas de hoje", saldo: "Saldo de hoje", cat: "despesas de hoje", vazio: "hoje" },
+      "7dias": { receitas: "Receitas (7 dias)", despesas: "Despesas (7 dias)", saldo: "Saldo (7 dias)", cat: "despesas nos últimos 7 dias", vazio: "nos últimos 7 dias" },
+      ano: { receitas: "Receitas do ano", despesas: "Despesas do ano", saldo: "Saldo do ano", cat: "despesas no ano", vazio: "neste ano" }
+    };
+    var qf = QF_LABELS[state.quickFilter] || QF_LABELS.mes;
+    var viewTx;
+    if (state.quickFilter === "hoje") {
+      var hojeStr = todayISO();
+      viewTx = real.filter(function (t) { return t.date === hojeStr; });
+    } else if (state.quickFilter === "7dias") {
+      var fim7 = new Date(); fim7.setHours(0, 0, 0, 0);
+      var ini7 = new Date(fim7); ini7.setDate(ini7.getDate() - 6);
+      viewTx = real.filter(function (t) {
+        var d = new Date(t.date + "T00:00:00");
+        return d >= ini7 && d <= fim7;
+      });
+    } else if (state.quickFilter === "ano") {
+      var anoStr = String(state.current.getFullYear());
+      viewTx = real.filter(function (t) { return t.date.slice(0, 4) === anoStr; });
+    } else {
+      viewTx = monthTx;
+    }
+
+    document.getElementById("statIncomeLabel").textContent = qf.receitas;
+    document.getElementById("statExpenseLabel").textContent = qf.despesas;
+    document.getElementById("statBalanceLabel").textContent = qf.saldo;
+
+    var income = 0, expense = 0, recebido = 0, aReceber = 0, pago = 0, naoPago = 0;
+    viewTx.forEach(function (t) {
+      var val = Number(t.amount);
+      if (t.type === "receita") {
+        income += val;
+        if (isPaid(t)) recebido += val; else aReceber += val;
+      } else {
+        expense += val;
+        if (isPaid(t)) pago += val; else naoPago += val;
+      }
+    });
     var balance = income - expense;
     var rate = income > 0 ? Math.round((balance / income) * 100) : 0;
 
     document.getElementById("statIncome").textContent = fmt(income);
     document.getElementById("statExpense").textContent = fmt(expense);
+    document.getElementById("statIncomeSub").textContent = aReceber > 0
+      ? "Recebido " + fmt(recebido) + " · A receber " + fmt(aReceber) : "";
+    document.getElementById("statExpenseSub").textContent = naoPago > 0
+      ? "Pago " + fmt(pago) + " · Não pago " + fmt(naoPago) : "";
     var balEl = document.getElementById("statBalance");
     balEl.textContent = fmt(balance);
     balEl.style.color = balance >= 0 ? "var(--income)" : "var(--expense)";
     document.getElementById("statRate").textContent = (income > 0 ? rate : 0) + "%";
 
-    document.getElementById("txCount").textContent = monthTx.length + (monthTx.length === 1 ? " lançamento" : " lançamentos");
+    document.getElementById("txCount").textContent = viewTx.length + (viewTx.length === 1 ? " lançamento" : " lançamentos");
 
-    // média histórica de despesas — mostra pra onde a pessoa tende a estourar o próprio padrão
+    // média histórica de despesas — sempre compara o mês cheio, nunca a fatia do filtro rápido
+    var expenseDoMes = monthTx.filter(function (t) { return t.type === "despesa"; })
+      .reduce(function (s, t) { return s + Number(t.amount); }, 0);
     var avgData = computeSpendingAverages(mk);
     var avgValueEl = document.getElementById("avgValue");
     var avgSubEl = document.getElementById("avgSub");
@@ -2164,27 +2386,31 @@
       avgSubEl.textContent = "Ainda não há meses anteriores pra calcular — volte aqui mês que vem.";
     } else {
       avgValueEl.textContent = fmt(avgData.overall);
-      var avgDiff = avgData.overall > 0 ? Math.round(((expense - avgData.overall) / avgData.overall) * 100) : 0;
-      if (expense > avgData.overall) {
-        avgSubEl.innerHTML = 'Este mês: <strong class="num" style="color:var(--expense)">' + fmt(expense) + '</strong> — ' + avgDiff + '% acima da sua média (' + avgData.months + (avgData.months === 1 ? ' mês anterior' : ' meses anteriores') + ')';
+      var avgDiff = avgData.overall > 0 ? Math.round(((expenseDoMes - avgData.overall) / avgData.overall) * 100) : 0;
+      if (expenseDoMes > avgData.overall) {
+        avgSubEl.innerHTML = 'Este mês: <strong class="num" style="color:var(--expense)">' + fmt(expenseDoMes) + '</strong> — ' + avgDiff + '% acima da sua média (' + avgData.months + (avgData.months === 1 ? ' mês anterior' : ' meses anteriores') + ')';
       } else {
-        avgSubEl.innerHTML = 'Este mês: <strong class="num" style="color:var(--income)">' + fmt(expense) + '</strong> — dentro da sua média (' + avgData.months + (avgData.months === 1 ? ' mês anterior' : ' meses anteriores') + ')';
+        avgSubEl.innerHTML = 'Este mês: <strong class="num" style="color:var(--income)">' + fmt(expenseDoMes) + '</strong> — dentro da sua média (' + avgData.months + (avgData.months === 1 ? ' mês anterior' : ' meses anteriores') + ')';
       }
     }
 
     // transaction list
     var list = document.getElementById("txList");
-    var sorted = monthTx.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    var sorted = viewTx.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
     if (sorted.length === 0) {
-      list.innerHTML = '<div class="empty-note">Nenhum lançamento neste mês ainda.</div>';
+      list.innerHTML = '<div class="empty-note">Nenhum lançamento ' + qf.vazio + ' ainda.</div>';
     } else {
       list.innerHTML = sorted.map(function (t) {
         var meta = catMeta(t.category);
         var dateLabel = new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        var paid = isPaid(t);
+        var statusLabel = t.type === "receita" ? (paid ? "Recebido" : "A receber") : (paid ? "Pago" : "Pendente");
         return '<div class="tx-row">' +
           '<div>' +
             '<div class="tx-desc">' + escapeHtml(t.desc) + '</div>' +
-            '<div class="tx-meta"><span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span><span class="tx-date">' + dateLabel + '</span></div>' +
+            '<div class="tx-meta"><span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span><span class="tx-date">' + dateLabel + '</span>' +
+              '<span class="tx-status ' + (paid ? "paid" : "pending") + '" data-id="' + t.id + '" data-paid="' + paid + '" title="Toque pra alternar">' + statusLabel + '</span>' +
+            '</div>' +
           '</div>' +
           '<div class="tx-amount ' + (t.type === "receita" ? "income" : "expense") + ' num">' + (t.type === "receita" ? "+ " : "− ") + fmt(t.amount) + '</div>' +
           '<button class="tx-del" data-id="' + t.id + '" title="Excluir">' + ICON_TRASH + '</button>' +
@@ -2194,23 +2420,30 @@
       Array.prototype.forEach.call(list.querySelectorAll(".tx-del"), function (btn) {
         btn.addEventListener("click", function () { deleteTransaction(btn.getAttribute("data-id")); });
       });
+      Array.prototype.forEach.call(list.querySelectorAll(".tx-status"), function (btn) {
+        btn.addEventListener("click", function () {
+          setTransactionPaid(btn.getAttribute("data-id"), btn.getAttribute("data-paid") !== "true");
+        });
+      });
     }
 
-    // category breakdown (expenses, this month)
+    // category breakdown (despesas da fatia atual — mês, hoje, 7 dias ou ano)
     var byCat = {};
-    monthTx.filter(function (t) { return t.type === "despesa"; }).forEach(function (t) {
+    viewTx.filter(function (t) { return t.type === "despesa"; }).forEach(function (t) {
       byCat[t.category] = (byCat[t.category] || 0) + Number(t.amount);
     });
     var catEntries = Object.keys(byCat).map(function (k) { return { key: k, value: byCat[k] }; }).sort(function (a, b) { return b.value - a.value; });
     var catBars = document.getElementById("catBars");
+    document.getElementById("catBarsHint").textContent = qf.cat;
     if (catEntries.length === 0) {
-      catBars.innerHTML = '<div class="empty-note">Sem despesas categorizadas neste mês.</div>';
+      catBars.innerHTML = '<div class="empty-note">Sem despesas categorizadas ' + qf.vazio + '.</div>';
     } else {
       var max = catEntries[0].value;
       catBars.innerHTML = catEntries.map(function (e) {
         var meta = catMeta(e.key);
         var pct = Math.max(4, Math.round((e.value / max) * 100));
-        var catAvg = avgData && avgData.byCategory[e.key];
+        // A média é sempre mensal — só faz sentido comparar quando o filtro rápido também é "mês".
+        var catAvg = state.quickFilter === "mes" && avgData && avgData.byCategory[e.key];
         var overAvg = catAvg && e.value > catAvg;
         return '<div class="cat-row">' +
           '<span class="cat-name">' + meta.label + (overAvg ? ' <span class="cat-flag" title="Sua média mensal aqui é ' + fmt(catAvg) + '">acima da média</span>' : '') + '</span>' +
@@ -2264,7 +2497,50 @@
 
     renderEvolution(real);
     renderInvestTab();
+    renderMonthTimeline();
     refreshWelcome();
+  }
+
+  // ---------- Linha do tempo de meses ----------
+  function fmtTimelineValue(v) {
+    var sinal = v < 0 ? "−" : "";
+    var abs = Math.abs(v);
+    var txto = abs >= 1000 ? (abs / 1000).toFixed(1).replace(".0", "") + "k" : String(Math.round(abs));
+    return sinal + "R$" + txto;
+  }
+
+  function renderMonthTimeline() {
+    var wrap = document.getElementById("monthTimeline");
+    var mkAtual = currentMonthKey();
+    var meses = [];
+    for (var i = -6; i <= 6; i++) meses.push(new Date(state.current.getFullYear(), state.current.getMonth() + i, 1));
+
+    wrap.innerHTML = meses.map(function (d) {
+      var mk2 = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      var inc = 0, exp = 0;
+      state.transactions.forEach(function (t) {
+        if (monthKey(t.date) !== mk2) return;
+        if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount);
+      });
+      var saldo = inc - exp;
+      var atual = mk2 === mkAtual;
+      var label = MONTHS_SHORT[d.getMonth()] + (d.getFullYear() !== state.current.getFullYear() ? " '" + String(d.getFullYear()).slice(2) : "");
+      var cls = saldo > 0 ? "income" : (saldo < 0 ? "expense" : "");
+      return '<div class="month-card' + (atual ? " current" : "") + '" data-y="' + d.getFullYear() + '" data-m="' + d.getMonth() + '">' +
+        '<div class="mc-label">' + label + '</div>' +
+        '<div class="mc-value num ' + cls + '">' + fmtTimelineValue(saldo) + '</div>' +
+      '</div>';
+    }).join("");
+
+    Array.prototype.forEach.call(wrap.querySelectorAll(".month-card"), function (card) {
+      card.addEventListener("click", function () {
+        state.current = new Date(Number(card.getAttribute("data-y")), Number(card.getAttribute("data-m")), 1);
+        setQuickFilter("mes");
+        render();
+      });
+    });
+    var atualCard = wrap.querySelector(".month-card.current");
+    if (atualCard) atualCard.scrollIntoView({ inline: "center", block: "nearest" });
   }
 
   function investDividendTotal(i) { return (i.dividends || []).reduce(function (s, d) { return s + Number(d.amount); }, 0); }
@@ -2335,10 +2611,32 @@
     };
   }
 
-  function computeSpendable() {
+  // Disponível conta só o que já foi pago/recebido de verdade — é dinheiro que já
+  // está (ou já saiu) da conta. Previsto soma também o que ainda está pendente,
+  // pra mostrar como fica o mês se tudo que já foi lançado se resolver.
+  // Investimentos e dividendos não têm status de pendência neste app — entram
+  // nos dois cálculos do mesmo jeito.
+  function computeSaldoDisponivel() {
     var rmk = todayISO().slice(0, 7);
     var inc = 0, exp = 0, inv = 0, div = 0;
-    state.transactions.forEach(function (t) { if (monthKey(t.date) === rmk) { if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount); } });
+    state.transactions.forEach(function (t) {
+      if (monthKey(t.date) !== rmk || !isPaid(t)) return;
+      if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount);
+    });
+    state.investments.forEach(function (i) {
+      if (monthKey(i.date) === rmk) inv += Number(i.amount);
+      (i.dividends || []).forEach(function (d) { if (monthKey(d.date) === rmk) div += Number(d.amount); });
+    });
+    return inc + div - exp - inv;
+  }
+
+  function computeSaldoPrevisto() {
+    var rmk = todayISO().slice(0, 7);
+    var inc = 0, exp = 0, inv = 0, div = 0;
+    state.transactions.forEach(function (t) {
+      if (monthKey(t.date) !== rmk) return;
+      if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount);
+    });
     state.investments.forEach(function (i) {
       if (monthKey(i.date) === rmk) inv += Number(i.amount);
       (i.dividends || []).forEach(function (d) { if (monthKey(d.date) === rmk) div += Number(d.amount); });
@@ -2446,10 +2744,15 @@
       }).join("");
     }
 
-    var spendable = computeSpendable();
-    Array.prototype.forEach.call(document.querySelectorAll(".spendable-value"), function (el) {
-      el.textContent = fmt(spendable);
-      el.style.color = spendable >= 0 ? "var(--income)" : "var(--expense)";
+    var disponivel = computeSaldoDisponivel();
+    var previsto = computeSaldoPrevisto();
+    Array.prototype.forEach.call(document.querySelectorAll(".saldo-disponivel-value"), function (el) {
+      el.textContent = fmt(disponivel);
+      el.style.color = disponivel >= 0 ? "var(--income)" : "var(--expense)";
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".saldo-previsto-value"), function (el) {
+      el.textContent = fmt(previsto);
+      el.style.color = previsto >= 0 ? "var(--income)" : "var(--expense)";
     });
   }
 
@@ -2688,7 +2991,7 @@
       partes.push("Nenhum gasto lançado hoje ainda.");
     }
 
-    var sobra = computeSpendable();
+    var sobra = computeSaldoDisponivel();
     if (sobra > 0) partes.push("Ainda dá pra gastar " + fmt(sobra) + " este mês.");
     else if (sobra < 0) partes.push("Este mês já saiu " + fmt(Math.abs(sobra)) + " a mais do que entrou.");
 
