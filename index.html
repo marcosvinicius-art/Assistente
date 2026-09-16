@@ -512,13 +512,14 @@
     line-height: 1;
     white-space: nowrap;
   }
-  .field .amount-preview {
+  .field-input-wrap { position: relative; }
+  .field-input-wrap .amount-preview {
     position: absolute;
     left: 0;
-    top: 100%;
-    margin-top: 3px;
+    bottom: 100%;
+    margin-bottom: 3px;
   }
-  .amount-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .amount-field { display: flex; flex-direction: column-reverse; gap: 3px; min-width: 0; }
 
   input, select {
     font: inherit;
@@ -1140,7 +1141,7 @@
         <h2>Salário do mês</h2>
         <span class="hint" id="salaryStatus">carregando…</span>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 3px;">
+      <div style="display: flex; flex-direction: column-reverse; gap: 3px;">
         <input id="salaryInput" type="text" inputmode="decimal" placeholder="0,00">
         <span class="amount-preview" id="salaryPreview">&nbsp;</span>
       </div>
@@ -1163,8 +1164,10 @@
             </div>
             <div class="field">
               <label for="txAmount">Valor (R$)</label>
-              <input id="txAmount" type="text" inputmode="decimal" placeholder="0,00" required>
-              <span class="amount-preview" id="txAmountPreview"></span>
+              <div class="field-input-wrap">
+                <input id="txAmount" type="text" inputmode="decimal" placeholder="0,00" required>
+                <span class="amount-preview" id="txAmountPreview"></span>
+              </div>
             </div>
             <div class="field">
               <label for="txCategory">Categoria</label>
@@ -1247,8 +1250,10 @@
             </div>
             <div class="field">
               <label for="investAmount">Valor (R$)</label>
-              <input id="investAmount" type="text" inputmode="decimal" placeholder="0,00" required>
-              <span class="amount-preview" id="investAmountPreview"></span>
+              <div class="field-input-wrap">
+                <input id="investAmount" type="text" inputmode="decimal" placeholder="0,00" required>
+                <span class="amount-preview" id="investAmountPreview"></span>
+              </div>
             </div>
             <div class="field">
               <label for="investType">Tipo</label>
