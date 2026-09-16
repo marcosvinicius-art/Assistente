@@ -744,15 +744,19 @@
   /* Cabeçalho invertido (fundo/texto trocados) — o mesmo truque de "extrato/
      private banking": ele separa a área de investimentos do resto do app à
      primeira vista, sem precisar de nenhuma cor que não exista já no tema. */
+  /* Cor fixa de propósito (não segue --ink/--bg do tema claro/escuro): é um
+     visual "cofre/private banking" deliberado, igual em qualquer tema — por
+     isso toda cor aqui dentro é escrita explicitamente, nunca var(--token). */
   .portfolio-masthead {
-    background: var(--ink);
-    color: var(--bg);
+    background: #161310;
+    border: 1px solid #3A2F1D;
+    color: #F5EFE0;
     border-radius: var(--radius);
     box-shadow: var(--shadow-raised);
     padding: 26px 28px;
     margin-bottom: 18px;
   }
-  .pm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; margin-bottom: 8px; }
+  .pm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #C9A227; font-weight: 600; margin-bottom: 8px; }
   .pm-hero { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
   .pm-value {
     font-family: "Fraunces", Georgia, serif;
@@ -760,6 +764,7 @@
     font-weight: 600;
     font-size: 36px;
     letter-spacing: -0.01em;
+    color: #F5EFE0;
   }
   .pm-badge {
     font-family: "IBM Plex Mono", ui-monospace, monospace;
@@ -767,14 +772,14 @@
     font-weight: 700;
     padding: 4px 11px;
     border-radius: 999px;
-    background: var(--surface-2);
-    color: var(--ink-muted);
+    background: rgba(201, 162, 39, 0.16);
+    color: #D8B44E;
   }
-  .pm-badge.gain { background: var(--income-soft); color: var(--income); }
-  .pm-badge.loss { background: var(--expense-soft); color: var(--expense); }
-  .pm-row { display: flex; gap: 32px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid rgba(128, 128, 128, 0.25); }
-  .pm-row-label { display: block; font-size: 11px; opacity: 0.6; margin-bottom: 3px; }
-  .pm-row-value { font-size: 14.5px; font-weight: 600; }
+  .pm-badge.gain { background: rgba(52, 211, 153, 0.16); color: #34D399; }
+  .pm-badge.loss { background: rgba(251, 113, 133, 0.16); color: #FB7185; }
+  .pm-row { display: flex; gap: 32px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid rgba(201, 162, 39, 0.25); }
+  .pm-row-label { display: block; font-size: 11px; color: rgba(245, 239, 224, 0.55); margin-bottom: 3px; }
+  .pm-row-value { font-size: 14.5px; font-weight: 600; color: #F5EFE0; }
 
   .invest-card {
     border: 1px solid var(--border);
