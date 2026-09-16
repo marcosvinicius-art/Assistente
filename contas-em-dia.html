@@ -498,21 +498,28 @@
     color: var(--ink-faint);
   }
 
+  /* O texto real do campo fica transparente (só o cursor aparece) e este preview
+     ocupa a mesma caixa por cima, mostrando o valor já formatado — dá a impressão
+     de o próprio campo exibir "R$ 111,00" enquanto a pessoa digita "111". */
+  .field-input-wrap, .amount-field { position: relative; min-width: 0; }
+  .field-input-wrap input, .amount-field input {
+    position: relative;
+    color: transparent;
+    caret-color: var(--ink);
+  }
   .amount-preview {
-    font-size: 11px;
-    color: var(--ink-faint);
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    line-height: 1;
-    white-space: nowrap;
-  }
-  .field-input-wrap { position: relative; }
-  .field-input-wrap .amount-preview {
     position: absolute;
-    left: 0;
-    bottom: 100%;
-    margin-bottom: 3px;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 13px;
+    color: var(--ink);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    pointer-events: none;
   }
-  .amount-field { display: flex; flex-direction: column-reverse; gap: 3px; min-width: 0; }
 
   input, select {
     font: inherit;
@@ -1134,9 +1141,9 @@
         <h2>Salário do mês</h2>
         <span class="hint" id="salaryStatus">carregando…</span>
       </div>
-      <div style="display: flex; flex-direction: column-reverse; gap: 3px;">
+      <div class="amount-field" style="max-width: 140px;">
         <input id="salaryInput" type="text" inputmode="decimal" placeholder="0,00">
-        <span class="amount-preview" id="salaryPreview">&nbsp;</span>
+        <span class="amount-preview" id="salaryPreview"></span>
       </div>
       <button class="salary-remove-btn" id="salaryRemoveBtn" type="button" hidden>Remover</button>
       <button class="btn-add" id="salarySaveBtn" type="submit">Salvar</button>
@@ -1919,10 +1926,13 @@
   });
 
   // ---------- Live "you typed this much" preview (avoids mixing up 300 and 3.000) ----------
+  // O texto do input fica transparente (ver CSS) e este preview aparece por cima,
+  // no lugar exato onde o texto digitado estaria — como um campo de valor de banco:
+  // "111" digitado aparece na hora como "R$ 111,00", sem precisar de legenda ao lado.
   function attachAmountPreview(inputEl, previewEl) {
     inputEl.addEventListener("input", function () {
       var v = parseAmount(inputEl.value);
-      previewEl.textContent = v > 0 ? "= " + fmt(v) : "";
+      previewEl.textContent = v > 0 ? fmt(v) : "";
     });
   }
   attachAmountPreview(document.getElementById("txAmount"), document.getElementById("txAmountPreview"));
@@ -2114,7 +2124,7 @@
     editingInvestId = inv.id;
     document.getElementById("investDesc").value = inv.desc;
     document.getElementById("investAmount").value = inv.amount;
-    document.getElementById("investAmountPreview").textContent = "= " + fmt(inv.amount);
+    document.getElementById("investAmountPreview").textContent = fmt(inv.amount);
     investType.value = inv.type;
     document.getElementById("investDate").value = inv.date;
     investSubmitBtn.textContent = "Salvar edição";
@@ -2198,7 +2208,7 @@
       input.value = salaryTx.amount;
       input.dataset.txId = salaryTx.id;
       status.textContent = "Registrado: " + fmt(salaryTx.amount);
-      preview.textContent = "= " + fmt(salaryTx.amount);
+      preview.textContent = fmt(salaryTx.amount);
       salaryRemoveBtn.hidden = false;
     } else {
       input.value = "";
