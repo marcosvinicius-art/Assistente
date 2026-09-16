@@ -734,6 +734,41 @@
   }
 
   /* ---- Investment cards ---- */
+  /* Cabeçalho invertido (fundo/texto trocados) — o mesmo truque de "extrato/
+     private banking": ele separa a área de investimentos do resto do app à
+     primeira vista, sem precisar de nenhuma cor que não exista já no tema. */
+  .portfolio-masthead {
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-raised);
+    padding: 26px 28px;
+    margin-bottom: 18px;
+  }
+  .pm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; margin-bottom: 8px; }
+  .pm-hero { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .pm-value {
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 36px;
+    letter-spacing: -0.01em;
+  }
+  .pm-badge {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--ink-muted);
+  }
+  .pm-badge.gain { background: var(--income-soft); color: var(--income); }
+  .pm-badge.loss { background: var(--expense-soft); color: var(--expense); }
+  .pm-row { display: flex; gap: 32px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid rgba(128, 128, 128, 0.25); }
+  .pm-row-label { display: block; font-size: 11px; opacity: 0.6; margin-bottom: 3px; }
+  .pm-row-value { font-size: 14.5px; font-weight: 600; }
+
   .invest-card {
     border: 1px solid var(--border);
     border-left: 3px solid var(--border);
@@ -1334,23 +1369,15 @@
   </div>
 
   <div class="tab-panel" data-panel="investimentos" hidden>
-    <div class="stats">
-      <div class="stat">
-        <div class="label">Total investido</div>
-        <div class="value num" id="investStatTotal">R$ 0,00</div>
+    <div class="portfolio-masthead">
+      <div class="pm-label">Patrimônio investido</div>
+      <div class="pm-hero">
+        <span class="pm-value num" id="investStatCurrent">R$ 0,00</span>
+        <span class="pm-badge" id="investStatBadge">R$ 0,00</span>
       </div>
-      <div class="stat">
-        <div class="label">Valor atual</div>
-        <div class="value num" id="investStatCurrent">R$ 0,00</div>
-      </div>
-      <div class="stat">
-        <div class="label">Rendimento</div>
-        <div class="value num" id="investStatGain">R$ 0,00</div>
-        <div class="sub" id="investStatGainSub"></div>
-      </div>
-      <div class="stat">
-        <div class="label">Dividendos</div>
-        <div class="value num" id="investStatDiv">R$ 0,00</div>
+      <div class="pm-row">
+        <div><span class="pm-row-label">Investido</span><span class="pm-row-value num" id="investStatTotal">R$ 0,00</span></div>
+        <div><span class="pm-row-label">Dividendos recebidos</span><span class="pm-row-value num" id="investStatDiv">R$ 0,00</span></div>
       </div>
     </div>
 
@@ -2915,11 +2942,12 @@
 
     document.getElementById("investStatTotal").textContent = fmt(totalInvested);
     document.getElementById("investStatCurrent").textContent = fmt(totalCurrent);
-    var gainStatEl = document.getElementById("investStatGain");
-    gainStatEl.textContent = (totalGain >= 0 ? "+" : "") + fmt(totalGain);
-    gainStatEl.style.color = totalGain > 0 ? "var(--income)" : (totalGain < 0 ? "var(--expense)" : "");
-    document.getElementById("investStatGainSub").textContent = pool.length
-      ? (totalGain >= 0 ? "+" : "") + totalGainPct.toFixed(1) + "% sobre o investido" : "";
+    var badgeEl = document.getElementById("investStatBadge");
+    var badgeCls = totalGain > 0 ? "gain" : (totalGain < 0 ? "loss" : "");
+    badgeEl.className = "pm-badge" + (badgeCls ? " " + badgeCls : "");
+    badgeEl.textContent = pool.length
+      ? (totalGain >= 0 ? "+" : "") + fmt(totalGain) + " (" + (totalGain >= 0 ? "+" : "") + totalGainPct.toFixed(1) + "%)"
+      : "sem posições ainda";
     document.getElementById("investStatDiv").textContent = fmt(totalDividends);
     document.getElementById("investCount").textContent = pool.length + (pool.length === 1 ? " posição" : " posições");
 
