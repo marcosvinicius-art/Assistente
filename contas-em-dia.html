@@ -821,6 +821,21 @@
   .goal-nums { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-muted); }
   .goal-hint { font-size: 11.5px; color: var(--ink-muted); margin-top: 6px; line-height: 1.45; }
   .goal-hint.done { color: var(--income); font-weight: 600; }
+  .goal-plans { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; }
+  .goal-plans summary { font-size: 12px; color: var(--ink-muted); cursor: pointer; }
+  .goal-plans-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+  .goal-plans-table th {
+    text-align: right;
+    font-weight: 600;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    padding-bottom: 4px;
+  }
+  .goal-plans-table th:first-child { text-align: left; }
+  .goal-plans-table td { padding: 4px 0; border-top: 1px dashed var(--border); text-align: right; }
+  .goal-plans-table td:first-child { text-align: left; color: var(--ink-muted); }
   .goal-add-row { display: flex; gap: 6px; margin-top: 8px; align-items: flex-start; }
   .goal-add-row .amount-field { flex: 1; }
   .goal-add-row button {
@@ -2643,6 +2658,19 @@
           var dica = goalHint(g);
           return '<div class="goal-hint' + (dica.concluida ? ' done' : '') + '">' + dica.texto + '</div>';
         })() +
+        (function () {
+          var planos = goalPlans(g);
+          if (!planos.length) return "";
+          return '<details class="goal-plans">' +
+            '<summary>Ver outras formas de guardar</summary>' +
+            '<div style="overflow-x:auto;"><table class="goal-plans-table"><thead><tr><th>Prazo</th><th>Por mês</th><th>Por semana</th><th>Por dia</th></tr></thead><tbody>' +
+            planos.map(function (p) {
+              return '<tr><td>' + prazoLabel(p.meses) + '</td><td class="num">' + fmt(p.porMes) +
+                '</td><td class="num">' + fmt(p.porSemana) + '</td><td class="num">' + fmt(p.porDia) + '</td></tr>';
+            }).join("") +
+            '</tbody></table></div>' +
+          '</details>';
+        })() +
         '<div class="goal-add-row"><div class="amount-field"><input type="text" inputmode="decimal" placeholder="Aportar R$" id="add-' + g.id + '"></div>' +
           '<button type="button" data-id="' + g.id + '" data-cur="' + g.current + '" class="goal-contribute">Guardar</button></div>' +
       '</div>';
@@ -2766,6 +2794,27 @@
     if (!meses.length) return 0;
     var soma = meses.reduce(function (s, mk) { return s + porMes[mk]; }, 0);
     return soma / meses.length;
+  }
+
+  // Várias formas de guardar pro mesmo alvo, cada uma num prazo diferente — a
+  // pessoa escolhe o ritmo que cabe no bolso (por mês, por semana ou por dia).
+  // Usa datas de verdade (não um "30 dias por mês" aproximado) pra ficar exato.
+  function prazoLabel(meses) {
+    if (meses < 12) return meses + (meses === 1 ? " mês" : " meses");
+    var anos = meses / 12;
+    return anos + (anos === 1 ? " ano" : " anos");
+  }
+
+  function goalPlans(g) {
+    var falta = Number(g.target) - Number(g.current);
+    if (falta <= 0) return [];
+    var hoje = new Date();
+    return [1, 3, 6, 12, 24].map(function (meses) {
+      var alvo = new Date(hoje.getFullYear(), hoje.getMonth() + meses, hoje.getDate());
+      var dias = Math.max(1, Math.round((alvo - hoje) / 86400000));
+      var semanas = Math.max(1, dias / 7);
+      return { meses: meses, porMes: falta / meses, porSemana: falta / semanas, porDia: falta / dias };
+    });
   }
 
   function goalHint(g) {
