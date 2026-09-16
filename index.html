@@ -743,10 +743,15 @@
   /* ---- Investment cards ---- */
   .invest-card {
     border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
     border-radius: 10px;
     padding: 14px 16px;
     margin-bottom: 10px;
   }
+  /* A borda lateral colorida é a mesma linguagem visual de home broker/corretora:
+     dá pra ver ganho/perda sem precisar ler o número. */
+  .invest-card.gain { border-left-color: var(--income); }
+  .invest-card.loss { border-left-color: var(--expense); }
   .invest-head {
     display: flex;
     align-items: flex-start;
@@ -772,16 +777,25 @@
   .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
   .icon-btn.del:hover { background: var(--expense-soft); color: var(--expense); }
 
-  .invest-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 10px;
+  /* Valor atual em destaque + selo de rendimento com seta — o número que mais
+     importa (quanto vale agora) é o mais forte da carta, não só mais um item
+     numa lista de estatísticas iguais. */
+  .invest-hero { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .invest-hero-value { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .invest-gain-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
   }
-  .invest-stats .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); margin-bottom: 2px; }
-  .invest-stats .v { font-size: 13px; font-weight: 600; }
-  .invest-stats .v.gain { color: var(--income); }
-  .invest-stats .v.loss { color: var(--expense); }
+  .invest-gain-badge.gain { background: var(--income-soft); color: var(--income); }
+  .invest-gain-badge.loss { background: var(--expense-soft); color: var(--expense); }
+  .invest-gain-badge.flat { background: var(--surface-2); color: var(--ink-faint); }
+  .invest-sub-line { font-size: 12px; color: var(--ink-faint); margin-bottom: 10px; }
 
   .invest-update-row { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--border); }
   .invest-update-row .amount-field { flex: 1; min-width: 110px; }
@@ -1327,6 +1341,26 @@
   </div>
 
   <div class="tab-panel" data-panel="investimentos" hidden>
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Total investido</div>
+        <div class="value num" id="investStatTotal">R$ 0,00</div>
+      </div>
+      <div class="stat">
+        <div class="label">Valor atual</div>
+        <div class="value num" id="investStatCurrent">R$ 0,00</div>
+      </div>
+      <div class="stat">
+        <div class="label">Rendimento</div>
+        <div class="value num" id="investStatGain">R$ 0,00</div>
+        <div class="sub" id="investStatGainSub"></div>
+      </div>
+      <div class="stat">
+        <div class="label">Dividendos</div>
+        <div class="value num" id="investStatDiv">R$ 0,00</div>
+      </div>
+    </div>
+
     <div class="panel spend-panel two-col">
       <div>
         <div class="label">Saldo disponível</div>
@@ -1345,7 +1379,7 @@
         <div class="panel">
           <div class="panel-head">
             <h2>Investimentos</h2>
-            <span class="hint num" id="investTotal"></span>
+            <span class="hint" id="investCount"></span>
           </div>
 
           <form class="entry" id="investForm">
@@ -2882,7 +2916,19 @@
     var pool = state.investments;
     var totalInvested = pool.reduce(function (s, i) { return s + Number(i.amount); }, 0);
     var totalDividends = pool.reduce(function (s, i) { return s + investDividendTotal(i); }, 0);
-    document.getElementById("investTotal").textContent = "Investido: " + fmt(totalInvested) + " · Dividendos: " + fmt(totalDividends);
+    var totalCurrent = pool.reduce(function (s, i) { return s + (i.currentValue != null ? Number(i.currentValue) : Number(i.amount)); }, 0);
+    var totalGain = totalCurrent - totalInvested;
+    var totalGainPct = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
+
+    document.getElementById("investStatTotal").textContent = fmt(totalInvested);
+    document.getElementById("investStatCurrent").textContent = fmt(totalCurrent);
+    var gainStatEl = document.getElementById("investStatGain");
+    gainStatEl.textContent = (totalGain >= 0 ? "+" : "") + fmt(totalGain);
+    gainStatEl.style.color = totalGain > 0 ? "var(--income)" : (totalGain < 0 ? "var(--expense)" : "");
+    document.getElementById("investStatGainSub").textContent = pool.length
+      ? (totalGain >= 0 ? "+" : "") + totalGainPct.toFixed(1) + "% sobre o investido" : "";
+    document.getElementById("investStatDiv").textContent = fmt(totalDividends);
+    document.getElementById("investCount").textContent = pool.length + (pool.length === 1 ? " posição" : " posições");
 
     var list = document.getElementById("investList");
     var sorted = pool.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
@@ -2895,10 +2941,11 @@
         var current = i.currentValue != null ? Number(i.currentValue) : Number(i.amount);
         var gain = current - Number(i.amount);
         var gainPct = Number(i.amount) > 0 ? (gain / Number(i.amount)) * 100 : 0;
-        var gainClass = gain > 0 ? "gain" : (gain < 0 ? "loss" : "");
+        var gainClass = gain > 0 ? "gain" : (gain < 0 ? "loss" : "flat");
         var gainSign = gain > 0 ? "+" : "";
+        var seta = gain > 0 ? "▲" : (gain < 0 ? "▼" : "•");
         var dividendTotal = investDividendTotal(i);
-        return '<div class="invest-card">' +
+        return '<div class="invest-card ' + gainClass + '">' +
           '<div class="invest-head">' +
             '<div>' +
               '<div class="invest-desc">' + escapeHtml(i.desc) + '</div>' +
@@ -2909,12 +2956,12 @@
                 '<button class="icon-btn del" data-id="' + i.id + '" title="Excluir">' + ICON_TRASH + '</button>' +
               '</div>' +
           '</div>' +
-          '<div class="invest-stats">' +
-            '<div><div class="k">Investido</div><div class="v num">' + fmt(i.amount) + '</div></div>' +
-            '<div><div class="k">Valor atual</div><div class="v num">' + fmt(current) + '</div></div>' +
-            '<div><div class="k">Rendimento</div><div class="v num ' + gainClass + '">' + gainSign + fmt(gain) + ' (' + gainSign + gainPct.toFixed(1) + '%)</div></div>' +
-            '<div><div class="k">Dividendos</div><div class="v num">' + fmt(dividendTotal) + '</div></div>' +
+          '<div class="invest-hero">' +
+            '<span class="invest-hero-value num">' + fmt(current) + '</span>' +
+            '<span class="invest-gain-badge ' + gainClass + '">' + seta + ' ' + gainSign + gainPct.toFixed(1) + '%</span>' +
           '</div>' +
+          '<div class="invest-sub-line num">investido ' + fmt(i.amount) + ' · rendimento ' + gainSign + fmt(gain) +
+            (dividendTotal > 0 ? ' · dividendos ' + fmt(dividendTotal) : '') + '</div>' +
             '<div class="invest-update-row">' +
               '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Novo valor atual" id="cur-' + i.id + '"></div>' +
               '<button type="button" class="update-current" data-id="' + i.id + '">Atualizar valor</button>' +
