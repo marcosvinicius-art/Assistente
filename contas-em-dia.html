@@ -131,15 +131,21 @@
   }
   .admin-row {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
     padding: 12px 4px;
     border-bottom: 1px solid var(--border);
   }
   .admin-row:last-child { border-bottom: none; }
-  .admin-row .admin-email { font-size: 13.5px; font-weight: 500; }
-  .admin-row .admin-date { font-size: 12px; color: var(--ink-faint); }
+  .admin-row .admin-email {
+    font-size: 13.5px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .admin-row .admin-date { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
 
   /* ---- Topbar ---- */
   .topbar {
@@ -539,28 +545,7 @@
     color: var(--ink-faint);
   }
 
-  /* O texto real do campo fica transparente (só o cursor aparece) e este preview
-     ocupa a mesma caixa por cima, mostrando o valor já formatado — dá a impressão
-     de o próprio campo exibir "R$ 111,00" enquanto a pessoa digita "111". */
-  .field-input-wrap, .amount-field { position: relative; min-width: 0; }
-  .field-input-wrap input, .amount-field input {
-    position: relative;
-    color: transparent;
-    caret-color: var(--ink);
-  }
-  .amount-preview {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-    font-size: 13px;
-    color: var(--ink);
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    pointer-events: none;
-  }
+  .amount-field { min-width: 0; }
 
   input, select {
     font: inherit;
@@ -1024,6 +1009,19 @@
   @media (max-width: 560px) {
     .qr-btn-label { display: none; }
     .qr-btn { padding: 8px; border-radius: 50%; }
+
+    /* Abaixo de 16px, o Safari do iPhone dá zoom sozinho ao tocar no campo —
+       a página "pula" de tamanho a cada campo tocado. */
+    input, select { font-size: 16px; }
+
+    /* Cada cartão de estatística ganhou uma segunda linha (Recebido/A receber,
+       Pago/Não pago) — em 2 colunas isso não cabia e cortava o texto. */
+    .stats { grid-template-columns: 1fr; }
+    .stat .value { font-size: 19px; }
+
+    .month-card { width: 76px; }
+    .admin-row { grid-template-columns: 1fr; row-gap: 2px; }
+    .admin-row .admin-date { justify-self: start; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1226,7 +1224,6 @@
       </div>
       <div class="amount-field" style="max-width: 140px;">
         <input id="salaryInput" type="text" inputmode="decimal" placeholder="0,00">
-        <span class="amount-preview" id="salaryPreview"></span>
       </div>
       <button class="salary-remove-btn" id="salaryRemoveBtn" type="button" hidden>Remover</button>
       <button class="btn-add" id="salarySaveBtn" type="submit">Salvar</button>
@@ -1247,10 +1244,7 @@
             </div>
             <div class="field">
               <label for="txAmount">Valor (R$)</label>
-              <div class="field-input-wrap">
-                <input id="txAmount" type="text" inputmode="decimal" placeholder="0,00" required>
-                <span class="amount-preview" id="txAmountPreview"></span>
-              </div>
+              <input id="txAmount" type="text" inputmode="decimal" placeholder="0,00" required>
             </div>
             <div class="field">
               <label for="txCategory">Categoria</label>
@@ -1260,7 +1254,7 @@
               <label for="txDate">Data</label>
               <input id="txDate" type="date" required>
             </div>
-            <div class="field" style="flex-direction: row; gap: 8px; align-items: center;">
+            <div class="field" style="flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center;">
               <div class="type-toggle" id="typeToggle">
                 <button type="button" data-type="despesa" class="active">Despesa</button>
                 <button type="button" data-type="receita">Receita</button>
@@ -1333,10 +1327,7 @@
             </div>
             <div class="field">
               <label for="investAmount">Valor (R$)</label>
-              <div class="field-input-wrap">
-                <input id="investAmount" type="text" inputmode="decimal" placeholder="0,00" required>
-                <span class="amount-preview" id="investAmountPreview"></span>
-              </div>
+              <input id="investAmount" type="text" inputmode="decimal" placeholder="0,00" required>
             </div>
             <div class="field">
               <label for="investType">Tipo</label>
@@ -1374,7 +1365,6 @@
             <input id="goalName" type="text" placeholder="Nova meta, ex: Reserva de emergência" maxlength="60" required>
             <div class="amount-field" style="max-width: 110px;">
               <input id="goalTarget" type="text" inputmode="decimal" placeholder="Alvo R$" required>
-              <span class="amount-preview" id="goalTargetPreview"></span>
             </div>
             <button type="submit" class="btn-add">+</button>
           </form>
@@ -1527,6 +1517,7 @@
   // normalizam a vírgula aqui, senão o valor vira NaN e o formulário falha em silêncio no celular.
   function parseAmount(v) {
     var s = String(v == null ? "" : v).trim();
+    s = s.replace(/^r\$\s*/i, ""); // o campo de valor agora mostra "R$ 111,00" direto, não só "111"
     if (s.indexOf(",") !== -1) s = s.replace(/\./g, "").replace(",", ".");
     return parseFloat(s);
   }
@@ -2041,20 +2032,69 @@
     });
   });
 
-  // ---------- Live "you typed this much" preview (avoids mixing up 300 and 3.000) ----------
-  // O texto do input fica transparente (ver CSS) e este preview aparece por cima,
-  // no lugar exato onde o texto digitado estaria — como um campo de valor de banco:
-  // "111" digitado aparece na hora como "R$ 111,00", sem precisar de legenda ao lado.
-  function attachAmountPreview(inputEl, previewEl) {
-    inputEl.addEventListener("input", function () {
-      var v = parseAmount(inputEl.value);
-      previewEl.textContent = v > 0 ? fmt(v) : "";
+  // ---------- Campo de valor com máscara ao vivo ----------
+  // "111" digitado vira "R$ 111,00" dentro do próprio campo, em tempo real — mas
+  // diferente da versão anterior (texto invisível com um preview por cima dele),
+  // agora o valor formatado É o próprio texto do campo, de verdade. Isso evita os
+  // problemas que aquela versão tinha no celular: preenchimento automático e
+  // teclado preditivo mostrando o texto real por cima do "invisível", e leitor de
+  // tela lendo um valor que não é o que aparece na tela.
+  //
+  // O truque pra isso funcionar sem quebrar a leitura do próximo dígito: nunca
+  // reaproveitar o texto já formatado pra descobrir o que a pessoa quis dizer
+  // (isso reintroduziria o mesmo bug de novo). Em vez disso, guarda-se à parte
+  // (dataset.raw) só os caracteres realmente digitados — dígitos e, no máximo,
+  // uma vírgula — e o campo é sempre reconstruído a partir dali.
+  function amountBuffer(inputEl) { return inputEl.dataset.raw || ""; }
+
+  function renderAmountBuffer(inputEl) {
+    var raw = amountBuffer(inputEl);
+    if (!raw) { inputEl.value = ""; return; }
+    var v = parseAmount(raw);
+    inputEl.value = isNaN(v) ? raw : fmt(v);
+  }
+
+  // Usado sempre que o app precisa PRÉ-PREENCHER o campo por código (editar
+  // salário/investimento) — mantém o buffer em dia com o que está na tela.
+  function setAmountValue(inputEl, amount) {
+    inputEl.dataset.raw = (amount == null || amount === "") ? "" : String(amount).replace(".", ",");
+    renderAmountBuffer(inputEl);
+  }
+
+  function attachAmountMask(inputEl) {
+    inputEl.dataset.raw = inputEl.dataset.raw || "";
+    inputEl.addEventListener("beforeinput", function (e) {
+      var raw = amountBuffer(inputEl);
+      var tipo = e.inputType || "";
+      if (tipo === "insertText" && /^[\d,]$/.test(e.data || "")) {
+        e.preventDefault();
+        if (e.data === "," && raw.indexOf(",") !== -1) return; // só uma vírgula
+        inputEl.dataset.raw = raw + e.data;
+      } else if (tipo.indexOf("delete") === 0) {
+        e.preventDefault();
+        inputEl.dataset.raw = raw.slice(0, -1);
+      } else if (tipo === "insertFromPaste" || tipo === "insertReplacementText") {
+        e.preventDefault();
+        inputEl.dataset.raw = (e.data || "").replace(/[^\d,]/g, "");
+      } else {
+        // Qualquer outro tipo de edição (desfazer, ditado, etc.) é ignorado —
+        // deixar passar sem controle corromperia o buffer.
+        e.preventDefault();
+        return;
+      }
+      renderAmountBuffer(inputEl);
+      var fim = inputEl.value.length;
+      // Cursor sempre no fim: como o texto muda de tamanho a cada tecla, não dá
+      // pra editar no meio do número de forma previsível — backspace no fim
+      // continua funcionando normalmente, que é o uso de longe mais comum.
+      requestAnimationFrame(function () { inputEl.setSelectionRange(fim, fim); });
     });
   }
-  attachAmountPreview(document.getElementById("txAmount"), document.getElementById("txAmountPreview"));
-  attachAmountPreview(document.getElementById("salaryInput"), document.getElementById("salaryPreview"));
-  attachAmountPreview(document.getElementById("investAmount"), document.getElementById("investAmountPreview"));
-  attachAmountPreview(document.getElementById("goalTarget"), document.getElementById("goalTargetPreview"));
+
+  attachAmountMask(document.getElementById("txAmount"));
+  attachAmountMask(document.getElementById("salaryInput"));
+  attachAmountMask(document.getElementById("investAmount"));
+  attachAmountMask(document.getElementById("goalTarget"));
 
   // ---------- Bolsa de valores (dados informativos, sem recomendação de compra) ----------
   var LS_BRAPI_TOKEN = "ws_brapi_token";
@@ -2218,7 +2258,7 @@
     if (!desc || !amount || amount <= 0) return;
     addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, createdAt: new Date().toISOString() });
     document.getElementById("txDesc").value = "";
-    document.getElementById("txAmount").value = "";
+    setAmountValue(document.getElementById("txAmount"), null);
     document.getElementById("txDesc").focus();
   });
 
@@ -2229,8 +2269,7 @@
   function resetInvestForm() {
     editingInvestId = null;
     document.getElementById("investDesc").value = "";
-    document.getElementById("investAmount").value = "";
-    document.getElementById("investAmountPreview").textContent = "";
+    setAmountValue(document.getElementById("investAmount"), null);
     document.getElementById("investDate").value = todayISO();
     investSubmitBtn.textContent = "Adicionar";
     investCancelBtn.hidden = true;
@@ -2239,8 +2278,7 @@
   function startEditInvestment(inv) {
     editingInvestId = inv.id;
     document.getElementById("investDesc").value = inv.desc;
-    document.getElementById("investAmount").value = inv.amount;
-    document.getElementById("investAmountPreview").textContent = fmt(inv.amount);
+    setAmountValue(document.getElementById("investAmount"), inv.amount);
     investType.value = inv.type;
     document.getElementById("investDate").value = inv.date;
     investSubmitBtn.textContent = "Salvar edição";
@@ -2273,7 +2311,7 @@
     if (!name || !target || target <= 0) return;
     addGoal({ name: name, target: target, current: 0, createdAt: new Date().toISOString() });
     document.getElementById("goalName").value = "";
-    document.getElementById("goalTarget").value = "";
+    setAmountValue(document.getElementById("goalTarget"), null);
   });
 
   // ---------- Salary quick-set ----------
@@ -2316,21 +2354,18 @@
     var salaryTx = state.transactions.find(function (t) { return t.type === "receita" && t.category === "salario" && monthKey(t.date) === mk; });
     var input = document.getElementById("salaryInput");
     var status = document.getElementById("salaryStatus");
-    var preview = document.getElementById("salaryPreview");
     status.classList.remove("error");
     salarySaveBtn.disabled = false;
     salarySaveBtn.textContent = "Salvar";
     if (salaryTx) {
-      input.value = salaryTx.amount;
+      setAmountValue(input, salaryTx.amount);
       input.dataset.txId = salaryTx.id;
       status.textContent = "Registrado: " + fmt(salaryTx.amount);
-      preview.textContent = fmt(salaryTx.amount);
       salaryRemoveBtn.hidden = false;
     } else {
-      input.value = "";
+      setAmountValue(input, null);
       input.dataset.txId = "";
       status.textContent = "Ainda não registrado este mês";
-      preview.textContent = "";
       salaryRemoveBtn.hidden = true;
     }
   }
@@ -2602,7 +2637,7 @@
           var dica = goalHint(g);
           return '<div class="goal-hint' + (dica.concluida ? ' done' : '') + '">' + dica.texto + '</div>';
         })() +
-        '<div class="goal-add-row"><div class="amount-field"><input type="text" inputmode="decimal" placeholder="Aportar R$" id="add-' + g.id + '"><span class="amount-preview" id="addPreview-' + g.id + '"></span></div>' +
+        '<div class="goal-add-row"><div class="amount-field"><input type="text" inputmode="decimal" placeholder="Aportar R$" id="add-' + g.id + '"></div>' +
           '<button type="button" data-id="' + g.id + '" data-cur="' + g.current + '" class="goal-contribute">Guardar</button></div>' +
       '</div>';
       }).join("");
@@ -2622,8 +2657,7 @@
     });
     state.goals.forEach(function (g) {
       var addInput = document.getElementById("add-" + g.id);
-      var addPreview = document.getElementById("addPreview-" + g.id);
-      if (addInput && addPreview) attachAmountPreview(addInput, addPreview);
+      if (addInput) attachAmountMask(addInput);
     });
 
     renderEvolution(real);
@@ -2640,6 +2674,10 @@
     return sinal + "R$" + txto;
   }
 
+  // render() roda a cada tecla/clique em qualquer parte do app, não só quando o
+  // mês visualizado muda — sem esse controle, a rolagem manual da linha do tempo
+  // era desfeita toda hora (voltava sozinha pro mês atual no meio de qualquer coisa).
+  var timelineCentradoEm = null;
   function renderMonthTimeline() {
     var wrap = document.getElementById("monthTimeline");
     var mkAtual = currentMonthKey();
@@ -2670,8 +2708,11 @@
         render();
       });
     });
-    var atualCard = wrap.querySelector(".month-card.current");
-    if (atualCard) atualCard.scrollIntoView({ inline: "center", block: "nearest" });
+    if (mkAtual !== timelineCentradoEm) {
+      var atualCard = wrap.querySelector(".month-card.current");
+      if (atualCard) atualCard.scrollIntoView({ inline: "center", block: "nearest" });
+      timelineCentradoEm = mkAtual;
+    }
   }
 
   function investDividendTotal(i) { return (i.dividends || []).reduce(function (s, d) { return s + Number(d.amount); }, 0); }
@@ -2813,9 +2854,9 @@
             '<div><div class="k">Dividendos</div><div class="v num">' + fmt(dividendTotal) + '</div></div>' +
           '</div>' +
             '<div class="invest-update-row">' +
-              '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Novo valor atual" id="cur-' + i.id + '"><span class="amount-preview" id="curPreview-' + i.id + '"></span></div>' +
+              '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Novo valor atual" id="cur-' + i.id + '"></div>' +
               '<button type="button" class="update-current" data-id="' + i.id + '">Atualizar valor</button>' +
-              '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Dividendo recebido" id="div-' + i.id + '"><span class="amount-preview" id="divPreview-' + i.id + '"></span></div>' +
+              '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Dividendo recebido" id="div-' + i.id + '"></div>' +
               '<button type="button" class="add-dividend" data-id="' + i.id + '">+ Dividendo</button>' +
             '</div>' +
         '</div>';
@@ -2849,10 +2890,10 @@
         });
       });
       pool.forEach(function (i) {
-        var curIn = document.getElementById("cur-" + i.id), curPv = document.getElementById("curPreview-" + i.id);
-        var divIn = document.getElementById("div-" + i.id), divPv = document.getElementById("divPreview-" + i.id);
-        if (curIn && curPv) attachAmountPreview(curIn, curPv);
-        if (divIn && divPv) attachAmountPreview(divIn, divPv);
+        var curIn = document.getElementById("cur-" + i.id);
+        var divIn = document.getElementById("div-" + i.id);
+        if (curIn) attachAmountMask(curIn);
+        if (divIn) attachAmountMask(divIn);
       });
     }
 
