@@ -10,9 +10,7 @@ module.exports = async function handler(req, res) {
 
   try {
     var result = await db.query(
-      "SELECT u.email, f.rating, f.comment, f.created_at " +
-      "FROM feedback f JOIN users u ON u.id = f.user_id " +
-      "ORDER BY f.created_at DESC"
+      "SELECT email, rating, comment, created_at FROM feedback ORDER BY created_at DESC"
     );
     return res.status(200).json(result.rows.map(function (r) {
       return { email: r.email, rating: r.rating, comment: r.comment, criadoEm: r.created_at };

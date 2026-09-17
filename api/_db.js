@@ -6,8 +6,10 @@
 //   records  — todo lançamento/meta/investimento de todo cliente, cada linha marcada
 //              com o dono (user_id) e o tipo (kind); o conteúdo variável vai num JSONB,
 //              pra não precisar de uma tabela por tipo de dado.
-//   feedback — nota (1-5) e comentário opcional que cada cliente manda, visível só
-//              pro admin (nunca pelo próprio cliente que enviou).
+//   feedback — nota (1-5) e comentário opcional, de clientes E do admin, visível
+//              só no painel do admin. Guarda o email direto (não um user_id com
+//              referência à tabela "users") porque o admin não tem linha lá — é
+//              uma conta fixa por variável de ambiente, não um cliente cadastrado.
 const { Pool } = require("pg");
 
 if (!global.__pgPool) {
@@ -47,7 +49,7 @@ function ensureSchema() {
       CREATE INDEX IF NOT EXISTS records_user_kind_idx ON records(user_id, kind);
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
         rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
         comment TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()

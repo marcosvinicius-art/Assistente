@@ -279,10 +279,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 40;
+    z-index: 65;
     transition: background var(--ease), color var(--ease), transform var(--ease), border-color var(--ease);
   }
   .feedback-fab:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); transform: translateY(-2px); }
+  /* Precisa ficar acima até da tela do admin (z-index 60) — senão o botão some
+     atrás dela, já que os dois são fixos e cobrem a tela inteira. */
+  #feedbackOverlay { z-index: 65; }
   .star-rating { display: flex; gap: 6px; justify-content: center; margin: 16px 0; }
   .star-rating button {
     background: none;
@@ -1890,6 +1893,7 @@
   // completamente separada, que só chama /api/admin/clients.
   function enterAdminMode(email) {
     document.getElementById("adminPanel").hidden = false;
+    document.getElementById("feedbackFab").hidden = false;
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
     apiJson("GET", "/api/admin/clients").then(function (clientes) {

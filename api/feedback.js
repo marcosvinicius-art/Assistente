@@ -6,9 +6,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
 
   var session = auth.getSession(req);
-  // O admin não tem linha na tabela "users" (é uma conta fixa por variável de
-  // ambiente) — se ele tentasse mandar feedback, o FK de user_id quebraria.
-  if (!session || session.isAdmin) return res.status(401).json({ error: "not_authenticated" });
+  if (!session) return res.status(401).json({ error: "not_authenticated" });
 
   var body = req.body || {};
   var rating = Number(body.rating);
@@ -18,10 +16,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // O email vem sempre do servidor, nunca do que o cliente mandou no corpo da
+    // requisição — senão qualquer um poderia mandar feedback se passando por outro.
+    var email;
+    if (session.isAdmin) {
+      email = process.env.ADMIN_EMAIL || "admin";
+    } else {
+      var user = await db.query("SELECT email FROM users WHERE id = $1", [session.uid]);
+      if (!user.rows.length) return res.status(401).json({ error: "not_authenticated" });
+      email = user.rows[0].email;
+    }
+
     var id = crypto.randomUUID();
     await db.query(
-      "INSERT INTO feedback (id, user_id, rating, comment) VALUES ($1, $2, $3, $4)",
-      [id, session.uid, rating, comment || null]
+      "INSERT INTO feedback (id, email, rating, comment) VALUES ($1, $2, $3, $4)",
+      [id, email, rating, comment || null]
     );
     return res.status(200).json({ ok: true });
   } catch (e) {
