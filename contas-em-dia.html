@@ -2004,6 +2004,15 @@
         .catch(function (e) {
           if (e && e.status === 401) { showAuthGate(); setChatStatus(false); return; }
           state.storage = "local"; loadLocal(); setSyncStatus("local"); setChatStatus(false);
+          // "status" só existe quando o servidor respondeu (mesmo que com erro) — ou
+          // seja, o backend existe mas está mal configurado (banco/variáveis faltando).
+          // Sem "status", foi falha de rede de verdade (arquivo local, sem backend
+          // nenhum) — isso é esperado e não precisa de aviso.
+          if (e && e.status) {
+            setStorageAlert(true, "O servidor de contas respondeu com erro (" + e.status +
+              ") — provavelmente falta configurar o banco de dados ou as variáveis de ambiente na Vercel " +
+              "(veja o DEPLOY.md). Por enquanto os dados ficam só neste navegador.");
+          }
         });
       return;
     }
