@@ -147,6 +147,12 @@
   }
   .admin-row .admin-date { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
 
+  .feedback-row { padding: 12px 4px; border-bottom: 1px solid var(--border); }
+  .feedback-row:last-child { border-bottom: none; }
+  .feedback-row-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .feedback-stars { color: #C9A227; font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
+  .feedback-comment { font-size: 12.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.4; }
+
   /* ---- Topbar ---- */
   .topbar {
     display: flex;
@@ -257,6 +263,39 @@
     justify-content: center;
     transition: background var(--ease), color var(--ease);
   }
+
+  .feedback-fab {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-muted);
+    box-shadow: var(--shadow-raised);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+    transition: background var(--ease), color var(--ease), transform var(--ease), border-color var(--ease);
+  }
+  .feedback-fab:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); transform: translateY(-2px); }
+  .star-rating { display: flex; gap: 6px; justify-content: center; margin: 16px 0; }
+  .star-rating button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 30px;
+    line-height: 1;
+    padding: 0;
+    color: var(--border);
+    transition: color var(--ease), transform var(--ease);
+  }
+  .star-rating button:hover, .star-rating button.active { color: #C9A227; }
+  .star-rating button:active { transform: scale(0.9); }
   .qr-close:hover { background: var(--expense-soft); color: var(--expense); }
 
   .month-nav {
@@ -547,7 +586,7 @@
 
   .amount-field { min-width: 0; }
 
-  input, select {
+  input, select, textarea {
     font: inherit;
     font-size: 13px;
     padding: 8px 10px;
@@ -558,8 +597,9 @@
     width: 100%;
     transition: border-color var(--ease), box-shadow var(--ease);
   }
-  input:hover, select:hover { border-color: var(--ink-faint); }
-  input:focus-visible, select:focus-visible {
+  textarea { resize: vertical; font-family: inherit; }
+  input:hover, select:hover, textarea:hover { border-color: var(--ink-faint); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
@@ -1081,7 +1121,7 @@
 
     /* Abaixo de 16px, o Safari do iPhone dá zoom sozinho ao tocar no campo —
        a página "pula" de tamanho a cada campo tocado. */
-    input, select { font-size: 16px; }
+    input, select, textarea { font-size: 16px; }
 
     /* Cada cartão de estatística ganhou uma segunda linha (Recebido/A receber,
        Pago/Não pago) — em 2 colunas isso não cabia e cortava o texto. */
@@ -1173,6 +1213,14 @@
       </div>
       <div id="adminClientList"></div>
     </div>
+
+    <div class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <h2>Feedback dos clientes</h2>
+        <span class="hint" id="adminFeedbackCount">carregando…</span>
+      </div>
+      <div id="adminFeedbackList"></div>
+    </div>
   </div>
 </div>
 
@@ -1221,6 +1269,36 @@
         <div class="qr-code" id="qrCode"></div>
         <p class="qr-url" id="qrUrl"></p>
         <p class="qr-hint" style="margin: 12px 0 0;">Por este link o app abre no modo simples: sem IA, sem leitura de nota fiscal e com dados só neste aparelho. Pra ter tudo isso, abra o app por dentro do Claude.</p>
+      </div>
+    </div>
+
+    <button type="button" class="feedback-fab" id="feedbackFab" title="Dar feedback" hidden>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+    </button>
+
+    <div class="qr-overlay" id="feedbackOverlay" hidden>
+      <div class="qr-card" id="feedbackCard">
+        <button type="button" class="qr-close" id="feedbackCloseBtn" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div id="feedbackFormWrap">
+          <h2>Dar feedback</h2>
+          <p class="qr-hint">O que você achou do app? Sua opinião ajuda a melhorar.</p>
+          <div class="star-rating" id="starRating">
+            <button type="button" data-star="1">★</button>
+            <button type="button" data-star="2">★</button>
+            <button type="button" data-star="3">★</button>
+            <button type="button" data-star="4">★</button>
+            <button type="button" data-star="5">★</button>
+          </div>
+          <textarea id="feedbackComment" placeholder="Quer contar mais alguma coisa? (opcional)" rows="3"></textarea>
+          <div class="auth-error" id="feedbackError" hidden></div>
+          <button type="button" class="btn-add" id="feedbackSubmitBtn" style="width:100%;margin-top:10px;">Enviar feedback</button>
+        </div>
+        <div id="feedbackThanks" hidden>
+          <h2>Valeu!</h2>
+          <p class="qr-hint">Seu feedback foi enviado.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -1791,6 +1869,7 @@
     setSyncStatus("server", email);
     setChatStatus(false);
     document.getElementById("logoutBtn").hidden = false;
+    document.getElementById("feedbackFab").hidden = false;
     Promise.all([
       serverList("transactions"),
       serverList("goals"),
@@ -1829,6 +1908,32 @@
     }).catch(function (e) {
       contador.textContent = "";
       lista.innerHTML = '<div class="empty-note">Não consegui carregar a lista: ' +
+        escapeHtml((e && e.message) || "tenta recarregar a página") + '.</div>';
+    });
+
+    var fbLista = document.getElementById("adminFeedbackList");
+    var fbContador = document.getElementById("adminFeedbackCount");
+    apiJson("GET", "/api/admin/feedback").then(function (itens) {
+      fbContador.textContent = itens.length + (itens.length === 1 ? " envio" : " envios");
+      if (!itens.length) {
+        fbLista.innerHTML = '<div class="empty-note">Nenhum feedback recebido ainda.</div>';
+        return;
+      }
+      fbLista.innerHTML = itens.map(function (f) {
+        var data = new Date(f.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        var estrelas = "★".repeat(f.rating) + "☆".repeat(5 - f.rating);
+        return '<div class="feedback-row">' +
+          '<div class="feedback-row-head">' +
+            '<span class="admin-email">' + escapeHtml(f.email) + '</span>' +
+            '<span class="feedback-stars">' + estrelas + '</span>' +
+            '<span class="admin-date">' + data + '</span>' +
+          '</div>' +
+          (f.comment ? '<div class="feedback-comment">' + escapeHtml(f.comment) + '</div>' : '') +
+        '</div>';
+      }).join("");
+    }).catch(function (e) {
+      fbContador.textContent = "";
+      fbLista.innerHTML = '<div class="empty-note">Não consegui carregar o feedback: ' +
         escapeHtml((e && e.message) || "tenta recarregar a página") + '.</div>';
     });
   }
@@ -2499,6 +2604,65 @@
   });
   document.getElementById("qrOverlay").addEventListener("click", function (e) {
     if (e.target.id === "qrOverlay") document.getElementById("qrOverlay").hidden = true;
+  });
+
+  // ---------- Feedback ----------
+  var feedbackRating = 0;
+  var starRatingEl = document.getElementById("starRating");
+  Array.prototype.forEach.call(starRatingEl.querySelectorAll("button"), function (btn) {
+    btn.addEventListener("click", function () {
+      feedbackRating = Number(btn.getAttribute("data-star"));
+      document.getElementById("feedbackError").hidden = true;
+      Array.prototype.forEach.call(starRatingEl.querySelectorAll("button"), function (b) {
+        b.classList.toggle("active", Number(b.getAttribute("data-star")) <= feedbackRating);
+      });
+    });
+  });
+
+  function resetFeedbackForm() {
+    feedbackRating = 0;
+    Array.prototype.forEach.call(starRatingEl.querySelectorAll("button"), function (b) { b.classList.remove("active"); });
+    document.getElementById("feedbackComment").value = "";
+    document.getElementById("feedbackError").hidden = true;
+    document.getElementById("feedbackFormWrap").hidden = false;
+    document.getElementById("feedbackThanks").hidden = true;
+  }
+
+  document.getElementById("feedbackFab").addEventListener("click", function () {
+    resetFeedbackForm();
+    document.getElementById("feedbackOverlay").hidden = false;
+  });
+  document.getElementById("feedbackCloseBtn").addEventListener("click", function () {
+    document.getElementById("feedbackOverlay").hidden = true;
+  });
+  document.getElementById("feedbackOverlay").addEventListener("click", function (e) {
+    if (e.target.id === "feedbackOverlay") document.getElementById("feedbackOverlay").hidden = true;
+  });
+
+  document.getElementById("feedbackSubmitBtn").addEventListener("click", function () {
+    var erroEl = document.getElementById("feedbackError");
+    if (!feedbackRating) {
+      erroEl.textContent = "Escolhe uma nota de 1 a 5 estrelas.";
+      erroEl.hidden = false;
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Enviando…";
+    apiJson("POST", "/api/feedback", {
+      rating: feedbackRating,
+      comment: document.getElementById("feedbackComment").value.trim() || null
+    }).then(function () {
+      document.getElementById("feedbackFormWrap").hidden = true;
+      document.getElementById("feedbackThanks").hidden = false;
+      setTimeout(function () { document.getElementById("feedbackOverlay").hidden = true; }, 1800);
+    }).catch(function (e) {
+      erroEl.textContent = (e && e.message) || "Não consegui enviar agora — tenta de novo.";
+      erroEl.hidden = false;
+    }).finally(function () {
+      btn.disabled = false;
+      btn.textContent = "Enviar feedback";
+    });
   });
 
   // ---------- Month nav ----------

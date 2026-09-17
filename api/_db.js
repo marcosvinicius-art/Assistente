@@ -1,11 +1,13 @@
 // Conexão com o Postgres da Vercel (integração "Storage" > "Postgres" no dashboard,
 // que define POSTGRES_URL sozinha) e criação das tabelas na primeira chamada.
 //
-// Duas tabelas apenas:
-//   users   — conta de cada cliente (email + senha com hash, nunca em texto puro)
-//   records — todo lançamento/meta/investimento de todo cliente, cada linha marcada
-//             com o dono (user_id) e o tipo (kind); o conteúdo variável vai num JSONB,
-//             pra não precisar de uma tabela por tipo de dado.
+// Três tabelas:
+//   users    — conta de cada cliente (email + senha com hash, nunca em texto puro)
+//   records  — todo lançamento/meta/investimento de todo cliente, cada linha marcada
+//              com o dono (user_id) e o tipo (kind); o conteúdo variável vai num JSONB,
+//              pra não precisar de uma tabela por tipo de dado.
+//   feedback — nota (1-5) e comentário opcional que cada cliente manda, visível só
+//              pro admin (nunca pelo próprio cliente que enviou).
 const { Pool } = require("pg");
 
 if (!global.__pgPool) {
@@ -43,6 +45,13 @@ function ensureSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS records_user_kind_idx ON records(user_id, kind);
+      CREATE TABLE IF NOT EXISTS feedback (
+        id UUID PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
     `);
     global.__schemaReady = schemaReady;
   }
