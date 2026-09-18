@@ -1235,7 +1235,7 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span class="qr-btn-label" id="logoutLabel">Sair</span>
       </button>
-      <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback" hidden>
+      <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
         <span class="qr-btn-label">Avaliar</span>
       </button>
@@ -1288,7 +1288,7 @@
         </div>
         <div id="feedbackThanks" hidden>
           <h2>Valeu!</h2>
-          <p class="qr-hint">Seu feedback foi enviado.</p>
+          <p class="qr-hint" id="feedbackThanksNote">Seu feedback foi enviado.</p>
         </div>
       </div>
     </div>
@@ -1860,7 +1860,6 @@
     setSyncStatus("server", email);
     setChatStatus(false);
     document.getElementById("logoutBtn").hidden = false;
-    document.getElementById("feedbackFab").hidden = false;
     Promise.all([
       serverList("transactions"),
       serverList("goals"),
@@ -1881,7 +1880,6 @@
   // completamente separada, que só chama /api/admin/clients.
   function enterAdminMode(email) {
     document.getElementById("adminPanel").hidden = false;
-    document.getElementById("feedbackFab").hidden = false;
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
     apiJson("GET", "/api/admin/clients").then(function (clientes) {
@@ -2608,6 +2606,7 @@
   });
 
   // ---------- Feedback ----------
+  var LS_FEEDBACK = "contas_em_dia_feedback";
   var feedbackRating = 0;
   var starRatingEl = document.getElementById("starRating");
   Array.prototype.forEach.call(starRatingEl.querySelectorAll("button"), function (btn) {
@@ -2640,6 +2639,15 @@
     if (e.target.id === "feedbackOverlay") document.getElementById("feedbackOverlay").hidden = true;
   });
 
+  function mostrarObrigado(aviso, fecharSozinho) {
+    document.getElementById("feedbackFormWrap").hidden = true;
+    document.getElementById("feedbackThanksNote").textContent = aviso;
+    document.getElementById("feedbackThanks").hidden = false;
+    if (fecharSozinho) {
+      setTimeout(function () { document.getElementById("feedbackOverlay").hidden = true; }, 1800);
+    }
+  }
+
   document.getElementById("feedbackSubmitBtn").addEventListener("click", function () {
     var erroEl = document.getElementById("feedbackError");
     if (!feedbackRating) {
@@ -2647,16 +2655,32 @@
       erroEl.hidden = false;
       return;
     }
+    var comentario = document.getElementById("feedbackComment").value.trim() || null;
+
+    // Sem modo servidor não existe painel do admin pra receber: guarda neste
+    // navegador e diz isso, em vez de mostrar "enviado" pra algo que não saiu daqui.
+    if (state.storage !== "server") {
+      try {
+        var guardados = JSON.parse(localStorage.getItem(LS_FEEDBACK) || "[]");
+        guardados.push({ rating: feedbackRating, comment: comentario, criadoEm: new Date().toISOString() });
+        localStorage.setItem(LS_FEEDBACK, JSON.stringify(guardados));
+      } catch (err) {
+        erroEl.textContent = "Não consegui guardar o feedback neste navegador.";
+        erroEl.hidden = false;
+        return;
+      }
+      mostrarObrigado("Anotado neste navegador. Pra chegar no painel do admin, use o link da Vercel com a conta conectada.", false);
+      return;
+    }
+
     var btn = this;
     btn.disabled = true;
     btn.textContent = "Enviando…";
     apiJson("POST", "/api/feedback", {
       rating: feedbackRating,
-      comment: document.getElementById("feedbackComment").value.trim() || null
+      comment: comentario
     }).then(function () {
-      document.getElementById("feedbackFormWrap").hidden = true;
-      document.getElementById("feedbackThanks").hidden = false;
-      setTimeout(function () { document.getElementById("feedbackOverlay").hidden = true; }, 1800);
+      mostrarObrigado("Seu feedback foi enviado.", true);
     }).catch(function (e) {
       erroEl.textContent = (e && e.message) || "Não consegui enviar agora — tenta de novo.";
       erroEl.hidden = false;
