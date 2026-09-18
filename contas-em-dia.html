@@ -138,20 +138,23 @@
     border-bottom: 1px solid var(--border);
   }
   .admin-row:last-child { border-bottom: none; }
-  .admin-row .admin-email {
+  .admin-email {
     font-size: 13.5px;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .admin-row .admin-date { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
+  .admin-date { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
 
   .feedback-row { padding: 12px 4px; border-bottom: 1px solid var(--border); }
   .feedback-row:last-child { border-bottom: none; }
   .feedback-row-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .feedback-stars { color: #C9A227; font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
   .feedback-comment { font-size: 12.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.4; }
+  .feedback-list { max-height: 46vh; overflow-y: auto; text-align: left; margin-top: 8px; }
+  .feedback-avg { font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+  .feedback-avg strong { color: var(--ink); font-size: 15px; }
 
   /* ---- Topbar ---- */
   .topbar {
@@ -1183,6 +1186,10 @@
         <span class="status"><span class="status-dot"></span>admin</span>
       </div>
       <div class="topbar-actions">
+        <button type="button" class="qr-btn" id="adminFeedbackBtn" title="Dar feedback">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+          <span class="qr-btn-label">Avaliar</span>
+        </button>
         <button type="button" class="qr-btn" id="adminLogoutBtn">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           <span class="qr-btn-label">Sair</span>
@@ -1278,10 +1285,17 @@
           <textarea id="feedbackComment" placeholder="Quer contar mais alguma coisa? (opcional)" rows="3"></textarea>
           <div class="auth-error" id="feedbackError" hidden></div>
           <button type="button" class="btn-add" id="feedbackSubmitBtn" style="width:100%;margin-top:10px;">Enviar feedback</button>
+          <button type="button" class="auth-toggle" id="feedbackViewBtn" hidden>Ver avaliações recebidas</button>
         </div>
         <div id="feedbackThanks" hidden>
           <h2>Valeu!</h2>
           <p class="qr-hint" id="feedbackThanksNote">Seu feedback foi enviado.</p>
+        </div>
+        <div id="feedbackListWrap" hidden>
+          <h2>Avaliações recebidas</h2>
+          <p class="qr-hint" id="feedbackListNote"></p>
+          <div class="feedback-list" id="feedbackList"></div>
+          <button type="button" class="auth-toggle" id="feedbackBackBtn">Voltar</button>
         </div>
       </div>
     </div>
@@ -1703,7 +1717,10 @@
     chatAI: false,
     chatTurns: [],
     quickFilter: "mes", // 'mes' | 'hoje' | '7dias' | 'ano'
-    storage: "local" // 'local' | 'cloud'
+    storage: "local", // 'local' | 'cloud' | 'server'
+    // O admin fica fora dos modos de storage: ele não guarda lançamento nenhum,
+    // mas continua autenticado no servidor (pra mandar e ler feedback).
+    isAdmin: false
   };
 
   // ---------- Persistence ----------
@@ -1872,6 +1889,7 @@
   // não é um UUID válido, e a query no banco quebraria. Por isso é uma tela
   // completamente separada, que só chama /api/admin/clients.
   function enterAdminMode(email) {
+    state.isAdmin = true;
     document.getElementById("adminPanel").hidden = false;
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
@@ -1902,18 +1920,7 @@
         fbLista.innerHTML = '<div class="empty-note">Nenhum feedback recebido ainda.</div>';
         return;
       }
-      fbLista.innerHTML = itens.map(function (f) {
-        var data = new Date(f.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-        var estrelas = "★".repeat(f.rating) + "☆".repeat(5 - f.rating);
-        return '<div class="feedback-row">' +
-          '<div class="feedback-row-head">' +
-            '<span class="admin-email">' + escapeHtml(f.email) + '</span>' +
-            '<span class="feedback-stars">' + estrelas + '</span>' +
-            '<span class="admin-date">' + data + '</span>' +
-          '</div>' +
-          (f.comment ? '<div class="feedback-comment">' + escapeHtml(f.comment) + '</div>' : '') +
-        '</div>';
-      }).join("");
+      fbLista.innerHTML = feedbackRowsHtml(itens);
     }).catch(function (e) {
       fbContador.textContent = "";
       fbLista.innerHTML = '<div class="empty-note">Não consegui carregar o feedback: ' +
@@ -2612,6 +2619,12 @@
     });
   });
 
+  // O feedback vai pro banco quando existe sessão no servidor — o admin conta,
+  // mesmo não tendo modo de storage próprio.
+  function feedbackVaiPraNuvem() {
+    return state.storage === "server" || state.isAdmin;
+  }
+
   function resetFeedbackForm() {
     feedbackRating = 0;
     Array.prototype.forEach.call(starRatingEl.querySelectorAll("button"), function (b) { b.classList.remove("active"); });
@@ -2619,11 +2632,70 @@
     document.getElementById("feedbackError").hidden = true;
     document.getElementById("feedbackFormWrap").hidden = false;
     document.getElementById("feedbackThanks").hidden = true;
+    document.getElementById("feedbackListWrap").hidden = true;
+    // Um cliente comum não pode ver a avaliação dos outros: pra ele o botão nem existe.
+    document.getElementById("feedbackViewBtn").hidden = (state.storage === "server" && !state.isAdmin);
   }
 
-  document.getElementById("feedbackFab").addEventListener("click", function () {
+  function feedbackRowsHtml(itens) {
+    return itens.map(function (f) {
+      var data = new Date(f.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      var estrelas = "★".repeat(f.rating) + "☆".repeat(5 - f.rating);
+      return '<div class="feedback-row">' +
+        '<div class="feedback-row-head">' +
+          (f.email ? '<span class="admin-email">' + escapeHtml(f.email) + '</span>' : '') +
+          '<span class="feedback-stars">' + estrelas + '</span>' +
+          '<span class="admin-date">' + data + '</span>' +
+        '</div>' +
+        (f.comment ? '<div class="feedback-comment">' + escapeHtml(f.comment) + '</div>' : '') +
+      '</div>';
+    }).join("");
+  }
+
+  function mostrarListaFeedback(itens, aviso) {
+    var soma = itens.reduce(function (t, f) { return t + f.rating; }, 0);
+    var media = itens.length ? (soma / itens.length).toFixed(1).replace(".", ",") : null;
+    document.getElementById("feedbackListNote").innerHTML = escapeHtml(aviso) +
+      (media ? '<span class="feedback-avg"><br><strong>' + media + " de 5</strong> — " +
+        itens.length + (itens.length === 1 ? " avaliação" : " avaliações") + "</span>" : "");
+    document.getElementById("feedbackList").innerHTML = itens.length
+      ? feedbackRowsHtml(itens)
+      : '<div class="empty-note">Nenhuma avaliação ainda.</div>';
+    document.getElementById("feedbackFormWrap").hidden = true;
+    document.getElementById("feedbackThanks").hidden = true;
+    document.getElementById("feedbackListWrap").hidden = false;
+  }
+
+  document.getElementById("feedbackViewBtn").addEventListener("click", function () {
+    if (!feedbackVaiPraNuvem()) {
+      var locais = [];
+      try { locais = JSON.parse(localStorage.getItem(LS_FEEDBACK) || "[]"); } catch (err) { locais = []; }
+      mostrarListaFeedback(locais, "Só as que você mandou neste navegador — as de outras pessoas ficam no painel do admin.");
+      return;
+    }
+    document.getElementById("feedbackList").innerHTML = '<div class="empty-note">Carregando…</div>';
+    document.getElementById("feedbackListNote").textContent = "";
+    document.getElementById("feedbackFormWrap").hidden = true;
+    document.getElementById("feedbackListWrap").hidden = false;
+    apiJson("GET", "/api/admin/feedback").then(function (itens) {
+      mostrarListaFeedback(itens, "Tudo que os clientes mandaram.");
+    }).catch(function (e) {
+      document.getElementById("feedbackList").innerHTML = '<div class="empty-note">Não consegui carregar: ' +
+        escapeHtml((e && e.message) || "tenta de novo") + '.</div>';
+    });
+  });
+
+  document.getElementById("feedbackBackBtn").addEventListener("click", function () {
     resetFeedbackForm();
-    document.getElementById("feedbackOverlay").hidden = false;
+  });
+
+  // Dois gatilhos porque o painel do admin é uma tela por cima do app: o botão da
+  // barra de baixo fica inalcançável enquanto ele está aberto.
+  ["feedbackFab", "adminFeedbackBtn"].forEach(function (id) {
+    document.getElementById(id).addEventListener("click", function () {
+      resetFeedbackForm();
+      document.getElementById("feedbackOverlay").hidden = false;
+    });
   });
   document.getElementById("feedbackCloseBtn").addEventListener("click", function () {
     document.getElementById("feedbackOverlay").hidden = true;
@@ -2650,9 +2722,9 @@
     }
     var comentario = document.getElementById("feedbackComment").value.trim() || null;
 
-    // Sem modo servidor não existe painel do admin pra receber: guarda neste
+    // Sem sessão no servidor não existe painel do admin pra receber: guarda neste
     // navegador e diz isso, em vez de mostrar "enviado" pra algo que não saiu daqui.
-    if (state.storage !== "server") {
+    if (!feedbackVaiPraNuvem()) {
       try {
         var guardados = JSON.parse(localStorage.getItem(LS_FEEDBACK) || "[]");
         guardados.push({ rating: feedbackRating, comment: comentario, criadoEm: new Date().toISOString() });
