@@ -271,26 +271,7 @@
     transition: background var(--ease), color var(--ease);
   }
 
-  .feedback-fab {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--ink-muted);
-    box-shadow: var(--shadow-raised);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 65;
-    transition: background var(--ease), color var(--ease), transform var(--ease), border-color var(--ease);
-  }
-  .feedback-fab:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); transform: translateY(-2px); }
-  /* Precisa ficar acima até da tela do admin (z-index 60) — senão o botão some
+  /* Precisa ficar acima até da tela do admin (z-index 60) — senão o modal some
      atrás dela, já que os dois são fixos e cobrem a tela inteira. */
   #feedbackOverlay { z-index: 65; }
   .star-rating { display: flex; gap: 6px; justify-content: center; margin: 16px 0; }
@@ -1254,6 +1235,10 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span class="qr-btn-label" id="logoutLabel">Sair</span>
       </button>
+      <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+        <span class="qr-btn-label">Avaliar</span>
+      </button>
       <button type="button" class="qr-btn" id="qrOpenBtn" title="Abrir no celular">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
         <span class="qr-btn-label">No celular</span>
@@ -1281,10 +1266,6 @@
         <p class="qr-hint" style="margin: 12px 0 0;">Por este link o app abre no modo simples: sem IA, sem leitura de nota fiscal e com dados só neste aparelho. Pra ter tudo isso, abra o app por dentro do Claude.</p>
       </div>
     </div>
-
-    <button type="button" class="feedback-fab" id="feedbackFab" title="Dar feedback" hidden>
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
-    </button>
 
     <div class="qr-overlay" id="feedbackOverlay" hidden>
       <div class="qr-card" id="feedbackCard">
