@@ -21,6 +21,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ email: result.rows[0].email });
   } catch (e) {
     console.error("me falhou:", e);
-    return res.status(500).json({ error: "server_error" });
+    return res.status(500).json({
+      error: "server_error",
+      message: db.mensagemDeFalha(e, "O servidor não conseguiu confirmar sua conta agora."),
+    });
   }
 };

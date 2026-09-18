@@ -17,6 +17,9 @@ module.exports = async function handler(req, res) {
     }));
   } catch (e) {
     console.error("admin/feedback falhou:", e);
-    return res.status(500).json({ error: "server_error" });
+    return res.status(500).json({
+      error: "server_error",
+      message: db.mensagemDeFalha(e, "Não consegui carregar o feedback agora."),
+    });
   }
 };

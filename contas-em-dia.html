@@ -1995,9 +1995,12 @@
           // Sem "status", foi falha de rede de verdade (arquivo local, sem backend
           // nenhum) — isso é esperado e não precisa de aviso.
           if (e && e.status) {
-            setStorageAlert(true, "O servidor de contas respondeu com erro (" + e.status +
-              ") — provavelmente falta configurar o banco de dados ou as variáveis de ambiente na Vercel " +
-              "(veja o DEPLOY.md). Por enquanto os dados ficam só neste navegador.");
+            // O backend manda a causa exata quando sabe qual é; o texto genérico só
+            // entra quando ele não soube dizer nada além do número do erro.
+            var causa = (e.message && e.message !== "Erro do servidor.")
+              ? e.message
+              : "Falta configurar o banco de dados ou as variáveis de ambiente na Vercel (veja o DEPLOY.md).";
+            setStorageAlert(true, causa + " Por enquanto os dados ficam só neste navegador.");
           }
         });
       return;

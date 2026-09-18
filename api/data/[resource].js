@@ -73,6 +73,9 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "method_not_allowed" });
   } catch (e) {
     console.error("data/" + req.query.resource + " falhou:", e);
-    return res.status(500).json({ error: "server_error", message: "Não consegui salvar agora. Tenta de novo." });
+    return res.status(500).json({
+      error: "server_error",
+      message: db.mensagemDeFalha(e, "Não consegui salvar agora. Tenta de novo."),
+    });
   }
 };

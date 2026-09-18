@@ -1,5 +1,5 @@
-// Conexão com o Postgres da Vercel (integração "Storage" > "Postgres" no dashboard,
-// que define POSTGRES_URL sozinha) e criação das tabelas na primeira chamada.
+// Conexão com o Postgres da Vercel (integração "Storage" no dashboard, que define
+// a variável de conexão sozinha) e criação das tabelas na primeira chamada.
 //
 // Três tabelas:
 //   users    — conta de cada cliente (email + senha com hash, nunca em texto puro)
@@ -12,27 +12,54 @@
 //              uma conta fixa por variável de ambiente, não um cliente cadastrado.
 const { Pool } = require("pg");
 
-if (!global.__pgPool) {
-  if (!process.env.POSTGRES_URL) {
-    throw new Error(
-      "POSTGRES_URL não configurada. No dashboard da Vercel: Storage > Create Database > Postgres, " +
-      "conecte ao projeto — a variável é criada sozinha."
-    );
-  }
-  global.__pgPool = new Pool({
-    connectionString: process.env.POSTGRES_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-}
-const pool = global.__pgPool;
+// O nome da variável muda conforme o banco que a Vercel oferece no momento
+// (Postgres próprio, Neon, Supabase). Aceitar todos evita o site cair inteiro só
+// porque a integração escolheu outro nome que não "POSTGRES_URL".
+const VARIAVEIS_DE_CONEXAO = [
+  "POSTGRES_URL",
+  "DATABASE_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL_NON_POOLING",
+  "DATABASE_URL_UNPOOLED",
+];
 
-var schemaReady = global.__schemaReady || null;
+function stringDeConexao() {
+  for (var i = 0; i < VARIAVEIS_DE_CONEXAO.length; i++) {
+    if (process.env[VARIAVEIS_DE_CONEXAO[i]]) return process.env[VARIAVEIS_DE_CONEXAO[i]];
+  }
+  return null;
+}
+
+function erroDeConfiguracao() {
+  var e = new Error(
+    "O banco de dados não está ligado ao projeto na Vercel. Abra Storage, crie ou " +
+    "conecte um Postgres a este projeto e reimplante (Deployments > Redeploy)."
+  );
+  // Marca pra rota saber que repetir a ação não adianta: falta configuração.
+  e.configMissing = true;
+  return e;
+}
+
+// A conexão nasce na primeira consulta, não na importação do arquivo. Criando no
+// topo, um banco ausente derrubava com 500 até as rotas que nem usam banco — como
+// "estou logado?", que sem cookie deveria só responder "não".
+function pool() {
+  if (!global.__pgPool) {
+    var url = stringDeConexao();
+    if (!url) throw erroDeConfiguracao();
+    global.__pgPool = new Pool({
+      connectionString: url,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return global.__pgPool;
+}
 
 // IF NOT EXISTS torna isso seguro de rodar em toda invocação "fria" da function —
 // sem precisar de um passo de migração separado que o cliente teria que executar.
 function ensureSchema() {
-  if (!schemaReady) {
-    schemaReady = pool.query(`
+  if (!global.__schemaReady) {
+    global.__schemaReady = pool().query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
@@ -54,15 +81,25 @@ function ensureSchema() {
         comment TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
-    `);
-    global.__schemaReady = schemaReady;
+    `).catch(function (e) {
+      // Um erro guardado na promise se repetiria pra sempre, mesmo depois do banco
+      // voltar: a próxima chamada precisa poder tentar de novo.
+      global.__schemaReady = null;
+      throw e;
+    });
   }
-  return schemaReady;
+  return global.__schemaReady;
 }
 
 async function query(text, params) {
   await ensureSchema();
-  return pool.query(text, params);
+  return pool().query(text, params);
 }
 
-module.exports = { query };
+// Erro de configuração precisa chegar até a tela. Escondido atrás de um "tenta de
+// novo", faz a pessoa tentar pra sempre — e tentar não conserta configuração.
+function mensagemDeFalha(e, padrao) {
+  return (e && e.configMissing) ? e.message : padrao;
+}
+
+module.exports = { query, mensagemDeFalha, stringDeConexao };

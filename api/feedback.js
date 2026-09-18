@@ -35,6 +35,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error("feedback falhou:", e);
-    return res.status(500).json({ error: "server_error", message: "Não consegui enviar agora. Tenta de novo." });
+    return res.status(500).json({
+      error: "server_error",
+      message: db.mensagemDeFalha(e, "Não consegui enviar agora. Tenta de novo."),
+    });
   }
 };

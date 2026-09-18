@@ -38,6 +38,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ email: email });
   } catch (e) {
     console.error("signup falhou:", e);
-    return res.status(500).json({ error: "server_error", message: "Não consegui criar a conta agora. Tenta de novo." });
+    return res.status(500).json({
+      error: "server_error",
+      message: db.mensagemDeFalha(e, "Não consegui criar a conta agora. Tenta de novo."),
+    });
   }
 };
