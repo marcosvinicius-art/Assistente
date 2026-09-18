@@ -49,12 +49,40 @@ Em **Settings → Environment Variables**, adicione:
 Essa chave assina o cookie de login. Guarde-a como uma senha: quem tiver essa
 chave consegue forjar uma sessão de qualquer cliente.
 
-## 5. Reimplantar
+## 5. Configurar a conta de admin
+
+Ainda em **Settings → Environment Variables**, adicione mais duas:
+
+- `ADMIN_EMAIL` — o email que abre o painel de administração
+- `ADMIN_PASSWORD` — a senha desse painel
+
+Essa conta não fica no banco: ela existe só nessas duas variáveis. É por ela que se
+vê a lista de clientes e as avaliações que eles mandaram. Não use aqui o mesmo email
+de uma conta de cliente.
+
+## 6. Reimplantar
 
 Aba **Deployments** → nos "⋯" do último deploy → **Redeploy**.
 
+Variável de ambiente só vale a partir do deploy seguinte — mudar uma sem
+reimplantar não muda nada no site que está no ar.
+
 Agora o site pede email e senha antes de mostrar qualquer coisa. Crie sua própria
 conta clicando em "Não tem conta? Criar uma".
+
+## Se aparecer "o servidor de contas respondeu com erro (500)"
+
+Esse aviso vermelho no topo do app significa que o backend subiu mas quebrou ao
+responder — quase sempre falta uma das quatro variáveis: `POSTGRES_URL` (criada
+pelo passo 3), `SESSION_SECRET`, `ADMIN_EMAIL` ou `ADMIN_PASSWORD`.
+
+Pra saber qual: na Vercel, abra o último deploy → aba **Logs** (ou **Functions**) e
+recarregue o site. O erro que aparecer ali diz o nome da variável que falta, porque
+o código falha de propósito com a mensagem explícita em vez de seguir quebrado.
+
+Confira também, em **Settings → Environment Variables**, se cada variável está
+marcada para o ambiente **Production** — uma variável criada só para "Preview" não
+existe no site publicado.
 
 ## Quando editar o app depois
 
