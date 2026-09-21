@@ -728,6 +728,35 @@
   }
   .tx-row:hover { background: var(--surface-2); }
 
+  /* ---- Contas parceladas ---- */
+  .parcelas-field { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; }
+  .parcelas-field input { width: 64px; padding: 7px 8px; text-align: center; }
+  .parcelas-hint { font-size: 12.5px; color: var(--accent-ink); font-weight: 600; }
+
+  .parcela-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 6px;
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+
+  .parc-row { padding: 12px 2px; border-bottom: 1px solid var(--border); }
+  .parc-row:last-child { border-bottom: none; }
+  .parc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .parc-desc { font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .parc-count { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+  .parc-meta { font-size: 12px; color: var(--ink-muted); margin-top: 3px; }
+  .parc-due { font-weight: 600; color: var(--ink); }
+  .parc-late { font-weight: 600; color: var(--expense); }
+  .parc-bar { height: 5px; border-radius: 999px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+  .parc-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.35s ease; }
+
   .tx-desc { font-size: 13.5px; font-weight: 500; }
   .tx-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
 
@@ -1493,6 +1522,11 @@
                 <input type="checkbox" id="txPaid" checked>
                 <span id="txPaidLabel">Já paguei</span>
               </label>
+              <label class="parcelas-field" for="txParcelas">
+                Parcelas
+                <input type="number" id="txParcelas" min="1" max="60" step="1" value="1">
+              </label>
+              <span class="parcelas-hint" id="txParcelasHint" hidden></span>
               <button type="submit" class="btn-add">Adicionar</button>
             </div>
           </form>
@@ -1503,6 +1537,14 @@
 
       <div class="col-side">
         <div class="panel">
+          <div class="panel-head">
+            <h2>Contas parceladas</h2>
+            <span class="hint" id="parcelasHint"></span>
+          </div>
+          <div id="parcelasList"></div>
+        </div>
+
+        <div class="panel" style="margin-top: 18px;">
           <div class="panel-head">
             <h2>Por categoria</h2>
             <span class="hint" id="catBarsHint">despesas do mês</span>
@@ -1768,6 +1810,31 @@
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
   function monthKey(dateStr) { return dateStr.slice(0, 7); }
+
+  // ---------- Parcelamento ----------
+  // Somar mês a mês com Date puro escorrega: 31/01 + 1 mês viraria 03/03, porque
+  // fevereiro não tem dia 31 e o Date transborda pro mês seguinte. Aqui o dia é
+  // preso ao último do mês de destino, que é como boleto e cartão se comportam.
+  function addMonthsISO(iso, n) {
+    var p = iso.split("-");
+    var alvo = new Date(Number(p[0]), Number(p[1]) - 1 + n, 1);
+    var ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+    alvo.setDate(Math.min(Number(p[2]), ultimoDia));
+    return alvo.getFullYear() + "-" + String(alvo.getMonth() + 1).padStart(2, "0") +
+      "-" + String(alvo.getDate()).padStart(2, "0");
+  }
+
+  // A divisão é feita em centavos para a soma das parcelas bater exatamente com o
+  // total: R$ 100 em 3x daria 33,33 três vezes e sumiria um centavo. A sobra vai
+  // toda na primeira, como as lojas costumam fazer.
+  function dividirParcelas(total, n) {
+    var centavos = Math.round(total * 100);
+    var base = Math.floor(centavos / n);
+    var sobra = centavos - base * n;
+    var valores = [];
+    for (var i = 0; i < n; i++) valores.push((base + (i === 0 ? sobra : 0)) / 100);
+    return valores;
+  }
   // Lançamentos salvos antes desta função existir não têm o campo "paid" —
   // tratá-los como pagos por padrão evita que tudo que já existia vire "pendente" do nada.
   function isPaid(t) { return t.paid !== false; }
@@ -2402,6 +2469,10 @@
         return;
       }
       renderAmountBuffer(inputEl);
+      // A máscara cancela todo evento nativo, então nenhum "input" chegaria a
+      // quem escuta o campo. Reemitir mantém o campo se comportando como um
+      // input comum para o resto da página.
+      inputEl.dispatchEvent(new Event("input", { bubbles: true }));
       var fim = inputEl.value.length;
       // Cursor sempre no fim: como o texto muda de tamanho a cada tecla, não dá
       // pra editar no meio do número de forma previsível — backspace no fim
@@ -2575,11 +2646,45 @@
     var category = txCategory.value;
     var paid = document.getElementById("txPaid").checked;
     if (!desc || !amount || amount <= 0) return;
-    addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, createdAt: new Date().toISOString() });
+
+    var parcelas = Math.max(1, Math.min(60, parseInt(document.getElementById("txParcelas").value, 10) || 1));
+    if (parcelas > 1) {
+      var grupo = "p" + Date.now() + Math.random().toString(36).slice(2, 7);
+      dividirParcelas(amount, parcelas).forEach(function (valor, i) {
+        addTransaction({
+          desc: desc, amount: valor, type: currentType, category: category,
+          date: addMonthsISO(date, i),
+          // "Já paguei" vale só para a primeira: as seguintes ainda nem venceram.
+          paid: i === 0 ? paid : false,
+          parcela: { n: i + 1, de: parcelas, grupo: grupo },
+          createdAt: new Date().toISOString()
+        });
+      });
+    } else {
+      addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, createdAt: new Date().toISOString() });
+    }
+
     document.getElementById("txDesc").value = "";
     setAmountValue(document.getElementById("txAmount"), null);
+    document.getElementById("txParcelas").value = "1";
+    atualizarHintParcelas();
     document.getElementById("txDesc").focus();
   });
+
+  function atualizarHintParcelas() {
+    var n = parseInt(document.getElementById("txParcelas").value, 10) || 1;
+    var total = parseAmount(document.getElementById("txAmount").value);
+    var hint = document.getElementById("txParcelasHint");
+    if (n < 2 || !(total > 0)) { hint.hidden = true; return; }
+    var valores = dividirParcelas(total, n);
+    // Mostra o valor das parcelas iguais; só menciona a primeira quando ela
+    // carrega os centavos da sobra, senão o aviso confundiria mais que ajudaria.
+    hint.textContent = n + "x de " + fmt(valores[1]) +
+      (valores[0] !== valores[1] ? " (1ª de " + fmt(valores[0]) + ")" : "");
+    hint.hidden = false;
+  }
+  document.getElementById("txParcelas").addEventListener("input", atualizarHintParcelas);
+  document.getElementById("txAmount").addEventListener("input", atualizarHintParcelas);
 
   var editingInvestId = null;
   var investSubmitBtn = document.getElementById("investSubmitBtn");
@@ -2941,6 +3046,61 @@
     return state.current.getFullYear() + "-" + String(state.current.getMonth() + 1).padStart(2, "0");
   }
 
+  // Este painel ignora de propósito o mês selecionado e o filtro rápido: o sentido
+  // de acompanhar um parcelamento é justamente ver o que vem depois do mês em que
+  // se está olhando.
+  function renderParcelas() {
+    var lista = document.getElementById("parcelasList");
+    var hint = document.getElementById("parcelasHint");
+    var grupos = {};
+    state.transactions.forEach(function (t) {
+      if (!t.parcela || !t.parcela.grupo) return;
+      var g = grupos[t.parcela.grupo];
+      if (!g) g = grupos[t.parcela.grupo] = { desc: t.desc, de: t.parcela.de, itens: [] };
+      g.itens.push(t);
+    });
+
+    var hoje = todayISO();
+    var abertos = Object.keys(grupos).map(function (k) {
+      var g = grupos[k];
+      var emAberto = g.itens.filter(function (t) { return !isPaid(t); })
+        .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      return {
+        desc: g.desc,
+        de: g.de,
+        pagas: g.itens.length - emAberto.length,
+        falta: emAberto.reduce(function (s, t) { return s + Number(t.amount); }, 0),
+        proxima: emAberto[0]
+      };
+    }).filter(function (r) { return r.proxima; })
+      .sort(function (a, b) { return a.proxima.date < b.proxima.date ? -1 : 1; });
+
+    if (!abertos.length) {
+      hint.textContent = "";
+      lista.innerHTML = '<div class="empty-note">Nenhuma conta parcelada em aberto. Use o campo "Parcelas" ao lançar uma compra.</div>';
+      return;
+    }
+
+    var totalFalta = abertos.reduce(function (s, r) { return s + r.falta; }, 0);
+    hint.textContent = "falta " + fmt(totalFalta);
+    lista.innerHTML = abertos.map(function (r) {
+      var atrasada = r.proxima.date < hoje;
+      var dataLabel = new Date(r.proxima.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      var pct = Math.round((r.pagas / r.de) * 100);
+      return '<div class="parc-row">' +
+        '<div class="parc-top">' +
+          '<span class="parc-desc">' + escapeHtml(r.desc) + '</span>' +
+          '<span class="parc-count">' + r.pagas + " de " + r.de + '</span>' +
+        '</div>' +
+        '<div class="parc-meta">Falta ' + fmt(r.falta) + ' — ' +
+          (atrasada ? 'venceu em <span class="parc-late">' + dataLabel + '</span>'
+                    : 'próxima em <span class="parc-due">' + dataLabel + '</span>') +
+        '</div>' +
+        '<div class="parc-bar"><span class="parc-fill" style="width:' + pct + '%"></span></div>' +
+      '</div>';
+    }).join("");
+  }
+
   function render() {
     var mk = currentMonthKey();
     var mLabel = MONTHS_PT[state.current.getMonth()];
@@ -3042,7 +3202,9 @@
         var statusLabel = t.type === "receita" ? (paid ? "Recebido" : "A receber") : (paid ? "Pago" : "Pendente");
         return '<div class="tx-row">' +
           '<div>' +
-            '<div class="tx-desc">' + escapeHtml(t.desc) + '</div>' +
+            '<div class="tx-desc">' + escapeHtml(t.desc) +
+              (t.parcela ? '<span class="parcela-badge">' + t.parcela.n + "/" + t.parcela.de + "</span>" : "") +
+            '</div>' +
             '<div class="tx-meta"><span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span><span class="tx-date">' + dateLabel + '</span>' +
               '<span class="tx-status ' + (paid ? "paid" : "pending") + '" data-id="' + t.id + '" data-paid="' + paid + '" title="Toque pra alternar">' + statusLabel + '</span>' +
             '</div>' +
@@ -3143,6 +3305,7 @@
     });
 
     renderEvolution(real);
+    renderParcelas();
     renderInvestTab();
     renderMonthTimeline();
     refreshWelcome();
