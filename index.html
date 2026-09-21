@@ -2055,17 +2055,21 @@
       });
   });
 
-  document.getElementById("authLocalBtn").addEventListener("click", function () {
+  function usarModoLocal(motivo) {
     hideAuthGate();
     state.storage = "local";
-    // Este aviso vem antes de loadLocal de propósito: se o navegador estiver
+    // O aviso vem antes de loadLocal de propósito: se o navegador estiver
     // bloqueando o armazenamento, o alerta de lá é mais grave e deve prevalecer.
-    setStorageAlert(true, "Você entrou sem conta: os lançamentos ficam só neste aparelho e não sincronizam. " +
-      "Quando o servidor voltar, recarregue a página para entrar na sua conta.");
+    if (motivo) setStorageAlert(true, motivo);
     loadLocal();
     setSyncStatus("local");
     setChatStatus(false);
     render();
+  }
+
+  document.getElementById("authLocalBtn").addEventListener("click", function () {
+    usarModoLocal("Você entrou sem conta: os lançamentos ficam só neste aparelho e não sincronizam. " +
+      "Quando o servidor voltar, recarregue a página para entrar na sua conta.");
   });
 
   document.getElementById("logoutBtn").addEventListener("click", function () {
@@ -2079,6 +2083,28 @@
     });
   });
 
+  // Um 401 significa "não está logado", mas só vale exigir login se o servidor
+  // conseguir mesmo manter contas. Sem banco (ou sem chave de sessão), a tela de
+  // login é uma porta que nunca abre: criar conta falharia sempre. Nesse caso o
+  // app entra direto no modo local, em vez de trancar a pessoa do lado de fora.
+  function exigirLoginSeDerConta() {
+    setChatStatus(false);
+    apiJson("GET", "/api/health")
+      .then(function (h) {
+        var cfg = (h && h.config) || {};
+        if (cfg.banco && cfg.sessionSecret) { showAuthGate(); return; }
+        var falta = [];
+        if (!cfg.banco) falta.push("o banco de dados");
+        if (!cfg.sessionSecret) falta.push("a chave de sessão");
+        usarModoLocal("Ainda falta configurar " + falta.join(" e ") + " no servidor, então não dá " +
+          "para criar conta nem sincronizar entre aparelhos. O app funciona normalmente, mas os " +
+          "lançamentos ficam só neste aparelho.");
+      })
+      // Se nem o diagnóstico responde, o certo é continuar pedindo login: pode ser
+      // uma falha passageira, e pular o gate deixaria os dados da conta de lado.
+      .catch(function () { showAuthGate(); });
+  }
+
   function initPersistence() {
     if (!(window.claude && window.claude.use)) {
       // Sem window.claude: pode ser o arquivo aberto direto (sem servidor pra falar com
@@ -2087,7 +2113,7 @@
       apiJson("GET", "/api/auth/me")
         .then(function (data) { enterServerMode(data.email, data.isAdmin); })
         .catch(function (e) {
-          if (e && e.status === 401) { showAuthGate(); setChatStatus(false); return; }
+          if (e && e.status === 401) { exigirLoginSeDerConta(); return; }
           state.storage = "local"; loadLocal(); setSyncStatus("local"); setChatStatus(false);
           // "status" só existe quando o servidor respondeu (mesmo que com erro) — ou
           // seja, o backend existe mas está mal configurado (banco/variáveis faltando).
