@@ -13,25 +13,25 @@
      O dourado é sempre detalhe (borda, sublinhado, botão) e nunca fundo de texto
      longo: sobre ele só entra grafite (--on-accent), nunca branco. */
   :root {
-    --bg: #F6F4F0;
+    --bg: #F7F6F2;
     --surface: #FFFFFF;
-    --surface-2: #F0EDE6;
-    --ink: #161310;
-    --ink-muted: #6B6459;
-    --ink-faint: #9C9488;
-    --border: #E2DDD2;
-    --accent: #C9A227;
-    --accent-soft: #F7F0DC;
-    --accent-ink: #6B5313;
-    --on-accent: #161310;
-    --header-bg: #161310;
-    --header-ink: #F5EFE0;
-    --header-muted: #A2927A;
-    --income: #15803D;
-    --income-soft: #E6EFE7;
-    --expense: #C0392B;
-    --expense-soft: #F6E9E5;
-    --rate: #A8801B;
+    --surface-2: #F1EEE7;
+    --ink: #0F0C09;
+    --ink-muted: #5C554A;
+    --ink-faint: #938B7D;
+    --border: #E4DFD3;
+    --accent: #D4AF37;
+    --accent-soft: #FBF2D9;
+    --accent-ink: #7A5E12;
+    --on-accent: #12100D;
+    --header-bg: #14110D;
+    --header-ink: #FAF6EC;
+    --header-muted: #B0A188;
+    --income: #15A34A;
+    --income-soft: #E3F1E8;
+    --expense: #DC3B2A;
+    --expense-soft: #FBE8E4;
+    --rate: #B8891A;
     --shadow: 0 1px 2px rgba(22, 19, 16, 0.05), 0 8px 24px -12px rgba(22, 19, 16, 0.14);
     --shadow-raised: 0 2px 4px rgba(22, 19, 16, 0.08), 0 14px 32px -14px rgba(22, 19, 16, 0.20);
     --radius: 8px;
@@ -41,25 +41,25 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0D0B09;
-      --surface: #16130F;
-      --surface-2: #1E1A14;
-      --ink: #F5EFE0;
-      --ink-muted: #A79C88;
-      --ink-faint: #6F6656;
-      --border: #2C2619;
-      --accent: #D4AF37;
-      --accent-soft: #2A2317;
-      --accent-ink: #E8CE7A;
-      --on-accent: #161310;
-      --header-bg: #100E0B;
-      --header-ink: #F5EFE0;
-      --header-muted: #A2927A;
+      --bg: #0B0908;
+      --surface: #15120D;
+      --surface-2: #1E1A13;
+      --ink: #FAF6EC;
+      --ink-muted: #B3A78F;
+      --ink-faint: #786E5C;
+      --border: #322B1D;
+      --accent: #E8C44D;
+      --accent-soft: #2E2617;
+      --accent-ink: #F0D583;
+      --on-accent: #12100D;
+      --header-bg: #0F0D0A;
+      --header-ink: #FAF6EC;
+      --header-muted: #B0A188;
       --income: #4ADE80;
-      --income-soft: #17301F;
-      --expense: #F87171;
-      --expense-soft: #351C18;
-      --rate: #E8C252;
+      --income-soft: #16301E;
+      --expense: #FB7185;
+      --expense-soft: #381D1C;
+      --rate: #F0CF63;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
       --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
       color-scheme: dark;
@@ -67,25 +67,25 @@
   }
 
   :root[data-theme="dark"] {
-    --bg: #0D0B09;
-    --surface: #16130F;
-    --surface-2: #1E1A14;
-    --ink: #F5EFE0;
-    --ink-muted: #A79C88;
-    --ink-faint: #6F6656;
-    --border: #2C2619;
-    --accent: #D4AF37;
-    --accent-soft: #2A2317;
-    --accent-ink: #E8CE7A;
-    --on-accent: #161310;
-    --header-bg: #100E0B;
-    --header-ink: #F5EFE0;
-    --header-muted: #A2927A;
+    --bg: #0B0908;
+    --surface: #15120D;
+    --surface-2: #1E1A13;
+    --ink: #FAF6EC;
+    --ink-muted: #B3A78F;
+    --ink-faint: #786E5C;
+    --border: #322B1D;
+    --accent: #E8C44D;
+    --accent-soft: #2E2617;
+    --accent-ink: #F0D583;
+    --on-accent: #12100D;
+    --header-bg: #0F0D0A;
+    --header-ink: #FAF6EC;
+    --header-muted: #B0A188;
     --income: #4ADE80;
-    --income-soft: #17301F;
-    --expense: #F87171;
-    --expense-soft: #351C18;
-    --rate: #E8C252;
+    --income-soft: #16301E;
+    --expense: #FB7185;
+    --expense-soft: #381D1C;
+    --rate: #F0CF63;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
     --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
     color-scheme: dark;
@@ -191,7 +191,9 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    background: var(--header-bg);
+    /* Um brilho discreto no topo: faixa de cor chapada lê como fosca, e era
+       justamente isso que deixava o conjunto com aspecto opaco. */
+    background: linear-gradient(180deg, rgba(250, 246, 236, 0.08), rgba(250, 246, 236, 0) 62%), var(--header-bg);
     color: var(--header-ink);
     margin: -28px -24px 26px;
     padding: 18px 24px 16px;
