@@ -1247,6 +1247,7 @@
 
     <button type="submit" class="btn-add auth-submit" id="authSubmitBtn">Entrar</button>
     <button type="button" class="auth-toggle" id="authToggleBtn">Não tem conta? Criar uma</button>
+    <button type="button" class="auth-toggle" id="authLocalBtn" hidden>Usar sem conta, só neste aparelho</button>
   </form>
 </div>
 
@@ -2040,11 +2041,31 @@
       .catch(function (e) {
         authError.textContent = (e && e.message) || "Não consegui completar — tenta de novo.";
         authError.hidden = false;
+        // Erro 5xx é problema do servidor, não da senha digitada: insistir não
+        // resolve e a pessoa fica trancada fora do próprio app. Aqui ela pelo
+        // menos consegue usá-lo neste aparelho enquanto o servidor não volta.
+        if (e && e.status >= 500) document.getElementById("authLocalBtn").hidden = false;
       })
       .finally(function () {
         authSubmitBtn.disabled = false;
-        setAuthMode(authMode);
+        // Só o rótulo do botão volta ao normal. Antes isto chamava setAuthMode,
+        // que limpa o erro — e, rodando depois do catch, apagava a mensagem no
+        // mesmo instante em que ela aparecia: a falha ficava sem explicação.
+        authSubmitBtn.textContent = authMode === "login" ? "Entrar" : "Criar conta";
       });
+  });
+
+  document.getElementById("authLocalBtn").addEventListener("click", function () {
+    hideAuthGate();
+    state.storage = "local";
+    // Este aviso vem antes de loadLocal de propósito: se o navegador estiver
+    // bloqueando o armazenamento, o alerta de lá é mais grave e deve prevalecer.
+    setStorageAlert(true, "Você entrou sem conta: os lançamentos ficam só neste aparelho e não sincronizam. " +
+      "Quando o servidor voltar, recarregue a página para entrar na sua conta.");
+    loadLocal();
+    setSyncStatus("local");
+    setChatStatus(false);
+    render();
   });
 
   document.getElementById("logoutBtn").addEventListener("click", function () {
