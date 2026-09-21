@@ -398,8 +398,15 @@
     gap: 22px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 24px;
+    /* Com quatro abas os rótulos não cabem na largura de um celular. Rolar na
+       horizontal preserva todos; sem isto, a última ficaria inalcançável. */
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab-btn {
+    flex: none;
+    white-space: nowrap;
     font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
     font-size: 15px;
     font-weight: 600;
@@ -776,6 +783,47 @@
   }
   .parc-pay:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
   .parc-pay:active { transform: scale(0.97); }
+
+  /* ---- Aba Parcelas ---- */
+  .pgroup { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; }
+  .pgroup.quitado { opacity: 0.72; }
+  .pgroup-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  .pgroup-desc { font-size: 15px; font-weight: 600; }
+  .pgroup-sub { font-size: 12.5px; color: var(--ink-muted); margin-top: 3px; }
+  .pgroup-right { display: flex; align-items: center; gap: 10px; }
+  .pgroup-status { font-size: 12px; font-weight: 600; color: var(--ink-muted); white-space: nowrap; }
+  .pgroup-status.ok { color: var(--income); }
+  .pgroup-status.late { color: var(--expense); }
+  .pgroup-del {
+    border: none; background: none; cursor: pointer; color: var(--ink-faint);
+    padding: 4px; border-radius: 6px; display: flex; transition: color var(--ease), background var(--ease);
+  }
+  .pgroup-del:hover { color: var(--expense); background: var(--expense-soft); }
+
+  .pgroup-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .pitem {
+    font: inherit;
+    font-size: 11.5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 76px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: border-color var(--ease), background var(--ease), color var(--ease);
+  }
+  .pitem:hover { border-color: var(--accent); }
+  .pitem .pitem-n { font-weight: 700; color: var(--ink); }
+  .pitem .pitem-val { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; }
+  .pitem.paga { background: var(--income-soft); border-color: transparent; color: var(--income); }
+  .pitem.paga .pitem-n { color: var(--income); }
+  .pitem.atrasada { background: var(--expense-soft); border-color: var(--expense); color: var(--expense); }
+  .pitem.atrasada .pitem-n { color: var(--expense); }
 
   .tx-desc { font-size: 13.5px; font-weight: 500; }
   .tx-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
@@ -1431,6 +1479,7 @@
 
   <div class="tabs" role="tablist">
     <button class="tab-btn active" data-tab="lancamentos" type="button" role="tab" aria-selected="true">Lançamentos</button>
+    <button class="tab-btn" data-tab="parcelas" type="button" role="tab" aria-selected="false">Parcelas</button>
     <button class="tab-btn" data-tab="investimentos" type="button" role="tab" aria-selected="false">Investimentos &amp; metas</button>
     <button class="tab-btn" data-tab="assistente" type="button" role="tab" aria-selected="false">Assistente</button>
   </div>
@@ -1587,6 +1636,29 @@
         <span class="legend-item"><span class="legend-dot" style="background: var(--expense);"></span>Despesas</span>
       </div>
       <div class="chart-wrap" id="evoChart"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="parcelas" hidden>
+    <div class="panel spend-panel two-col">
+      <div>
+        <div class="label">Ainda falta pagar</div>
+        <div class="value num" id="parcFaltaValue">R$ 0,00</div>
+        <div class="sub">todas as parcelas em aberto, de todos os meses</div>
+      </div>
+      <div>
+        <div class="label">Sai deste mês</div>
+        <div class="value num" id="parcMesValue">R$ 0,00</div>
+        <div class="sub">só as parcelas que vencem no mês corrente</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Todos os parcelamentos</h2>
+        <span class="hint" id="parcTabHint"></span>
+      </div>
+      <div id="parcTabList"></div>
     </div>
   </div>
 
@@ -3069,30 +3141,140 @@
   // Este painel ignora de propósito o mês selecionado e o filtro rápido: o sentido
   // de acompanhar um parcelamento é justamente ver o que vem depois do mês em que
   // se está olhando.
-  function renderParcelas() {
-    var lista = document.getElementById("parcelasList");
-    var hint = document.getElementById("parcelasHint");
+  // Agrupa as parcelas por compra e já calcula os totais. O painel lateral e a
+  // aba "Parcelas" partem daqui: são visões diferentes dos mesmos números, e
+  // duplicar a conta acabaria com as duas telas discordando entre si.
+  function agruparParcelamentos() {
     var grupos = {};
     state.transactions.forEach(function (t) {
       if (!t.parcela || !t.parcela.grupo) return;
       var g = grupos[t.parcela.grupo];
-      if (!g) g = grupos[t.parcela.grupo] = { desc: t.desc, de: t.parcela.de, itens: [] };
+      if (!g) g = grupos[t.parcela.grupo] = { grupo: t.parcela.grupo, desc: t.desc, de: t.parcela.de, category: t.category, itens: [] };
       g.itens.push(t);
     });
-
-    var hoje = todayISO();
-    var abertos = Object.keys(grupos).map(function (k) {
+    return Object.keys(grupos).map(function (k) {
       var g = grupos[k];
-      var emAberto = g.itens.filter(function (t) { return !isPaid(t); })
-        .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
-      return {
-        desc: g.desc,
-        de: g.de,
-        pagas: g.itens.length - emAberto.length,
-        falta: emAberto.reduce(function (s, t) { return s + Number(t.amount); }, 0),
-        proxima: emAberto[0]
-      };
-    }).filter(function (r) { return r.proxima; })
+      g.itens.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      var emAberto = g.itens.filter(function (t) { return !isPaid(t); });
+      g.pagas = g.itens.length - emAberto.length;
+      g.falta = emAberto.reduce(function (s, t) { return s + Number(t.amount); }, 0);
+      g.total = g.itens.reduce(function (s, t) { return s + Number(t.amount); }, 0);
+      g.proxima = emAberto[0];
+      return g;
+    });
+  }
+
+  // Quanto das parcelas em aberto vence no mês corrente — é o que sai deste
+  // salário. As futuras pesam nos próximos meses e somá-las aqui seria enganoso.
+  function parcelasDoMesAtual() {
+    var mk = todayISO().slice(0, 7);
+    var soma = 0;
+    state.transactions.forEach(function (t) {
+      if (t.parcela && !isPaid(t) && monthKey(t.date) === mk) soma += Number(t.amount);
+    });
+    return soma;
+  }
+
+  function excluirParcelamento(grupo, desc, quantas) {
+    if (!window.confirm("Excluir o parcelamento \"" + desc + "\"?\n\nIsso apaga as " +
+      quantas + " parcelas, inclusive as já pagas. Não dá para desfazer.")) return;
+    state.transactions
+      .filter(function (t) { return t.parcela && t.parcela.grupo === grupo; })
+      .map(function (t) { return t.id; })
+      .forEach(function (id) { deleteTransaction(id); });
+  }
+
+  function renderParcelasTab() {
+    var lista = document.getElementById("parcTabList");
+    var grupos = agruparParcelamentos();
+    var hoje = todayISO();
+
+    document.getElementById("parcFaltaValue").textContent =
+      fmt(grupos.reduce(function (s, g) { return s + g.falta; }, 0));
+    document.getElementById("parcMesValue").textContent = fmt(parcelasDoMesAtual());
+
+    if (!grupos.length) {
+      document.getElementById("parcTabHint").textContent = "";
+      lista.innerHTML = '<div class="empty-note">Você ainda não parcelou nada. ' +
+        'Ao lançar uma compra, preencha o campo "Parcelas" com o número de vezes.</div>';
+      return;
+    }
+
+    // Em aberto primeiro, por data de vencimento; os quitados descem para o fim,
+    // porque continuam úteis como histórico mas não pedem mais nenhuma ação.
+    grupos.sort(function (a, b) {
+      if (!a.proxima !== !b.proxima) return a.proxima ? -1 : 1;
+      if (a.proxima && b.proxima) return a.proxima.date < b.proxima.date ? -1 : 1;
+      return a.itens[0].date < b.itens[0].date ? 1 : -1;
+    });
+
+    var emAberto = grupos.filter(function (g) { return g.proxima; }).length;
+    document.getElementById("parcTabHint").textContent =
+      grupos.length + (grupos.length === 1 ? " parcelamento" : " parcelamentos") +
+      (emAberto ? " · " + emAberto + " em aberto" : "");
+
+    lista.innerHTML = grupos.map(function (g) {
+      var quitado = !g.proxima;
+      var atrasada = g.proxima && g.proxima.date < hoje;
+      var pct = Math.round((g.pagas / g.de) * 100);
+      var meta = catMeta(g.category);
+      var valorParcela = g.itens.length ? g.itens[g.itens.length - 1].amount : 0;
+
+      var itens = g.itens.map(function (t) {
+        var pago = isPaid(t);
+        var venceu = !pago && t.date < hoje;
+        var d = new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        return '<button type="button" class="pitem' + (pago ? " paga" : venceu ? " atrasada" : "") + '"' +
+          ' data-id="' + t.id + '" data-paid="' + pago + '"' +
+          ' title="Toque para marcar como ' + (pago ? "não paga" : "paga") + '">' +
+          '<span class="pitem-n">' + t.parcela.n + "ª</span>" +
+          '<span>' + d + '</span>' +
+          '<span class="pitem-val">' + fmt(t.amount) + '</span>' +
+        '</button>';
+      }).join("");
+
+      return '<div class="pgroup' + (quitado ? " quitado" : "") + '">' +
+        '<div class="pgroup-head">' +
+          '<div>' +
+            '<div class="pgroup-desc">' + escapeHtml(g.desc) + '</div>' +
+            '<div class="pgroup-sub">' +
+              '<span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span> · ' +
+              g.de + "x de " + fmt(valorParcela) + " · total " + fmt(g.total) +
+            '</div>' +
+          '</div>' +
+          '<div class="pgroup-right">' +
+            '<span class="pgroup-status ' + (quitado ? "ok" : atrasada ? "late" : "") + '">' +
+              (quitado ? "Quitado" : g.pagas + " de " + g.de + " pagas") +
+            '</span>' +
+            '<button type="button" class="pgroup-del" data-grupo="' + g.grupo + '"' +
+              ' data-desc="' + escapeHtml(g.desc) + '" data-qtd="' + g.itens.length + '" title="Excluir parcelamento">' +
+              ICON_TRASH +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="parc-bar"><span class="parc-fill" style="width:' + pct + '%"></span></div>' +
+        '<div class="pgroup-items">' + itens + '</div>' +
+      '</div>';
+    }).join("");
+
+    Array.prototype.forEach.call(lista.querySelectorAll(".pitem"), function (btn) {
+      btn.addEventListener("click", function () {
+        setTransactionPaid(btn.getAttribute("data-id"), btn.getAttribute("data-paid") !== "true");
+      });
+    });
+    Array.prototype.forEach.call(lista.querySelectorAll(".pgroup-del"), function (btn) {
+      btn.addEventListener("click", function () {
+        excluirParcelamento(btn.getAttribute("data-grupo"), btn.getAttribute("data-desc"), btn.getAttribute("data-qtd"));
+      });
+    });
+  }
+
+  function renderParcelas() {
+    var lista = document.getElementById("parcelasList");
+    var hint = document.getElementById("parcelasHint");
+    var hoje = todayISO();
+    var abertos = agruparParcelamentos()
+      .filter(function (g) { return g.proxima; })
       .sort(function (a, b) { return a.proxima.date < b.proxima.date ? -1 : 1; });
 
     if (!abertos.length) {
@@ -3104,13 +3286,7 @@
     var totalFalta = abertos.reduce(function (s, r) { return s + r.falta; }, 0);
     hint.textContent = "falta " + fmt(totalFalta) + " no total";
 
-    // Só as parcelas que vencem no mês corrente saem deste salário — as futuras
-    // pesam nos próximos meses e misturá-las aqui daria um susto sem sentido.
-    var mesAtual = todayISO().slice(0, 7);
-    var noMes = 0;
-    state.transactions.forEach(function (t) {
-      if (t.parcela && !isPaid(t) && monthKey(t.date) === mesAtual) noMes += Number(t.amount);
-    });
+    var noMes = parcelasDoMesAtual();
     var resumoMes = noMes > 0
       ? '<div class="parc-month">Ainda sai deste mês: <strong>' + fmt(noMes) + '</strong></div>'
       : "";
@@ -3350,6 +3526,7 @@
 
     renderEvolution(real);
     renderParcelas();
+    renderParcelasTab();
     renderInvestTab();
     renderMonthTimeline();
     refreshWelcome();
