@@ -10,10 +10,14 @@ function getSecret() {
   if (!s || s.length < 16) {
     // Sem isso, qualquer um forjaria uma sessão de qualquer cliente — por isso
     // falha alto e claro aqui, em vez de aceitar um segredo fraco ou ausente.
-    throw new Error(
-      "SESSION_SECRET não configurada (ou curta demais). Defina uma string aleatória " +
-      "longa nas variáveis de ambiente do projeto na Vercel."
+    var erro = new Error(
+      "A chave de sessão do servidor não está configurada. Defina SESSION_SECRET " +
+      "(uma string aleatória longa) nas variáveis de ambiente do projeto na Vercel e reimplante."
     );
+    // Mesma marca usada pelo banco: sinaliza às rotas que isso é configuração
+    // faltando, e que repetir a ação não vai adiantar.
+    erro.configMissing = true;
+    throw erro;
   }
   return s;
 }
@@ -107,7 +111,16 @@ function parseCookies(req) {
 
 function getSession(req) {
   var token = parseCookies(req)[SESSION_COOKIE];
-  return verifySessionToken(token);
+  if (!token) return null;
+  try {
+    return verifySessionToken(token);
+  } catch (e) {
+    // Toda rota chama isto fora do seu try, então um erro aqui derrubava a
+    // requisição com 500 sem corpo nenhum. Sem a chave não há como validar
+    // cookie algum: vale como "não autenticado", que leva à tela de login —
+    // e lá a tentativa de entrar mostra exatamente o que falta configurar.
+    return null;
+  }
 }
 
 function setSessionCookie(res, token) {
