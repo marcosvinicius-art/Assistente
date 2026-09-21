@@ -1,30 +1,32 @@
 <title>Wonner Sols</title>
 <style>
-  /* Paleta "private banking": grafite quente e dourado. Não é nova — é a mesma
-     do cabeçalho da carteira de investimentos (#161310/#C9A227), agora valendo
-     pro app inteiro, em vez de duas linguagens visuais convivendo na mesma tela.
-     O dourado é sempre detalhe (borda, sublinhado, botão) e nunca fundo de texto
-     longo: sobre ele só entra grafite (--on-accent), nunca branco. */
+  /* Paleta do Banco Master, medida no logotipo oficial: o azulejo da marca é um
+     degradê de azul-marinho #001539 (canto escuro) a #00417F (canto claro), e a
+     tipografia é prata #C4C4C4. Nenhum dourado — por isso --brand-silver existe
+     como token próprio: é ele, não o azul, que dá o contraste sobre o marinho. */
   :root {
-    --bg: #F7F6F2;
+    --bg: #F4F6F9;
     --surface: #FFFFFF;
-    --surface-2: #F1EEE7;
-    --ink: #0F0C09;
-    --ink-muted: #5C554A;
-    --ink-faint: #938B7D;
-    --border: #E4DFD3;
-    --accent: #D4AF37;
-    --accent-soft: #FBF2D9;
-    --accent-ink: #7A5E12;
-    --on-accent: #12100D;
-    --header-bg: #14110D;
-    --header-ink: #FAF6EC;
-    --header-muted: #B0A188;
-    --income: #15A34A;
-    --income-soft: #E3F1E8;
-    --expense: #DC3B2A;
-    --expense-soft: #FBE8E4;
-    --rate: #B8891A;
+    --surface-2: #EDF1F6;
+    --ink: #001539;
+    --ink-muted: #4A5A72;
+    --ink-faint: #8795A8;
+    --border: #DCE3EC;
+    --accent: #00417F;
+    --accent-soft: #E4EDF7;
+    --accent-ink: #002C5C;
+    --on-accent: #FFFFFF;
+    --brand-navy-deep: #001539;
+    --brand-navy: #002C5C;
+    --brand-navy-bright: #00417F;
+    --brand-silver: #C4C4C4;
+    --header-ink: #FFFFFF;
+    --header-muted: #A9BDD4;
+    --income: #15803D;
+    --income-soft: #E4F0E8;
+    --expense: #C62F1F;
+    --expense-soft: #FAE7E4;
+    --rate: #00417F;
     --shadow: 0 1px 2px rgba(22, 19, 16, 0.05), 0 8px 24px -12px rgba(22, 19, 16, 0.14);
     --shadow-raised: 0 2px 4px rgba(22, 19, 16, 0.08), 0 14px 32px -14px rgba(22, 19, 16, 0.20);
     --radius: 8px;
@@ -34,25 +36,28 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0B0908;
-      --surface: #15120D;
-      --surface-2: #1E1A13;
-      --ink: #FAF6EC;
-      --ink-muted: #B3A78F;
-      --ink-faint: #786E5C;
-      --border: #322B1D;
-      --accent: #E8C44D;
-      --accent-soft: #2E2617;
-      --accent-ink: #F0D583;
-      --on-accent: #12100D;
-      --header-bg: #0F0D0A;
-      --header-ink: #FAF6EC;
-      --header-muted: #B0A188;
+      --bg: #060B14;
+      --surface: #0C1524;
+      --surface-2: #132033;
+      --ink: #E8EDF4;
+      --ink-muted: #9AACC2;
+      --ink-faint: #64748B;
+      --border: #1E2D42;
+      --accent: #1D6FC0;
+      --accent-soft: #12253C;
+      --accent-ink: #8FC0F0;
+      --on-accent: #FFFFFF;
+      --brand-navy-deep: #001539;
+      --brand-navy: #002C5C;
+      --brand-navy-bright: #00417F;
+      --brand-silver: #C4C4C4;
+      --header-ink: #FFFFFF;
+      --header-muted: #A9BDD4;
       --income: #4ADE80;
-      --income-soft: #16301E;
+      --income-soft: #123026;
       --expense: #FB7185;
-      --expense-soft: #381D1C;
-      --rate: #F0CF63;
+      --expense-soft: #3A1D24;
+      --rate: #7FB3E8;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
       --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
       color-scheme: dark;
@@ -60,25 +65,28 @@
   }
 
   :root[data-theme="dark"] {
-    --bg: #0B0908;
-    --surface: #15120D;
-    --surface-2: #1E1A13;
-    --ink: #FAF6EC;
-    --ink-muted: #B3A78F;
-    --ink-faint: #786E5C;
-    --border: #322B1D;
-    --accent: #E8C44D;
-    --accent-soft: #2E2617;
-    --accent-ink: #F0D583;
-    --on-accent: #12100D;
-    --header-bg: #0F0D0A;
-    --header-ink: #FAF6EC;
-    --header-muted: #B0A188;
+    --bg: #060B14;
+    --surface: #0C1524;
+    --surface-2: #132033;
+    --ink: #E8EDF4;
+    --ink-muted: #9AACC2;
+    --ink-faint: #64748B;
+    --border: #1E2D42;
+    --accent: #1D6FC0;
+    --accent-soft: #12253C;
+    --accent-ink: #8FC0F0;
+    --on-accent: #FFFFFF;
+    --brand-navy-deep: #001539;
+    --brand-navy: #002C5C;
+    --brand-navy-bright: #00417F;
+    --brand-silver: #C4C4C4;
+    --header-ink: #FFFFFF;
+    --header-muted: #A9BDD4;
     --income: #4ADE80;
-    --income-soft: #16301E;
+    --income-soft: #123026;
     --expense: #FB7185;
-    --expense-soft: #381D1C;
-    --rate: #F0CF63;
+    --expense-soft: #3A1D24;
+    --rate: #7FB3E8;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
     --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
     color-scheme: dark;
@@ -167,7 +175,7 @@
   .feedback-row { padding: 12px 4px; border-bottom: 1px solid var(--border); }
   .feedback-row:last-child { border-bottom: none; }
   .feedback-row-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .feedback-stars { color: #C9A227; font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
+  .feedback-stars { color: var(--accent); font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
   .feedback-comment { font-size: 12.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.4; }
   .feedback-list { max-height: 46vh; overflow-y: auto; text-align: left; margin-top: 8px; }
   .feedback-avg { font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
@@ -184,13 +192,14 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    /* Um brilho discreto no topo: faixa de cor chapada lê como fosca, e era
-       justamente isso que deixava o conjunto com aspecto opaco. */
-    background: linear-gradient(180deg, rgba(250, 246, 236, 0.08), rgba(250, 246, 236, 0) 62%), var(--header-bg);
+    /* O mesmo degradê do azulejo do logotipo: escuro à esquerda, aberto à
+       direita. Fixo nos dois temas, como a marca — e é o degradê, não uma cor
+       chapada, que tira o aspecto fosco. */
+    background: linear-gradient(105deg, var(--brand-navy-deep) 0%, var(--brand-navy) 52%, var(--brand-navy-bright) 100%);
     color: var(--header-ink);
     margin: -28px -24px 26px;
     padding: 18px 24px 16px;
-    border-bottom: 2px solid var(--accent);
+    border-bottom: 2px solid rgba(196, 196, 196, 0.5);
     border-radius: 0 0 var(--radius) var(--radius);
   }
   /* Com o aviso de armazenamento visível, a faixa deixa de ser o primeiro
@@ -198,24 +207,26 @@
   .storage-alert:not([hidden]) + .topbar { margin-top: 0; }
   .topbar .brand h1 { color: var(--header-ink); }
   .topbar .brand .status { color: var(--header-muted); }
-  /* O losango da marca usa var(--ink)/var(--bg) no próprio SVG: sobre a faixa
-     escura ficaria invisível no tema claro. Aqui ele vira dourado. */
-  .topbar .brand-mark rect:first-child { fill: var(--accent); }
-  .topbar .brand-mark rect + rect { fill: var(--header-bg); }
+  /* No logotipo o azulejo é marinho com a marca em prata. Sobre a faixa — que já
+     é marinho — isso sumiria, então aqui a relação se inverte: azulejo prata,
+     barras marinho. Sem isso o SVG usaria var(--ink), invisível no tema claro. */
+  .topbar .brand-mark rect:first-child { fill: var(--brand-silver); }
+  .topbar .brand-mark rect + rect { fill: var(--brand-navy-deep); }
 
   .topbar .qr-btn,
   .topbar .month-nav {
-    background: rgba(245, 239, 224, 0.07);
-    border-color: rgba(245, 239, 224, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(196, 196, 196, 0.28);
     box-shadow: none;
   }
   .topbar .qr-btn { color: var(--header-ink); }
   .topbar .month-nav button { color: var(--header-ink); }
+  /* O hover não pode usar --accent: ele é marinho, igual ao fundo da faixa. */
   .topbar .qr-btn:hover,
   .topbar .month-nav button:hover {
-    background: rgba(201, 162, 39, 0.18);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: rgba(255, 255, 255, 0.16);
+    border-color: var(--brand-silver);
+    color: #FFFFFF;
   }
 
   .brand {
@@ -333,7 +344,7 @@
     color: var(--border);
     transition: color var(--ease), transform var(--ease);
   }
-  .star-rating button:hover, .star-rating button.active { color: #C9A227; }
+  .star-rating button:hover, .star-rating button.active { color: var(--accent); }
   .star-rating button:active { transform: scale(0.9); }
   .qr-close:hover { background: var(--expense-soft); color: var(--expense); }
 
@@ -824,21 +835,19 @@
   /* Cabeçalho invertido (fundo/texto trocados) — o mesmo truque de "extrato/
      private banking": ele separa a área de investimentos do resto do app à
      primeira vista, sem precisar de nenhuma cor que não exista já no tema. */
-  /* Cor fixa de propósito (não segue --ink/--bg do tema claro/escuro): é um
-     visual "cofre/private banking" deliberado, igual em qualquer tema — por
-     isso toda cor aqui dentro é escrita explicitamente, nunca var(--token). */
+  /* Marinho fixo nos dois temas, no mesmo degradê do logotipo e da faixa do topo:
+     é o bloco que mais parece "extrato de private banking", e trocar de cor com
+     o tema tiraria justamente esse peso. */
   .portfolio-masthead {
-    /* Gradiente e borda mais presente porque, no tema escuro, o app inteiro
-       agora é grafite: chapado neste mesmo tom, o bloco deixaria de se destacar. */
-    background: linear-gradient(135deg, #1F1A13 0%, #161310 55%, #100D0A 100%);
-    border: 1px solid #4A3C22;
-    color: #F5EFE0;
+    background: linear-gradient(135deg, var(--brand-navy-bright) 0%, var(--brand-navy) 55%, var(--brand-navy-deep) 100%);
+    border: 1px solid rgba(196, 196, 196, 0.22);
+    color: #FFFFFF;
     border-radius: var(--radius);
     box-shadow: var(--shadow-raised);
     padding: 26px 28px;
     margin-bottom: 18px;
   }
-  .pm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #C9A227; font-weight: 600; margin-bottom: 8px; }
+  .pm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brand-silver); font-weight: 600; margin-bottom: 8px; }
   .pm-hero { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
   .pm-value {
     font-family: "Fraunces", Georgia, serif;
@@ -846,7 +855,7 @@
     font-weight: 600;
     font-size: 36px;
     letter-spacing: -0.01em;
-    color: #F5EFE0;
+    color: #FFFFFF;
   }
   .pm-badge {
     font-family: "IBM Plex Mono", ui-monospace, monospace;
@@ -854,14 +863,14 @@
     font-weight: 700;
     padding: 4px 11px;
     border-radius: 999px;
-    background: rgba(201, 162, 39, 0.16);
-    color: #D8B44E;
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--brand-silver);
   }
   .pm-badge.gain { background: rgba(52, 211, 153, 0.16); color: #34D399; }
   .pm-badge.loss { background: rgba(251, 113, 133, 0.16); color: #FB7185; }
-  .pm-row { display: flex; gap: 32px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid rgba(201, 162, 39, 0.25); }
-  .pm-row-label { display: block; font-size: 11px; color: rgba(245, 239, 224, 0.55); margin-bottom: 3px; }
-  .pm-row-value { font-size: 14.5px; font-weight: 600; color: #F5EFE0; }
+  .pm-row { display: flex; gap: 32px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid rgba(196, 196, 196, 0.22); }
+  .pm-row-label { display: block; font-size: 11px; color: rgba(255, 255, 255, 0.6); margin-bottom: 3px; }
+  .pm-row-value { font-size: 14.5px; font-weight: 600; color: #FFFFFF; }
 
   .invest-card {
     border: 1px solid var(--border);
