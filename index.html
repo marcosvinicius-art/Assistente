@@ -612,15 +612,23 @@
   .panel-head .hint { font-size: 12px; color: var(--ink-faint); }
 
   /* ---- Transaction form ---- */
+  /* O minmax garante que valor e data nunca encolham abaixo do que o conteúdo
+     ocupa: com colunas puramente em fr, "R$ 65.000,00" e a data ficavam cortados
+     dentro do campo. */
   form.entry {
     display: grid;
-    grid-template-columns: 1.4fr 0.9fr 1fr 0.9fr auto;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1.6fr) minmax(140px, 1fr) minmax(0, 1.1fr) minmax(140px, 0.9fr);
+    gap: 10px 8px;
     align-items: end;
     margin-bottom: 16px;
     padding-bottom: 16px;
     border-bottom: 1px dashed var(--border);
   }
+
+  /* Tipo + "já paguei" + Adicionar ficavam numa quinta coluna "auto". Como esse
+     conjunto é largo e não encolhe, ele comia a largura dos quatro campos. Numa
+     linha própria, cada campo passa a caber de verdade. */
+  form.entry > .field:last-child { grid-column: 1 / -1; }
 
   .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; position: relative; }
   .field label {
