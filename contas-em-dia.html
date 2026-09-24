@@ -777,7 +777,9 @@
   .card-nome { font-size: 13.5px; font-weight: 600; }
   .card-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
   .card-uso { text-align: right; white-space: nowrap; }
-  .card-uso-valor { font-size: 13.5px; font-weight: 600; }
+  .card-uso-valor { font-size: 15px; font-weight: 700; }
+  .card-uso-valor.sobra { color: var(--income); }
+  .card-uso-valor.estourado { color: var(--expense); }
   .card-uso-label { font-size: 11px; color: var(--ink-faint); }
   .card-limite-bar { height: 4px; border-radius: 999px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
   .card-limite-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
@@ -3488,14 +3490,28 @@
       emAbertoPorCartao[t.cartaoId] = (emAbertoPorCartao[t.cartaoId] || 0) + Number(t.amount);
     });
 
-    hint.textContent = state.cards.length + (state.cards.length === 1 ? " cartão" : " cartões");
+    // Soma do que ainda dá pra gastar, considerando só quem tem limite informado:
+    // sem limite não há quanto sobra, e chutar zero baixaria o total sem motivo.
+    var livreTotal = 0;
+    var algumComLimite = false;
+    state.cards.forEach(function (c) {
+      if (typeof c.limite !== "number" || !(c.limite > 0)) return;
+      algumComLimite = true;
+      livreTotal += c.limite - (emAbertoPorCartao[c.id] || 0);
+    });
+    hint.textContent = state.cards.length + (state.cards.length === 1 ? " cartão" : " cartões") +
+      (algumComLimite ? " · " + fmt(livreTotal) + " livres" : "");
+
     lista.innerHTML = state.cards.map(function (c) {
       var usado = emAbertoPorCartao[c.id] || 0;
       var temLimite = typeof c.limite === "number" && c.limite > 0;
       var pct = temLimite ? Math.min(100, Math.round((usado / c.limite) * 100)) : 0;
+      var disponivel = temLimite ? c.limite - usado : 0;
       var detalhes = [];
       if (c.vencimento) detalhes.push("vence dia " + c.vencimento);
-      if (temLimite) detalhes.push("limite " + fmt(c.limite));
+      // O quanto já foi desce para a linha de detalhe: continua à mão, mas quem
+      // ocupa o lugar de destaque é o que ainda dá pra gastar.
+      if (temLimite) detalhes.push("usado " + fmt(usado) + " de " + fmt(c.limite));
       return '<div class="card-item">' +
         '<span class="card-chip"></span>' +
         '<div class="card-info">' +
@@ -3505,8 +3521,12 @@
             (pct >= 90 ? " cheio" : "") + '" style="width:' + pct + '%"></span></div>' : "") +
         '</div>' +
         '<div class="card-uso">' +
-          '<div class="card-uso-valor">' + fmt(usado) + '</div>' +
-          '<div class="card-uso-label">' + (temLimite ? pct + "% do limite" : "em aberto") + '</div>' +
+          '<div class="card-uso-valor' +
+            (temLimite ? (disponivel > 0 ? " sobra" : " estourado") : "") + '">' +
+            fmt(temLimite ? disponivel : usado) + '</div>' +
+          '<div class="card-uso-label">' +
+            (temLimite ? (disponivel > 0 ? "livre pra gastar" : "acima do limite") : "em aberto") +
+          '</div>' +
         '</div>' +
         '<button type="button" class="card-del" data-id="' + c.id + '" data-nome="' + escapeHtml(c.nome) +
           '" title="Excluir cartão">' + ICON_TRASH + '</button>' +
