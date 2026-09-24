@@ -1544,7 +1544,7 @@
         <span class="hint" id="salaryStatus">carregando…</span>
       </div>
       <div class="amount-field" style="max-width: 140px;">
-        <input id="salaryInput" type="text" inputmode="decimal" placeholder="0,00">
+        <input id="salaryInput" type="text" inputmode="numeric" placeholder="0,00">
       </div>
       <button class="salary-remove-btn" id="salaryRemoveBtn" type="button" hidden>Remover</button>
       <button class="btn-add" id="salarySaveBtn" type="submit">Salvar</button>
@@ -1565,7 +1565,7 @@
             </div>
             <div class="field">
               <label for="txAmount">Valor (R$)</label>
-              <input id="txAmount" type="text" inputmode="decimal" placeholder="0,00" required>
+              <input id="txAmount" type="text" inputmode="numeric" placeholder="0,00" required>
             </div>
             <div class="field">
               <label for="txCategory">Categoria</label>
@@ -1696,7 +1696,7 @@
             </div>
             <div class="field">
               <label for="investAmount">Valor (R$)</label>
-              <input id="investAmount" type="text" inputmode="decimal" placeholder="0,00" required>
+              <input id="investAmount" type="text" inputmode="numeric" placeholder="0,00" required>
             </div>
             <div class="field">
               <label for="investType">Tipo</label>
@@ -1733,7 +1733,7 @@
           <form class="goal-new" id="goalForm">
             <input id="goalName" type="text" placeholder="Nova meta, ex: Reserva de emergência" maxlength="60" required>
             <div class="amount-field" style="max-width: 110px;">
-              <input id="goalTarget" type="text" inputmode="decimal" placeholder="Alvo R$" required>
+              <input id="goalTarget" type="text" inputmode="numeric" placeholder="Alvo R$" required>
             </div>
             <button type="submit" class="btn-add">+</button>
           </form>
@@ -2503,71 +2503,47 @@
     });
   });
 
-  // ---------- Campo de valor com máscara ao vivo ----------
-  // "111" digitado vira "R$ 111,00" dentro do próprio campo, em tempo real — mas
-  // diferente da versão anterior (texto invisível com um preview por cima dele),
-  // agora o valor formatado É o próprio texto do campo, de verdade. Isso evita os
-  // problemas que aquela versão tinha no celular: preenchimento automático e
-  // teclado preditivo mostrando o texto real por cima do "invisível", e leitor de
-  // tela lendo um valor que não é o que aparece na tela.
+  // ---------- Campo de valor: centavos da direita para a esquerda ----------
+  // O campo guarda só dígitos, lidos como centavos, e a vírgula anda sozinha —
+  // é como app de banco e maquininha funcionam, e por isso ninguém precisa achar
+  // a tecla de vírgula no teclado do celular.
   //
-  // O truque pra isso funcionar sem quebrar a leitura do próximo dígito: nunca
-  // reaproveitar o texto já formatado pra descobrir o que a pessoa quis dizer
-  // (isso reintroduziria o mesmo bug de novo). Em vez disso, guarda-se à parte
-  // (dataset.raw) só os caracteres realmente digitados — dígitos e, no máximo,
-  // uma vírgula — e o campo é sempre reconstruído a partir dali.
+  // A versão anterior formatava o que já estava digitado como se fossem reais,
+  // então "601" virava "R$ 601,00" na tela. Quem quisesse R$ 601,45 digitava
+  // "45" em seguida e obtinha R$ 60.145,00: o campo exibia centavos que a pessoa
+  // não tinha digitado, e não havia como chegar no valor pretendido.
+  //
+  // Guardar dígitos crus (e nunca reler o texto já formatado) é o que mantém
+  // cada tecla previsível: o estado inteiro do campo é essa string.
   function amountBuffer(inputEl) { return inputEl.dataset.raw || ""; }
 
   function renderAmountBuffer(inputEl) {
-    var raw = amountBuffer(inputEl);
-    if (!raw) { inputEl.value = ""; return; }
-    var v = parseAmount(raw);
-    inputEl.value = isNaN(v) ? raw : fmt(v);
+    var digitos = amountBuffer(inputEl);
+    inputEl.value = digitos ? fmt(Number(digitos) / 100) : "";
   }
 
   // Usado sempre que o app precisa PRÉ-PREENCHER o campo por código (editar
   // salário/investimento) — mantém o buffer em dia com o que está na tela.
   function setAmountValue(inputEl, amount) {
-    inputEl.dataset.raw = (amount == null || amount === "") ? "" : String(amount).replace(".", ",");
+    inputEl.dataset.raw = (amount == null || amount === "")
+      ? "" : String(Math.round(Number(amount) * 100));
     renderAmountBuffer(inputEl);
   }
 
-  // Aceita o que os teclados de celular realmente mandam, não só o dígito ideal:
-  // ponto no lugar de vírgula (vários teclados numéricos só oferecem ponto) e
-  // texto já formatado, vindo de colagem ou de sugestão do teclado.
-  function normalizarValorDigitado(texto) {
-    var s = String(texto == null ? "" : texto).replace(/[^\d.,]/g, "");
-    if (!s) return "";
-    if (s.indexOf(",") !== -1) {
-      // Havendo vírgula, os pontos são separador de milhar e podem sair.
-      s = s.replace(/\./g, "");
-    } else {
-      var partes = s.split(".");
-      if (partes.length > 1) {
-        var ultima = partes[partes.length - 1];
-        // Três dígitos após o último ponto indicam milhar ("1.000" é mil em
-        // pt-BR); uma ou duas casas indicam centavos ("1500.75"). Sem essa
-        // distinção, colar "1.000" viraria R$ 1,00.
-        s = ultima.length === 3 ? partes.join("")
-                                : partes.slice(0, -1).join("") + "," + ultima;
-      }
-    }
-    return s;
-  }
-
-  // Centavos não têm terceira casa. Sem este corte, "10,555" virava um valor que
-  // a tela arredondava para R$ 10,56 enquanto o buffer guardava outra coisa.
-  function limitarValorDigitado(s) {
-    var i = s.indexOf(",");
-    if (i === -1) return s.slice(0, 12);
-    return s.slice(0, i).slice(0, 12) + "," + s.slice(i + 1).replace(/,/g, "").slice(0, 2);
+  // Tudo vira centavos: separadores são descartados porque, neste modelo, a
+  // posição da vírgula é definida pela quantidade de dígitos, não pelo que se
+  // digita. Colar "R$ 601,45" dá 60145 centavos, que é exatamente o esperado.
+  function digitosDeCentavos(texto) {
+    // Zeros à esquerda sairiam do caminho sozinhos no Number(), mas removê-los
+    // aqui impede o buffer de crescer sem limite a cada zero digitado.
+    return String(texto == null ? "" : texto).replace(/\D/g, "").replace(/^0+/, "").slice(0, 12);
   }
 
   function attachAmountMask(inputEl) {
     inputEl.dataset.raw = inputEl.dataset.raw || "";
 
     function aplicar(novoRaw) {
-      inputEl.dataset.raw = limitarValorDigitado(novoRaw);
+      inputEl.dataset.raw = novoRaw.slice(0, 12);
       renderAmountBuffer(inputEl);
       // A máscara cancela todo evento nativo, então nenhum "input" chegaria a
       // quem escuta o campo. Reemitir mantém o campo se comportando como um
@@ -2605,16 +2581,14 @@
       // e.data, colar esvaziava o campo em vez de preenchê-lo.
       var entrada = e.data;
       if (entrada == null && e.dataTransfer) entrada = e.dataTransfer.getData("text");
-      entrada = normalizarValorDigitado(entrada);
+      entrada = String(entrada == null ? "" : entrada).replace(/\D/g, "");
       if (!entrada) return;
 
       var base = tudoSelecionado ? "" : raw;
-      // Uma vírgula só no total: a segunda seria um decimal dentro do decimal.
-      if (base.indexOf(",") !== -1) entrada = entrada.replace(/,/g, "");
       // Aceita vários caracteres de uma vez. Exigir um por vez descartava
       // sugestão de teclado, ditado, autopreenchimento e digitação rápida —
       // que é o que fazia alguns valores simplesmente não entrarem.
-      aplicar(base + entrada);
+      aplicar(digitosDeCentavos(base + entrada));
     });
   }
 
@@ -3546,7 +3520,7 @@
             '</tbody></table></div>' +
           '</details>';
         })() +
-        '<div class="goal-add-row"><div class="amount-field"><input type="text" inputmode="decimal" placeholder="Aportar R$" id="add-' + g.id + '"></div>' +
+        '<div class="goal-add-row"><div class="amount-field"><input type="text" inputmode="numeric" placeholder="Aportar R$" id="add-' + g.id + '"></div>' +
           '<button type="button" data-id="' + g.id + '" data-cur="' + g.current + '" class="goal-contribute">Guardar</button></div>' +
       '</div>';
       }).join("");
@@ -3800,9 +3774,9 @@
           '<div class="invest-sub-line num">investido ' + fmt(i.amount) + ' · rendimento ' + gainSign + fmt(gain) +
             (dividendTotal > 0 ? ' · dividendos ' + fmt(dividendTotal) : '') + '</div>' +
             '<div class="invest-update-row">' +
-              '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Novo valor atual" id="cur-' + i.id + '"></div>' +
+              '<div class="amount-field"><input type="text" inputmode="numeric" placeholder="Novo valor atual" id="cur-' + i.id + '"></div>' +
               '<button type="button" class="update-current" data-id="' + i.id + '">Atualizar valor</button>' +
-              '<div class="amount-field"><input type="text" inputmode="decimal" placeholder="Dividendo recebido" id="div-' + i.id + '"></div>' +
+              '<div class="amount-field"><input type="text" inputmode="numeric" placeholder="Dividendo recebido" id="div-' + i.id + '"></div>' +
               '<button type="button" class="add-dividend" data-id="' + i.id + '">+ Dividendo</button>' +
             '</div>' +
         '</div>';
