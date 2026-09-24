@@ -2532,27 +2532,42 @@
     renderAmountBuffer(inputEl);
   }
 
+  // Aceita o que os teclados de celular realmente mandam, não só o dígito ideal:
+  // ponto no lugar de vírgula (vários teclados numéricos só oferecem ponto) e
+  // texto já formatado, vindo de colagem ou de sugestão do teclado.
+  function normalizarValorDigitado(texto) {
+    var s = String(texto == null ? "" : texto).replace(/[^\d.,]/g, "");
+    if (!s) return "";
+    if (s.indexOf(",") !== -1) {
+      // Havendo vírgula, os pontos são separador de milhar e podem sair.
+      s = s.replace(/\./g, "");
+    } else {
+      var partes = s.split(".");
+      if (partes.length > 1) {
+        var ultima = partes[partes.length - 1];
+        // Três dígitos após o último ponto indicam milhar ("1.000" é mil em
+        // pt-BR); uma ou duas casas indicam centavos ("1500.75"). Sem essa
+        // distinção, colar "1.000" viraria R$ 1,00.
+        s = ultima.length === 3 ? partes.join("")
+                                : partes.slice(0, -1).join("") + "," + ultima;
+      }
+    }
+    return s;
+  }
+
+  // Centavos não têm terceira casa. Sem este corte, "10,555" virava um valor que
+  // a tela arredondava para R$ 10,56 enquanto o buffer guardava outra coisa.
+  function limitarValorDigitado(s) {
+    var i = s.indexOf(",");
+    if (i === -1) return s.slice(0, 12);
+    return s.slice(0, i).slice(0, 12) + "," + s.slice(i + 1).replace(/,/g, "").slice(0, 2);
+  }
+
   function attachAmountMask(inputEl) {
     inputEl.dataset.raw = inputEl.dataset.raw || "";
-    inputEl.addEventListener("beforeinput", function (e) {
-      var raw = amountBuffer(inputEl);
-      var tipo = e.inputType || "";
-      if (tipo === "insertText" && /^[\d,]$/.test(e.data || "")) {
-        e.preventDefault();
-        if (e.data === "," && raw.indexOf(",") !== -1) return; // só uma vírgula
-        inputEl.dataset.raw = raw + e.data;
-      } else if (tipo.indexOf("delete") === 0) {
-        e.preventDefault();
-        inputEl.dataset.raw = raw.slice(0, -1);
-      } else if (tipo === "insertFromPaste" || tipo === "insertReplacementText") {
-        e.preventDefault();
-        inputEl.dataset.raw = (e.data || "").replace(/[^\d,]/g, "");
-      } else {
-        // Qualquer outro tipo de edição (desfazer, ditado, etc.) é ignorado —
-        // deixar passar sem controle corromperia o buffer.
-        e.preventDefault();
-        return;
-      }
+
+    function aplicar(novoRaw) {
+      inputEl.dataset.raw = limitarValorDigitado(novoRaw);
       renderAmountBuffer(inputEl);
       // A máscara cancela todo evento nativo, então nenhum "input" chegaria a
       // quem escuta o campo. Reemitir mantém o campo se comportando como um
@@ -2563,6 +2578,43 @@
       // pra editar no meio do número de forma previsível — backspace no fim
       // continua funcionando normalmente, que é o uso de longe mais comum.
       requestAnimationFrame(function () { inputEl.setSelectionRange(fim, fim); });
+    }
+
+    inputEl.addEventListener("beforeinput", function (e) {
+      var tipo = e.inputType || "";
+      var raw = amountBuffer(inputEl);
+      var tudoSelecionado = inputEl.value.length > 0 &&
+        inputEl.selectionStart === 0 && inputEl.selectionEnd === inputEl.value.length;
+
+      if (tipo.indexOf("delete") === 0) {
+        e.preventDefault();
+        // Selecionar tudo e apagar limpa o campo. Antes saía um dígito só, então
+        // não havia como trocar um valor inteiro de uma vez.
+        aplicar(tudoSelecionado ? "" : raw.slice(0, -1));
+        return;
+      }
+
+      var insercao = tipo === "insertText" || tipo === "insertReplacementText" ||
+        tipo.indexOf("insertFrom") === 0;
+      // Composição de IME fica de fora: cancelá-la costuma duplicar o texto, e
+      // teclado numérico não compõe.
+      if (!insercao) { e.preventDefault(); return; }
+
+      e.preventDefault();
+      // Em colagem o texto não vem em e.data, e sim no dataTransfer. Lendo só
+      // e.data, colar esvaziava o campo em vez de preenchê-lo.
+      var entrada = e.data;
+      if (entrada == null && e.dataTransfer) entrada = e.dataTransfer.getData("text");
+      entrada = normalizarValorDigitado(entrada);
+      if (!entrada) return;
+
+      var base = tudoSelecionado ? "" : raw;
+      // Uma vírgula só no total: a segunda seria um decimal dentro do decimal.
+      if (base.indexOf(",") !== -1) entrada = entrada.replace(/,/g, "");
+      // Aceita vários caracteres de uma vez. Exigir um por vez descartava
+      // sugestão de teclado, ditado, autopreenchimento e digitação rápida —
+      // que é o que fazia alguns valores simplesmente não entrarem.
+      aplicar(base + entrada);
     });
   }
 
