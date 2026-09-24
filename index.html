@@ -2638,8 +2638,19 @@
     currentType = btn.getAttribute("data-type");
     Array.prototype.forEach.call(typeToggle.querySelectorAll("button"), function (b) { b.classList.toggle("active", b === btn); });
     populateCategories();
-    document.getElementById("txPaidLabel").textContent = currentType === "receita" ? "Já recebi" : "Já paguei";
+    atualizarRotuloPago();
   });
+
+  // Com um cartão escolhido, a caixa deixa de significar "já saiu do bolso" e
+  // passa a significar "a fatura já foi paga" — que é o momento em que o limite
+  // volta. Sem trocar o rótulo, marcá-la parecia apenas confirmar a compra.
+  function atualizarRotuloPago() {
+    var noCartao = !!document.getElementById("txCard").value &&
+      document.getElementById("txCard").value !== NOVO_CARTAO;
+    document.getElementById("txPaidLabel").textContent = noCartao
+      ? "Fatura já paga"
+      : (currentType === "receita" ? "Já recebi" : "Já paguei");
+  }
   populateCategories();
   document.getElementById("txDate").value = todayISO();
 
@@ -3449,13 +3460,20 @@
   // Escolher "cadastrar" leva direto ao formulário de cartão, em vez de mandar a
   // pessoa procurar onde fica.
   document.getElementById("txCard").addEventListener("change", function () {
-    if (this.value !== NOVO_CARTAO) return;
-    this.value = "";
-    var botaoAba = document.querySelector('.tab-btn[data-tab="parcelas"]');
-    if (botaoAba) botaoAba.click();
-    var nome = document.getElementById("cardName");
-    nome.scrollIntoView({ block: "center" });
-    nome.focus();
+    if (this.value === NOVO_CARTAO) {
+      this.value = "";
+      var botaoAba = document.querySelector('.tab-btn[data-tab="parcelas"]');
+      if (botaoAba) botaoAba.click();
+      var nome = document.getElementById("cardName");
+      nome.scrollIntoView({ block: "center" });
+      nome.focus();
+    } else if (this.value) {
+      // Compra no crédito nasce em aberto: é ela que ocupa o limite até a fatura
+      // ser paga. Deixar "já paguei" marcado — o padrão do formulário — fazia o
+      // lançamento nascer quitado e o limite não se mexer.
+      document.getElementById("txPaid").checked = false;
+    }
+    atualizarRotuloPago();
   });
 
   function renderCards() {
