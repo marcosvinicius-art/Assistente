@@ -33,6 +33,7 @@
     --income-soft: #E4F0E8;
     --expense: #C62F1F;
     --expense-soft: #FAE7E4;
+    --warning: #C2790B;
     --rate: #00417F;
     --shadow: 0 1px 2px rgba(22, 19, 16, 0.05), 0 8px 24px -12px rgba(22, 19, 16, 0.14);
     --shadow-raised: 0 2px 4px rgba(22, 19, 16, 0.08), 0 14px 32px -14px rgba(22, 19, 16, 0.20);
@@ -64,6 +65,7 @@
       --income-soft: #123026;
       --expense: #FB7185;
       --expense-soft: #3A1D24;
+      --warning: #F0B429;
       --rate: #7FB3E8;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
       --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
@@ -93,6 +95,7 @@
     --income-soft: #123026;
     --expense: #FB7185;
     --expense-soft: #3A1D24;
+    --warning: #F0B429;
     --rate: #7FB3E8;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
     --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
@@ -785,12 +788,18 @@
   .card-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
   .card-uso { text-align: right; white-space: nowrap; }
   .card-uso-valor { font-size: 15px; font-weight: 700; }
-  .card-uso-valor.sobra { color: var(--income); }
-  .card-uso-valor.estourado { color: var(--expense); }
+  .card-uso-valor.ok { color: var(--income); }
+  .card-uso-valor.atencao { color: var(--warning); }
+  .card-uso-valor.critico { color: var(--expense); }
   .card-uso-label { font-size: 11px; color: var(--ink-faint); }
   .card-limite-bar { height: 4px; border-radius: 999px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
-  .card-limite-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
-  .card-limite-fill.cheio { background: var(--expense); }
+  /* Três faixas, não um degradê contínuo: assim a cor quer dizer alguma coisa
+     (tranquilo, atenção, no limite) em vez de só variar. Num degradê, 61% e 64%
+     teriam cores diferentes sem que a diferença significasse nada. */
+  .card-limite-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.35s ease, background var(--ease); }
+  .card-limite-fill.ok { background: var(--income); }
+  .card-limite-fill.atencao { background: var(--warning); }
+  .card-limite-fill.critico { background: var(--expense); }
   .card-del {
     border: none; background: none; cursor: pointer; color: var(--ink-faint);
     padding: 4px; border-radius: 6px; display: flex; transition: color var(--ease), background var(--ease);
@@ -3514,6 +3523,9 @@
       var temLimite = typeof c.limite === "number" && c.limite > 0;
       var pct = temLimite ? Math.min(100, Math.round((usado / c.limite) * 100)) : 0;
       var disponivel = temLimite ? c.limite - usado : 0;
+      // O número e a barra usam a mesma faixa: se a barra está vermelha, o valor
+      // livre em verde ao lado diria o contrário no mesmo instante.
+      var faixa = !temLimite ? "" : (disponivel <= 0 || pct >= 85) ? "critico" : pct >= 60 ? "atencao" : "ok";
       var detalhes = [];
       if (c.vencimento) detalhes.push("vence dia " + c.vencimento);
       // O quanto já foi desce para a linha de detalhe: continua à mão, mas quem
@@ -3524,12 +3536,11 @@
         '<div class="card-info">' +
           '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
           '<div class="card-sub">' + (detalhes.join(" · ") || "sem limite informado") + '</div>' +
-          (temLimite ? '<div class="card-limite-bar"><span class="card-limite-fill' +
-            (pct >= 90 ? " cheio" : "") + '" style="width:' + pct + '%"></span></div>' : "") +
+          (temLimite ? '<div class="card-limite-bar"><span class="card-limite-fill ' + faixa +
+            '" style="width:' + pct + '%"></span></div>' : "") +
         '</div>' +
         '<div class="card-uso">' +
-          '<div class="card-uso-valor' +
-            (temLimite ? (disponivel > 0 ? " sobra" : " estourado") : "") + '">' +
+          '<div class="card-uso-valor ' + faixa + '">' +
             fmt(temLimite ? disponivel : usado) + '</div>' +
           '<div class="card-uso-label">' +
             (temLimite ? (disponivel > 0 ? "livre pra gastar" : "acima do limite") : "em aberto") +
