@@ -1677,7 +1677,7 @@
                 Parcelas
                 <input type="number" id="txParcelas" min="1" max="60" step="1" value="1">
               </label>
-              <label class="parcelas-field" for="txCard" id="txCardWrap" hidden>
+              <label class="parcelas-field" for="txCard" id="txCardWrap">
                 Cartão
                 <select id="txCard"></select>
               </label>
@@ -2986,7 +2986,7 @@
 
     var parcelas = Math.max(1, Math.min(60, parseInt(document.getElementById("txParcelas").value, 10) || 1));
     var cardSel = document.getElementById("txCard");
-    var cartaoId = (!document.getElementById("txCardWrap").hidden && cardSel.value) ? cardSel.value : null;
+    var cartaoId = (cardSel.value && cardSel.value !== NOVO_CARTAO) ? cardSel.value : null;
 
     if (parcelas > 1) {
       var grupo = "p" + Date.now() + Math.random().toString(36).slice(2, 7);
@@ -3430,20 +3430,33 @@
     return null;
   }
 
-  // O seletor só aparece havendo cartão cadastrado: um campo com uma opção só
-  // ("nenhum") ocuparia espaço no formulário sem oferecer escolha alguma.
+  // O seletor fica sempre visível, mesmo sem cartão nenhum. Escondê-lo até
+  // existir um cartão criava um impasse: para saber que dava pra escolher cartão,
+  // era preciso já ter cadastrado um — e nada no formulário dizia isso.
+  var NOVO_CARTAO = "__novo__";
+
   function renderCardSelect() {
-    var wrap = document.getElementById("txCardWrap");
     var sel = document.getElementById("txCard");
-    if (!state.cards.length) { wrap.hidden = true; sel.innerHTML = ""; return; }
     var atual = sel.value;
     sel.innerHTML = '<option value="">à vista / débito</option>' +
       state.cards.map(function (c) {
         return '<option value="' + c.id + '">' + escapeHtml(c.nome) + "</option>";
-      }).join("");
-    if (atual) sel.value = atual;
-    wrap.hidden = false;
+      }).join("") +
+      '<option value="' + NOVO_CARTAO + '">+ cadastrar cartão…</option>';
+    if (atual && atual !== NOVO_CARTAO) sel.value = atual;
   }
+
+  // Escolher "cadastrar" leva direto ao formulário de cartão, em vez de mandar a
+  // pessoa procurar onde fica.
+  document.getElementById("txCard").addEventListener("change", function () {
+    if (this.value !== NOVO_CARTAO) return;
+    this.value = "";
+    var botaoAba = document.querySelector('.tab-btn[data-tab="parcelas"]');
+    if (botaoAba) botaoAba.click();
+    var nome = document.getElementById("cardName");
+    nome.scrollIntoView({ block: "center" });
+    nome.focus();
+  });
 
   function renderCards() {
     var lista = document.getElementById("cardsList");
