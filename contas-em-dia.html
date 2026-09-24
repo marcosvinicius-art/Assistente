@@ -772,10 +772,19 @@
   .card-item { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--border); }
   .card-item:last-child { border-bottom: none; }
   .card-chip {
-    width: 34px; height: 24px; flex: none; border-radius: 4px;
+    width: 38px; height: 38px; flex: none; padding: 0;
+    border-radius: 8px; overflow: hidden; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, var(--brand-navy-bright), var(--brand-navy-deep));
     border: 1px solid rgba(196, 196, 196, 0.3);
+    color: rgba(255, 255, 255, 0.75);
+    transition: border-color var(--ease), transform var(--ease);
   }
+  .card-chip:hover { border-color: var(--accent); transform: scale(1.05); }
+  /* Com foto o fundo some: um logo com transparência sobre o degradê marinho
+     ficaria com a cor do app por trás, não a do banco. */
+  .card-chip.com-foto { background: var(--surface-2); }
+  .card-chip img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .card-info { flex: 1; min-width: 0; }
   .card-nome { font-size: 13.5px; font-weight: 600; }
   .card-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
@@ -1996,6 +2005,7 @@
   var MONTHS_PT = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   var MONTHS_SHORT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 
+  var ICON_CAMERA = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
   var ICON_TRASH = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
   var ICON_EDIT = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
@@ -2524,6 +2534,20 @@
       state.cards.push(card);
       saveLocal();
       render();
+    }
+  }
+
+  function updateCard(id, patch) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.doc(userCol("cards") + "/" + id).update(patch), "a foto do cartão");
+    } else if (state.storage === "server") {
+      serverWrite(serverUpdate("cards", id, patch).then(function (saved) {
+        var c = cardMeta(id);
+        if (c) Object.assign(c, saved); render();
+      }), "a foto do cartão");
+    } else {
+      var c = cardMeta(id);
+      if (c) { Object.assign(c, patch); saveLocal(); render(); }
     }
   }
 
@@ -3440,6 +3464,61 @@
   }
 
   // ---------- Cartões ----------
+  // A imagem escolhida é reduzida a 96x96 antes de ser guardada. A original de
+  // um celular tem vários megabytes — guardá-la assim estouraria o localStorage
+  // e engordaria cada sincronização, para aparecer num quadrado de 34px.
+  function lerLogoComoMiniatura(file, onReady) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var L = 96;
+        var canvas = document.createElement("canvas");
+        canvas.width = L;
+        canvas.height = L;
+        var ctx = canvas.getContext("2d");
+        // Encaixa inteira, sem cortar: recortar tiraria justamente a parte que
+        // identifica o banco. Sobra transparente nas laterais.
+        var escala = Math.min(L / img.width, L / img.height);
+        var w = img.width * escala, h = img.height * escala;
+        ctx.drawImage(img, (L - w) / 2, (L - h) / 2, w, h);
+        try {
+          onReady(canvas.toDataURL("image/png"));
+        } catch (e) {
+          // Imagem de outro domínio "suja" o canvas e bloqueia a leitura.
+          onReady(null);
+        }
+      };
+      img.onerror = function () { onReady(null); };
+      img.src = reader.result;
+    };
+    reader.onerror = function () { onReady(null); };
+    reader.readAsDataURL(file);
+  }
+
+  // Um seletor de arquivo só, reaproveitado por todos os cartões: criar um por
+  // linha encheria o DOM de campos invisíveis.
+  var cardLogoInput = document.createElement("input");
+  cardLogoInput.type = "file";
+  cardLogoInput.accept = "image/*";
+  cardLogoInput.hidden = true;
+  document.body.appendChild(cardLogoInput);
+  var cardLogoAlvo = null;
+
+  cardLogoInput.addEventListener("change", function () {
+    var file = this.files && this.files[0];
+    var alvo = cardLogoAlvo;
+    this.value = "";
+    if (!file || !alvo) return;
+    lerLogoComoMiniatura(file, function (dataUrl) {
+      if (!dataUrl) {
+        setStorageAlert(true, "Não consegui ler essa imagem. Tente outra, de preferência PNG ou JPG.");
+        return;
+      }
+      updateCard(alvo, { logo: dataUrl });
+    });
+  });
+
   function cardMeta(id) {
     for (var i = 0; i < state.cards.length; i++) if (state.cards[i].id === id) return state.cards[i];
     return null;
@@ -3525,7 +3604,10 @@
       // ocupa o lugar de destaque é o que ainda dá pra gastar.
       if (temLimite) detalhes.push("usado " + fmt(usado) + " de " + fmt(c.limite));
       return '<div class="card-item">' +
-        '<span class="card-chip"></span>' +
+        '<button type="button" class="card-chip' + (c.logo ? " com-foto" : "") + '" data-id="' + c.id +
+          '" title="' + (c.logo ? "Trocar" : "Escolher") + ' a foto deste cartão">' +
+          (c.logo ? '<img src="' + c.logo + '" alt="">' : ICON_CAMERA) +
+        '</button>' +
         '<div class="card-info">' +
           '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
           '<div class="card-sub">' + (detalhes.join(" · ") || "sem limite informado") + '</div>' +
@@ -3544,6 +3626,12 @@
       '</div>';
     }).join("");
 
+    Array.prototype.forEach.call(lista.querySelectorAll(".card-chip"), function (btn) {
+      btn.addEventListener("click", function () {
+        cardLogoAlvo = btn.getAttribute("data-id");
+        cardLogoInput.click();
+      });
+    });
     Array.prototype.forEach.call(lista.querySelectorAll(".card-del"), function (btn) {
       btn.addEventListener("click", function () {
         // Os lançamentos ficam: eles são despesas reais, e apagá-los junto
