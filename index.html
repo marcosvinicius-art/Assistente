@@ -1131,7 +1131,7 @@
      que o daltonismo mais confunde. A cor só reforça o que a posição já disse. */
   .mk-track {
     position: relative;
-    height: 16px;
+    height: 26px;
     min-width: 60px;
   }
   .mk-zero {
@@ -1144,14 +1144,23 @@
   }
   .mk-bar {
     position: absolute;
-    top: 3px;
-    bottom: 3px;
+    top: 50%;
+    height: 8px;
+    margin-top: -4px;
     /* Ponta arredondada só na extremidade livre; o lado colado no zero fica reto,
        senão a barra pareceria descolada da linha de base. */
     min-width: 2px;
   }
   .mk-bar.up { background: var(--income); border-radius: 0 4px 4px 0; }
   .mk-bar.down { background: var(--expense); border-radius: 4px 0 0 4px; }
+
+  /* Mini-linha do último mês. A forma da curva é quem conta a história; a cor
+     apenas reforça, pelo mesmo motivo das barras. */
+  .mk-spark { display: block; width: 100%; height: 26px; }
+  .mk-spark.up { color: var(--income); }
+  .mk-spark.down { color: var(--expense); }
+  .mk-spark .linha { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .mk-spark .area { fill: currentColor; opacity: 0.13; stroke: none; }
   .market-row:hover { background: var(--surface-2); }
   .market-symbol { font-size: 13.5px; font-weight: 600; }
   .market-name { font-size: 11.5px; color: var(--ink-faint); margin-top: 1px; }
@@ -2660,6 +2669,30 @@
     refreshMarket();
   });
 
+  // Mini-linha do fechamento dos últimos dias. O viewBox é esticado pela largura
+  // da coluna (preserveAspectRatio="none"), e non-scaling-stroke impede que esse
+  // esticão engrosse a linha junto — sem ele a espessura mudaria conforme a tela.
+  function sparklineSvg(valores, classe) {
+    if (!valores || valores.length < 2) return "";
+    var L = 100, A = 26, pad = 3;
+    var min = Math.min.apply(null, valores);
+    var max = Math.max.apply(null, valores);
+    // Série constante teria amplitude zero e dividiria por zero: vira linha no meio.
+    var amplitude = (max - min) || 1;
+    var pontos = valores.map(function (v, i) {
+      var x = (i / (valores.length - 1)) * L;
+      var y = pad + (1 - (v - min) / amplitude) * (A - pad * 2);
+      return x.toFixed(2) + "," + y.toFixed(2);
+    });
+    var linha = "M" + pontos.join("L");
+    var area = linha + "L" + L + "," + A + "L0," + A + "Z";
+    return '<svg class="mk-spark ' + classe + '" viewBox="0 0 ' + L + " " + A + '" ' +
+      'preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+      '<path class="area" d="' + area + '"/>' +
+      '<path class="linha" d="' + linha + '" vector-effect="non-scaling-stroke"/>' +
+      '</svg>';
+  }
+
   function renderMarketList(el, rows) {
     if (!rows.length) { el.innerHTML = '<div class="market-empty">sem dados no momento</div>'; return; }
 
@@ -2686,10 +2719,23 @@
         '<span class="mk-bar ' + (subiu ? "up" : "down") + '" style="' +
           (subiu ? "left:50%;" : "right:50%;") + "width:" + larguraPct.toFixed(2) + '%"></span>';
 
+      // Havendo histórico, a mini-linha entra no lugar da barra: ela mostra o
+      // caminho até aqui, não só o resultado de hoje. A barra continua servindo
+      // aos índices globais, que vêm de outra fonte e não trazem histórico.
+      var hist = r.history || [];
+      var temLinha = hist.length > 1;
+      var tendenciaAlta = temLinha && hist[hist.length - 1] >= hist[0];
+      var grafico = temLinha
+        ? sparklineSvg(hist, tendenciaAlta ? "up" : "down")
+        : '<span class="mk-zero"></span>' + barra;
+      var periodo = temLinha
+        ? "\n" + (tendenciaAlta ? "subindo" : "caindo") + " no último mês"
+        : "";
+
       return '<div class="market-row" title="' + escapeHtml(r.symbol + (r.name ? " — " + r.name : "")) +
-          "\n" + priceTxt + " · " + changeTxt + ' hoje">' +
+          "\n" + priceTxt + " · " + changeTxt + " hoje" + periodo + '">' +
         '<div class="market-label"><div class="market-symbol">' + r.symbol + '</div><div class="market-name">' + escapeHtml(r.name || "") + '</div></div>' +
-        '<div class="mk-track"><span class="mk-zero"></span>' + barra + '</div>' +
+        '<div class="mk-track">' + grafico + '</div>' +
         '<div class="market-price num">' + priceTxt + '</div>' +
         '<div class="market-change num ' + cls + '">' + changeTxt + '</div>' +
         '</div>';
@@ -2707,16 +2753,27 @@
     loserEl.textContent = bottom.symbol + " (" + bottom.changePct.toFixed(2).replace(".", ",") + "%)";
   }
 
+  // A brapi às vezes devolve pontos com close nulo (pregão sem negócio, feriado).
+  // Deixá-los passar faria a linha despencar até o chão num dia que não existiu.
+  function closesDoHistorico(r) {
+    return ((r && r.historicalDataPrice) || [])
+      .map(function (h) { return h && h.close; })
+      .filter(function (v) { return typeof v === "number" && isFinite(v); });
+  }
+
   function loadBrMarket() {
     var statusEl = document.getElementById("marketBrStatus");
     var listEl = document.getElementById("marketBrList");
     statusEl.textContent = "carregando…";
     var token = localStorage.getItem(LS_BRAPI_TOKEN) || "";
-    var url = "https://brapi.dev/api/quote/" + BR_TICKERS.join(",") + (token ? ("?token=" + encodeURIComponent(token)) : "");
+    // range/interval trazem o fechamento diário do último mês, na mesma chamada
+    // da cotação — é o que alimenta a mini-linha, e funciona sem token.
+    var url = "https://brapi.dev/api/quote/" + BR_TICKERS.join(",") + "?range=1mo&interval=1d" +
+      (token ? ("&token=" + encodeURIComponent(token)) : "");
     return fetch(url).then(function (res) { return res.json(); }).then(function (data) {
       var results = (data && data.results) || [];
       var rows = results.map(function (r) {
-        return { symbol: r.symbol, name: r.longName || r.shortName || "", price: r.regularMarketPrice, changePct: r.regularMarketChangePercent, currency: "BRL" };
+        return { symbol: r.symbol, name: r.longName || r.shortName || "", price: r.regularMarketPrice, changePct: r.regularMarketChangePercent, currency: "BRL", history: closesDoHistorico(r) };
       });
       renderMarketList(listEl, rows);
       statusEl.textContent = rows.length ? "atualizado agora" : "sem dados";
@@ -2775,11 +2832,12 @@
     if (!symbol) { resultEl.innerHTML = ""; return; }
     resultEl.innerHTML = '<div class="market-empty">buscando…</div>';
     var brToken = localStorage.getItem(LS_BRAPI_TOKEN) || "";
-    var brUrl = "https://brapi.dev/api/quote/" + encodeURIComponent(symbol) + (brToken ? ("?token=" + encodeURIComponent(brToken)) : "");
+    var brUrl = "https://brapi.dev/api/quote/" + encodeURIComponent(symbol) + "?range=1mo&interval=1d" +
+      (brToken ? ("&token=" + encodeURIComponent(brToken)) : "");
     fetch(brUrl).then(function (res) { return res.json(); }).then(function (data) {
       var r = data && data.results && data.results[0];
       if (r && typeof r.regularMarketPrice === "number") {
-        renderMarketList(resultEl, [{ symbol: r.symbol, name: r.longName || r.shortName || "", price: r.regularMarketPrice, changePct: r.regularMarketChangePercent, currency: "BRL" }]);
+        renderMarketList(resultEl, [{ symbol: r.symbol, name: r.longName || r.shortName || "", price: r.regularMarketPrice, changePct: r.regularMarketChangePercent, currency: "BRL", history: closesDoHistorico(r) }]);
         return;
       }
       searchGlobalFallback(symbol, resultEl);
