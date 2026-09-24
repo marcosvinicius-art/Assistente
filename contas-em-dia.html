@@ -1112,12 +1112,39 @@
   .market-list { display: flex; flex-direction: column; gap: 2px; }
   .market-row {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(96px, 1fr) minmax(70px, 1.5fr) auto auto;
     align-items: center;
     gap: 12px;
     padding: 9px 4px;
     border-radius: 8px;
   }
+
+  /* Barra divergente a partir de um zero central: a DIREÇÃO já diz se subiu ou
+     caiu, então a leitura não depende da cor — verde/vermelho é exatamente o par
+     que o daltonismo mais confunde. A cor só reforça o que a posição já disse. */
+  .mk-track {
+    position: relative;
+    height: 16px;
+    min-width: 60px;
+  }
+  .mk-zero {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+  .mk-bar {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    /* Ponta arredondada só na extremidade livre; o lado colado no zero fica reto,
+       senão a barra pareceria descolada da linha de base. */
+    min-width: 2px;
+  }
+  .mk-bar.up { background: var(--income); border-radius: 0 4px 4px 0; }
+  .mk-bar.down { background: var(--expense); border-radius: 4px 0 0 4px; }
   .market-row:hover { background: var(--surface-2); }
   .market-symbol { font-size: 13.5px; font-weight: 600; }
   .market-name { font-size: 11.5px; color: var(--ink-faint); margin-top: 1px; }
@@ -1292,6 +1319,15 @@
        resolve de vez, sem depender dessa conta de largura. */
     .spend-panel.two-col { flex-direction: column; gap: 16px; }
     .spend-panel.two-col > div { min-width: 0; }
+
+    /* Quatro colunas não cabem na largura de um celular. Em vez de esconder a
+       barra — que é justamente o que se quer ver —, ela desce para uma linha
+       inteira abaixo, e nenhum dado se perde. */
+    .market-row { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 7px; }
+    .market-row .market-label { grid-row: 1; grid-column: 1; }
+    .market-row .market-price { grid-row: 1; grid-column: 2; }
+    .market-row .market-change { grid-row: 1; grid-column: 3; }
+    .market-row .mk-track { grid-row: 2; grid-column: 1 / -1; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2619,14 +2655,34 @@
 
   function renderMarketList(el, rows) {
     if (!rows.length) { el.innerHTML = '<div class="market-empty">sem dados no momento</div>'; return; }
+
+    // Escala pela maior variação absoluta do próprio conjunto: num dia calmo as
+    // barras continuam visíveis, e num dia agitado nenhuma estoura o trilho. Uma
+    // escala fixa deixaria o gráfico liso na maioria dos dias.
+    var maxAbs = rows.reduce(function (m, r) {
+      var v = Math.abs(r.changePct);
+      return (typeof r.changePct === "number" && !isNaN(r.changePct) && v > m) ? v : m;
+    }, 0) || 1;
+
     el.innerHTML = rows.map(function (r) {
       var hasChange = typeof r.changePct === "number" && !isNaN(r.changePct);
-      var cls = !hasChange ? "" : (r.changePct >= 0 ? "income" : "expense");
-      var changeTxt = !hasChange ? "—" : (r.changePct >= 0 ? "+" : "") + r.changePct.toFixed(2).replace(".", ",") + "%";
+      var subiu = hasChange && r.changePct >= 0;
+      var cls = !hasChange ? "" : (subiu ? "income" : "expense");
+      var changeTxt = !hasChange ? "—" : (subiu ? "+" : "") + r.changePct.toFixed(2).replace(".", ",") + "%";
       var priceTxt = typeof r.price !== "number" || isNaN(r.price) ? "—" :
         (r.currency === "USD" ? ("US$ " + r.price.toFixed(2).replace(".", ",")) : fmt(r.price));
-      return '<div class="market-row">' +
-        '<div><div class="market-symbol">' + r.symbol + '</div><div class="market-name">' + (r.name || "") + '</div></div>' +
+
+      // Metade do trilho é a maior variação do dia; o piso de 2px existe para
+      // uma alta de 0,02% não desaparecer por completo.
+      var larguraPct = hasChange ? (Math.abs(r.changePct) / maxAbs) * 50 : 0;
+      var barra = !hasChange ? "" :
+        '<span class="mk-bar ' + (subiu ? "up" : "down") + '" style="' +
+          (subiu ? "left:50%;" : "right:50%;") + "width:" + larguraPct.toFixed(2) + '%"></span>';
+
+      return '<div class="market-row" title="' + escapeHtml(r.symbol + (r.name ? " — " + r.name : "")) +
+          "\n" + priceTxt + " · " + changeTxt + ' hoje">' +
+        '<div class="market-label"><div class="market-symbol">' + r.symbol + '</div><div class="market-name">' + escapeHtml(r.name || "") + '</div></div>' +
+        '<div class="mk-track"><span class="mk-zero"></span>' + barra + '</div>' +
         '<div class="market-price num">' + priceTxt + '</div>' +
         '<div class="market-change num ' + cls + '">' + changeTxt + '</div>' +
         '</div>';
