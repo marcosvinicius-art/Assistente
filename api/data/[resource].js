@@ -9,6 +9,7 @@ var KIND_BY_RESOURCE = {
   transactions: "transaction",
   goals: "goal",
   investments: "investment",
+  cards: "card",
 };
 
 function rowToRecord(row) {

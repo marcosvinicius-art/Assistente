@@ -763,6 +763,43 @@
   .parc-late { font-weight: 600; color: var(--expense); }
   .parc-bar { height: 5px; border-radius: 999px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
   .parc-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.35s ease; }
+  /* ---- Cartões ---- */
+  .card-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) 96px minmax(120px, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .card-item { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--border); }
+  .card-item:last-child { border-bottom: none; }
+  .card-chip {
+    width: 34px; height: 24px; flex: none; border-radius: 4px;
+    background: linear-gradient(135deg, var(--brand-navy-bright), var(--brand-navy-deep));
+    border: 1px solid rgba(196, 196, 196, 0.3);
+  }
+  .card-info { flex: 1; min-width: 0; }
+  .card-nome { font-size: 13.5px; font-weight: 600; }
+  .card-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+  .card-uso { text-align: right; white-space: nowrap; }
+  .card-uso-valor { font-size: 13.5px; font-weight: 600; }
+  .card-uso-label { font-size: 11px; color: var(--ink-faint); }
+  .card-limite-bar { height: 4px; border-radius: 999px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+  .card-limite-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+  .card-limite-fill.cheio { background: var(--expense); }
+  .card-del {
+    border: none; background: none; cursor: pointer; color: var(--ink-faint);
+    padding: 4px; border-radius: 6px; display: flex; transition: color var(--ease), background var(--ease);
+  }
+  .card-del:hover { color: var(--expense); background: var(--expense-soft); }
+
+  @media (max-width: 560px) {
+    .card-form { grid-template-columns: 1fr 1fr; }
+    .card-form .btn-add { grid-column: 1 / -1; }
+  }
+
   .parc-month { font-size: 12.5px; color: var(--ink-muted); background: var(--surface-2); border-radius: 8px; padding: 9px 11px; margin-bottom: 12px; }
   .parc-month strong { color: var(--ink); font-weight: 600; }
   .parc-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; }
@@ -1640,6 +1677,10 @@
                 Parcelas
                 <input type="number" id="txParcelas" min="1" max="60" step="1" value="1">
               </label>
+              <label class="parcelas-field" for="txCard" id="txCardWrap" hidden>
+                Cartão
+                <select id="txCard"></select>
+              </label>
               <span class="parcelas-hint" id="txParcelasHint" hidden></span>
               <button type="submit" class="btn-add">Adicionar</button>
             </div>
@@ -1699,6 +1740,29 @@
     </div>
 
     <div class="panel">
+      <div class="panel-head">
+        <h2>Meus cartões</h2>
+        <span class="hint" id="cardsHint"></span>
+      </div>
+      <form class="card-form" id="cardForm">
+        <div class="field">
+          <label for="cardName">Apelido do cartão</label>
+          <input id="cardName" type="text" placeholder="Ex: Nubank" required maxlength="40">
+        </div>
+        <div class="field">
+          <label for="cardDue">Vence dia</label>
+          <input id="cardDue" type="number" min="1" max="31" step="1" placeholder="10">
+        </div>
+        <div class="field">
+          <label for="cardLimit">Limite (opcional)</label>
+          <input id="cardLimit" type="text" inputmode="numeric" placeholder="0,00">
+        </div>
+        <button type="submit" class="btn-add">Adicionar</button>
+      </form>
+      <div id="cardsList"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
       <div class="panel-head">
         <h2>Todos os parcelamentos</h2>
         <span class="hint" id="parcTabHint"></span>
@@ -1993,6 +2057,7 @@
     transactions: [],
     goals: [],
     investments: [],
+    cards: [],
     db: null,
     downloads: null,
     sample: null,
@@ -2010,6 +2075,7 @@
   var LS_TX = "contas_em_dia_transactions";
   var LS_GOALS = "contas_em_dia_goals";
   var LS_INVEST = "contas_em_dia_investments";
+  var LS_CARDS = "contas_em_dia_cards";
 
   // Coleções simples, de propósito. O caminho privado por usuário ("data/users/me/...")
   // só funciona quando a capacidade "user" é declarada junto com "db" — e ela não está
@@ -2039,10 +2105,12 @@
       state.transactions = JSON.parse(localStorage.getItem(LS_TX) || "[]");
       state.goals = JSON.parse(localStorage.getItem(LS_GOALS) || "[]");
       state.investments = JSON.parse(localStorage.getItem(LS_INVEST) || "[]");
+      state.cards = JSON.parse(localStorage.getItem(LS_CARDS) || "[]");
     } catch (e) {
       state.transactions = [];
       state.goals = [];
       state.investments = [];
+      state.cards = [];
     }
     // Avisa na abertura, antes de a pessoa digitar e perder o que digitou.
     if (!storageFunciona()) {
@@ -2076,6 +2144,7 @@
       localStorage.setItem(LS_TX, JSON.stringify(state.transactions));
       localStorage.setItem(LS_GOALS, JSON.stringify(state.goals));
       localStorage.setItem(LS_INVEST, JSON.stringify(state.investments));
+      localStorage.setItem(LS_CARDS, JSON.stringify(state.cards));
       setStorageAlert(false);
     } catch (e) {
       setStorageAlert(true, "Não consegui salvar neste navegador: o que você lançar vai sumir ao fechar ou recarregar a página. Costuma ser navegação privada (aba anônima) ou armazenamento bloqueado nas configurações do site.");
@@ -2157,10 +2226,12 @@
       serverList("transactions"),
       serverList("goals"),
       serverList("investments"),
+      serverList("cards"),
     ]).then(function (res) {
       state.transactions = res[0];
       state.goals = res[1];
       state.investments = res[2];
+      state.cards = res[3];
       render();
     }).catch(function (e) {
       setStorageAlert(true, "Entrei na conta, mas não consegui carregar seus dados: " +
@@ -2374,6 +2445,10 @@
         state.investments = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
         render();
       });
+      state.db.collection(userCol("cards")).onSnapshot(function (snap) {
+        state.cards = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        render();
+      });
     });
   }
 
@@ -2433,6 +2508,35 @@
       if (t) { t.paid = paid; saveLocal(); render(); }
     }
   }
+  function addCard(card) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.collection(userCol("cards")).add(card), "o cartão");
+    } else if (state.storage === "server") {
+      serverWrite(serverAdd("cards", card).then(function (saved) {
+        state.cards.push(saved); render();
+      }), "o cartão");
+    } else {
+      card.id = "c" + Date.now() + Math.random().toString(36).slice(2, 7);
+      state.cards.push(card);
+      saveLocal();
+      render();
+    }
+  }
+
+  function deleteCard(id) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.doc(userCol("cards") + "/" + id).delete(), "a exclusão do cartão");
+    } else if (state.storage === "server") {
+      serverWrite(serverDelete("cards", id).then(function () {
+        state.cards = state.cards.filter(function (c) { return c.id !== id; }); render();
+      }), "a exclusão do cartão");
+    } else {
+      state.cards = state.cards.filter(function (c) { return c.id !== id; });
+      saveLocal();
+      render();
+    }
+  }
+
   function addGoal(goal) {
     if (state.storage === "cloud" && state.db) {
       cloudWrite(state.db.collection(userCol("goals")).add(goal), "a meta");
@@ -2648,6 +2752,7 @@
   attachAmountMask(document.getElementById("salaryInput"));
   attachAmountMask(document.getElementById("investAmount"));
   attachAmountMask(document.getElementById("goalTarget"));
+  attachAmountMask(document.getElementById("cardLimit"));
 
   // ---------- Bolsa de valores (dados informativos, sem recomendação de compra) ----------
   var LS_BRAPI_TOKEN = "ws_brapi_token";
@@ -2880,6 +2985,9 @@
     if (!desc || !amount || amount <= 0) return;
 
     var parcelas = Math.max(1, Math.min(60, parseInt(document.getElementById("txParcelas").value, 10) || 1));
+    var cardSel = document.getElementById("txCard");
+    var cartaoId = (!document.getElementById("txCardWrap").hidden && cardSel.value) ? cardSel.value : null;
+
     if (parcelas > 1) {
       var grupo = "p" + Date.now() + Math.random().toString(36).slice(2, 7);
       dividirParcelas(amount, parcelas).forEach(function (valor, i) {
@@ -2889,11 +2997,12 @@
           // "Já paguei" vale só para a primeira: as seguintes ainda nem venceram.
           paid: i === 0 ? paid : false,
           parcela: { n: i + 1, de: parcelas, grupo: grupo },
+          cartaoId: cartaoId,
           createdAt: new Date().toISOString()
         });
       });
     } else {
-      addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, createdAt: new Date().toISOString() });
+      addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, cartaoId: cartaoId, createdAt: new Date().toISOString() });
     }
 
     document.getElementById("txDesc").value = "";
@@ -3289,7 +3398,7 @@
     state.transactions.forEach(function (t) {
       if (!t.parcela || !t.parcela.grupo) return;
       var g = grupos[t.parcela.grupo];
-      if (!g) g = grupos[t.parcela.grupo] = { grupo: t.parcela.grupo, desc: t.desc, de: t.parcela.de, category: t.category, itens: [] };
+      if (!g) g = grupos[t.parcela.grupo] = { grupo: t.parcela.grupo, desc: t.desc, de: t.parcela.de, category: t.category, cartaoId: t.cartaoId || null, itens: [] };
       g.itens.push(t);
     });
     return Object.keys(grupos).map(function (k) {
@@ -3314,6 +3423,101 @@
     });
     return soma;
   }
+
+  // ---------- Cartões ----------
+  function cardMeta(id) {
+    for (var i = 0; i < state.cards.length; i++) if (state.cards[i].id === id) return state.cards[i];
+    return null;
+  }
+
+  // O seletor só aparece havendo cartão cadastrado: um campo com uma opção só
+  // ("nenhum") ocuparia espaço no formulário sem oferecer escolha alguma.
+  function renderCardSelect() {
+    var wrap = document.getElementById("txCardWrap");
+    var sel = document.getElementById("txCard");
+    if (!state.cards.length) { wrap.hidden = true; sel.innerHTML = ""; return; }
+    var atual = sel.value;
+    sel.innerHTML = '<option value="">à vista / débito</option>' +
+      state.cards.map(function (c) {
+        return '<option value="' + c.id + '">' + escapeHtml(c.nome) + "</option>";
+      }).join("");
+    if (atual) sel.value = atual;
+    wrap.hidden = false;
+  }
+
+  function renderCards() {
+    var lista = document.getElementById("cardsList");
+    var hint = document.getElementById("cardsHint");
+    renderCardSelect();
+
+    if (!state.cards.length) {
+      hint.textContent = "";
+      lista.innerHTML = '<div class="empty-note">Nenhum cartão cadastrado. Cadastre os seus acima e eles aparecem como opção ao lançar uma compra.</div>';
+      return;
+    }
+
+    // "Em aberto" é o que ainda vai sair do bolso: parcela já paga não ocupa
+    // mais limite, então somá-la daria um comprometimento que não existe.
+    var emAbertoPorCartao = {};
+    state.transactions.forEach(function (t) {
+      if (!t.cartaoId || isPaid(t)) return;
+      emAbertoPorCartao[t.cartaoId] = (emAbertoPorCartao[t.cartaoId] || 0) + Number(t.amount);
+    });
+
+    hint.textContent = state.cards.length + (state.cards.length === 1 ? " cartão" : " cartões");
+    lista.innerHTML = state.cards.map(function (c) {
+      var usado = emAbertoPorCartao[c.id] || 0;
+      var temLimite = typeof c.limite === "number" && c.limite > 0;
+      var pct = temLimite ? Math.min(100, Math.round((usado / c.limite) * 100)) : 0;
+      var detalhes = [];
+      if (c.vencimento) detalhes.push("vence dia " + c.vencimento);
+      if (temLimite) detalhes.push("limite " + fmt(c.limite));
+      return '<div class="card-item">' +
+        '<span class="card-chip"></span>' +
+        '<div class="card-info">' +
+          '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
+          '<div class="card-sub">' + (detalhes.join(" · ") || "sem limite informado") + '</div>' +
+          (temLimite ? '<div class="card-limite-bar"><span class="card-limite-fill' +
+            (pct >= 90 ? " cheio" : "") + '" style="width:' + pct + '%"></span></div>' : "") +
+        '</div>' +
+        '<div class="card-uso">' +
+          '<div class="card-uso-valor">' + fmt(usado) + '</div>' +
+          '<div class="card-uso-label">' + (temLimite ? pct + "% do limite" : "em aberto") + '</div>' +
+        '</div>' +
+        '<button type="button" class="card-del" data-id="' + c.id + '" data-nome="' + escapeHtml(c.nome) +
+          '" title="Excluir cartão">' + ICON_TRASH + '</button>' +
+      '</div>';
+    }).join("");
+
+    Array.prototype.forEach.call(lista.querySelectorAll(".card-del"), function (btn) {
+      btn.addEventListener("click", function () {
+        // Os lançamentos ficam: eles são despesas reais, e apagá-los junto
+        // reescreveria o histórico do mês só por trocar de cartão.
+        if (!window.confirm('Excluir o cartão "' + btn.getAttribute("data-nome") +
+          '"?\n\nOs lançamentos feitos nele continuam no app, apenas deixam de ficar vinculados.')) return;
+        deleteCard(btn.getAttribute("data-id"));
+      });
+    });
+  }
+
+  document.getElementById("cardForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var nome = document.getElementById("cardName").value.trim();
+    if (!nome) return;
+    var diaEl = document.getElementById("cardDue");
+    var dia = parseInt(diaEl.value, 10);
+    var limite = parseAmount(document.getElementById("cardLimit").value);
+    addCard({
+      nome: nome,
+      vencimento: (dia >= 1 && dia <= 31) ? dia : null,
+      limite: (typeof limite === "number" && !isNaN(limite) && limite > 0) ? limite : null,
+      createdAt: new Date().toISOString()
+    });
+    document.getElementById("cardName").value = "";
+    diaEl.value = "";
+    setAmountValue(document.getElementById("cardLimit"), null);
+    document.getElementById("cardName").focus();
+  });
 
   function excluirParcelamento(grupo, desc, quantas) {
     if (!window.confirm("Excluir o parcelamento \"" + desc + "\"?\n\nIsso apaga as " +
@@ -3358,6 +3562,7 @@
       var atrasada = g.proxima && g.proxima.date < hoje;
       var pct = Math.round((g.pagas / g.de) * 100);
       var meta = catMeta(g.category);
+      var cartao = g.cartaoId ? cardMeta(g.cartaoId) : null;
       var valorParcela = g.itens.length ? g.itens[g.itens.length - 1].amount : 0;
 
       var itens = g.itens.map(function (t) {
@@ -3380,6 +3585,7 @@
             '<div class="pgroup-sub">' +
               '<span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span> · ' +
               g.de + "x de " + fmt(valorParcela) + " · total " + fmt(g.total) +
+              (cartao ? " · " + escapeHtml(cartao.nome) : "") +
             '</div>' +
           '</div>' +
           '<div class="pgroup-right">' +
@@ -3665,6 +3871,7 @@
     });
 
     renderEvolution(real);
+    renderCards();
     renderParcelas();
     renderParcelasTab();
     renderInvestTab();

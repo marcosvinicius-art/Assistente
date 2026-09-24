@@ -74,6 +74,12 @@ function ensureSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS records_user_kind_idx ON records(user_id, kind);
+      -- A lista de tipos válidos vive em KIND_BY_RESOURCE, na API, que recusa
+      -- qualquer recurso fora dela. Mantê-la também aqui obrigava uma migração de
+      -- banco a cada tipo novo — foi o que aconteceu ao acrescentar "card" —, e
+      -- o CREATE TABLE acima não altera tabela que já existe. Por isso a trava
+      -- fica num lugar só. DROP IF EXISTS torna isto seguro de repetir.
+      ALTER TABLE records DROP CONSTRAINT IF EXISTS records_kind_check;
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,
