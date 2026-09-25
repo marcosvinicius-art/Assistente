@@ -113,46 +113,48 @@
      Este bloco vem DEPOIS dos dois blocos de tema escuro de propósito: todos têm
      a mesma especificidade, então quem vem por último é que vale. */
   :root[data-perfil="pj"] {
-    /* Papel e tinta. Fundo osso, texto quase preto e UMA cor de destaque, um
-       vinho profundo usado só em detalhe. Escuro com dourado é o clichê de luxo
-       que sai barato na tela; o que lê como caro em software financeiro é
-       contenção — muito espaço, contraste firme, nenhuma cor sobrando.
-       Claro também torna a troca de perfil impossível de não notar, já que o
-       pessoal é escuro. */
-    --bg: #F2F0EA;
-    --surface: #FFFFFF;
-    --surface-2: #E9E6DE;
-    --ink: #17140F;
-    --ink-muted: #59534A;
-    /* #736C5E e não um cinza mais claro: os rótulos pequenos precisam passar
-       dos 4,5:1 tanto sobre o branco do painel quanto sobre o osso do fundo. */
-    --ink-faint: #736C5E;
-    --border: #DAD4C8;
-    --accent: #6E2639;
-    --accent-soft: #F5EBED;
-    --accent-ink: #6E2639;
-    --on-accent: #FFFFFF;
-    --brand-navy-deep: #3F1520;
-    --brand-navy: #561D2B;
-    --brand-navy-bright: #6E2639;
-    --brand-silver: #EFE9DC;
-    --metal-forte: rgba(239, 233, 220, 0.6);
-    --metal-suave: rgba(239, 233, 220, 0.3);
-    --header-ink: #FBF8F2;
-    --header-muted: #C7AEB4;
-    --income: #1C6B3A;
-    --income-soft: #E6EFE8;
-    --expense: #A32319;
-    --expense-soft: #F7E8E6;
-    --warning: #9A6B10;
-    --rate: #6E2639;
-    /* Sombras de fundo claro: vindas do tema escuro seriam manchas pretas
-       pesadas sobre o osso. */
-    --shadow: 0 1px 2px rgba(23, 20, 15, 0.05), 0 8px 24px -12px rgba(23, 20, 15, 0.14);
-    --shadow-raised: 0 2px 4px rgba(23, 20, 15, 0.08), 0 14px 32px -14px rgba(23, 20, 15, 0.2);
+    /* Preto fosco. Fosco não é uma cor, é ausência de brilho: nada de degradê,
+       nada de reflexo, nenhum branco puro. Os tons sobem em degraus curtos e
+       iguais, e o metal é uma pedra quente e opaca, nunca dourado lustroso. */
+    --bg: #070707;
+    --surface: #101010;
+    --surface-2: #191919;
+    --ink: #E8E6E1;
+    --ink-muted: #9B968D;
+    /* #847F76 e não mais escuro: sobre preto os rótulos pequenos precisam dos
+       4,5:1, e o tom anterior parava em 3,6:1. */
+    --ink-faint: #847F76;
+    --border: #242422;
+    --accent: #CFC8BC;
+    --accent-soft: #1C1B18;
+    --accent-ink: #DED8CC;
+    --on-accent: #0A0A0A;
+    /* Os três iguais de propósito: o topo, a foto do cartão e o cabeçalho da
+       carteira desenham degradês entre eles. Com valores idênticos, os três
+       viram cor chapada — que é o que fosco quer dizer. */
+    --brand-navy-deep: #1B1B1B;
+    --brand-navy: #1B1B1B;
+    --brand-navy-bright: #1B1B1B;
+    --brand-silver: #CFC8BC;
+    /* Filetes discretos: superfície fosca não devolve luz, e uma linha muito
+       acesa denunciaria o verniz que estamos justamente tirando. */
+    --metal-forte: rgba(207, 200, 188, 0.38);
+    --metal-suave: rgba(207, 200, 188, 0.16);
+    --header-ink: #EFECE6;
+    --header-muted: #948F87;
+    /* Entrada e saída também saem do neon: saturação alta brilha e quebra o
+       fosco, mas o tom tem de seguir inconfundível. */
+    --income: #5BC98A;
+    --income-soft: #12251A;
+    --expense: #E8756F;
+    --expense-soft: #2A1716;
+    --warning: #D9A83C;
+    --rate: #CFC8BC;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 24px -14px rgba(0, 0, 0, 0.6);
+    --shadow-raised: 0 2px 5px rgba(0, 0, 0, 0.5), 0 14px 30px -14px rgba(0, 0, 0, 0.7);
     /* Canto mais fechado: quanto mais reto, mais corporativo o conjunto lê. */
     --radius: 4px;
-    color-scheme: light;
+    color-scheme: dark;
   }
   /* Nome da empresa em versalete, o único ajuste tipográfico — é o que mais
      separa "extrato corporativo" de "app pessoal" sem mexer no layout. */
