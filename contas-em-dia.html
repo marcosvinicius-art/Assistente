@@ -95,6 +95,48 @@
     color-scheme: dark;
   }
 
+  /* Perfil empresa: preto e platina, sem o azul da marca. Vale nos dois temas de
+     propósito — o contexto financeiro da empresa não deve depender de como o
+     aparelho está configurado, e a troca precisa ser inconfundível à primeira
+     vista, senão é fácil lançar no lugar errado.
+     Este bloco vem DEPOIS dos dois blocos de tema escuro de propósito: todos têm
+     a mesma especificidade, então quem vem por último é que vale. */
+  :root[data-perfil="pj"] {
+    --bg: #08090A;
+    --surface: #0F1113;
+    --surface-2: #17191C;
+    --ink: #E9ECEF;
+    --ink-muted: #98A0A8;
+    --ink-faint: #5F676F;
+    --border: #24272B;
+    --accent: #C8CED4;
+    --accent-soft: #1C1F23;
+    --accent-ink: #D8DDE2;
+    --on-accent: #0B0C0D;
+    --brand-navy-deep: #000000;
+    --brand-navy: #0C0E10;
+    --brand-navy-bright: #1E2226;
+    --brand-silver: #D4D9DD;
+    --header-ink: #FFFFFF;
+    --header-muted: #949CA4;
+    --income: #4ADE80;
+    --income-soft: #102619;
+    --expense: #F87171;
+    --expense-soft: #2A1618;
+    --warning: #E0B341;
+    --rate: #AEB6BD;
+    /* Sem isto, vindo do tema claro as sombras continuariam as de fundo claro —
+       imperceptíveis sobre preto — e os painéis ficariam chapados. */
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
+    --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.55), 0 16px 36px -14px rgba(0, 0, 0, 0.8);
+    /* Canto mais fechado: quanto mais reto, mais corporativo o conjunto lê. */
+    --radius: 4px;
+    color-scheme: dark;
+  }
+  /* Nome da empresa em versalete, o único ajuste tipográfico — é o que mais
+     separa "extrato corporativo" de "app pessoal" sem mexer no layout. */
+  :root[data-perfil="pj"] .brand h1 { letter-spacing: 0.02em; }
+
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
 
@@ -2733,6 +2775,9 @@
 
   function definirPerfil(perfil) {
     state.perfil = perfil === "pj" ? "pj" : "pf";
+    // É o atributo na raiz que troca a paleta inteira: o CSS do perfil empresa
+    // redefine os mesmos tokens que o resto do app já consome.
+    document.documentElement.setAttribute("data-perfil", state.perfil);
     Array.prototype.forEach.call(perfilToggle.querySelectorAll("button"), function (b) {
       b.classList.toggle("active", b.getAttribute("data-perfil") === state.perfil);
     });
