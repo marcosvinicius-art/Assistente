@@ -106,37 +106,38 @@
      Este bloco vem DEPOIS dos dois blocos de tema escuro de propósito: todos têm
      a mesma especificidade, então quem vem por último é que vale. */
   :root[data-perfil="pj"] {
-    /* Verdes e dourados lidos pixel a pixel da referência enviada: o esmeralda
-       vai de #002622 (canto claro) a #000908 (quase preto), e o metal é um
-       dourado que varia de #866436 a #FCF6C2 conforme a luz bate. */
-    --bg: #010806;
-    --surface: #03110E;
-    --surface-2: #061C17;
-    --ink: #EFF4F1;
-    --ink-muted: #85A198;
-    --ink-faint: #4E6A63;
-    --border: #0C2620;
-    /* Dourado mais aceso que o medido na referência: lá ele aparece em traços
-       finos sobre uma arte grande, aqui precisa segurar botão e texto pequeno
-       sobre um verde bem mais escuro. */
-    --accent: #DDBA5E;
-    --accent-soft: #14251E;
-    --accent-ink: #EFD89A;
-    --on-accent: #030D0A;
-    --brand-navy-deep: #000504;
-    --brand-navy: #000D0B;
-    --brand-navy-bright: #001C18;
-    --brand-silver: #E2C87E;
-    --metal-forte: rgba(221, 186, 94, 0.9);
-    --metal-suave: rgba(221, 186, 94, 0.45);
-    --header-ink: #F7F1E2;
-    --header-muted: #A9BEB4;
-    --income: #4ADE80;
-    --income-soft: #092418;
-    --expense: #F87171;
-    --expense-soft: #2A1416;
+    /* Bordô e ouro velho: vinho profundo com metal envelhecido. O vinho fica
+       escuro a ponto de quase não se ler como cor — é o ouro que carrega a
+       leitura de luxo, e ele só funciona assim, em traço fino sobre massa
+       escura. Vinho claro com ouro viraria enfeite de festa. */
+    --bg: #0E0609;
+    --surface: #18090D;
+    --surface-2: #230E14;
+    --ink: #F3EDE9;
+    --ink-muted: #B09799;
+    --ink-faint: #7A6064;
+    --border: #2E1219;
+    --accent: #C2A14D;
+    --accent-soft: #24121A;
+    --accent-ink: #DFC684;
+    --on-accent: #12060A;
+    --brand-navy-deep: #0A0406;
+    --brand-navy: #15070B;
+    --brand-navy-bright: #2C1017;
+    --brand-silver: #DFC684;
+    --metal-forte: rgba(194, 161, 77, 0.85);
+    --metal-suave: rgba(194, 161, 77, 0.4);
+    --header-ink: #F7F1EC;
+    --header-muted: #C0A5A8;
+    /* Entrada e saída precisam saltar de um fundo que já é quente e avermelhado.
+       O vermelho padrão se confundiria com o vinho, então vira coral claro; o
+       verde também sobe, para não parecer apagado ao lado dele. */
+    --income: #5FD68C;
+    --income-soft: #0F2418;
+    --expense: #FF8F8F;
+    --expense-soft: #3A1620;
     --warning: #E8BE4A;
-    --rate: #E0C068;
+    --rate: #DFC684;
     /* Sem isto, vindo do tema claro as sombras continuariam as de fundo claro —
        imperceptíveis sobre preto — e os painéis ficariam chapados. */
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -14px rgba(0, 0, 0, 0.7);
