@@ -20,8 +20,8 @@
     --brand-navy: #002C5C;
     --brand-navy-bright: #00417F;
     --brand-silver: #C4C4C4;
-    /* Filetes metálicos sobre fundo escuro. Como token, o perfil empresa troca
-       prata por dourado sem precisar reescrever cada borda. */
+    /* Filetes metálicos sobre a faixa escura do topo, como token para as seis
+       bordas que os usam não precisarem repetir o mesmo rgba. */
     --metal-forte: rgba(196, 196, 196, 0.5);
     --metal-suave: rgba(196, 196, 196, 0.28);
     --header-ink: #FFFFFF;
@@ -98,64 +98,6 @@
     --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
     color-scheme: dark;
   }
-
-  /* Perfil empresa: preto e platina, sem o azul da marca. Vale nos dois temas de
-     propósito — o contexto financeiro da empresa não deve depender de como o
-     aparelho está configurado, e a troca precisa ser inconfundível à primeira
-     vista, senão é fácil lançar no lugar errado.
-     Este bloco vem DEPOIS dos dois blocos de tema escuro de propósito: todos têm
-     a mesma especificidade, então quem vem por último é que vale. */
-  :root[data-perfil="pj"] {
-    /* Preto fosco. Fosco não é uma cor, é ausência de brilho: nada de degradê,
-       nada de reflexo, nenhum branco puro. Os tons sobem em degraus curtos e
-       iguais, e o metal é uma pedra quente e opaca, nunca dourado lustroso. */
-    --bg: #070707;
-    --surface: #101010;
-    --surface-2: #191919;
-    --ink: #E8E6E1;
-    --ink-muted: #9B968D;
-    /* #847F76 e não mais escuro: sobre preto os rótulos pequenos precisam dos
-       4,5:1, e o tom anterior parava em 3,6:1. */
-    --ink-faint: #847F76;
-    --border: #242422;
-    --accent: #CFC8BC;
-    --accent-soft: #1C1B18;
-    --accent-ink: #DED8CC;
-    --on-accent: #0A0A0A;
-    /* Os três iguais de propósito: o topo, a foto do cartão e o cabeçalho da
-       carteira desenham degradês entre eles. Com valores idênticos, os três
-       viram cor chapada — que é o que fosco quer dizer. */
-    --brand-navy-deep: #1B1B1B;
-    --brand-navy: #1B1B1B;
-    --brand-navy-bright: #1B1B1B;
-    --brand-silver: #CFC8BC;
-    /* Filetes discretos: superfície fosca não devolve luz, e uma linha muito
-       acesa denunciaria o verniz que estamos justamente tirando. */
-    --metal-forte: rgba(207, 200, 188, 0.38);
-    --metal-suave: rgba(207, 200, 188, 0.16);
-    --header-ink: #EFECE6;
-    --header-muted: #948F87;
-    /* Aqui a cor é viva de propósito, e não é contradição com o fosco: fosco
-       descreve a SUPERFÍCIE — sem degradê, sem reflexo —, não o dado impresso
-       sobre ela. Dessaturar os valores junto com o fundo foi o que deixou os
-       números sem vida. Tinta viva sobre material opaco. */
-    --income: #2EE87F;
-    --income-soft: #0F2C1B;
-    --expense: #FF5F5F;
-    --expense-soft: #33191A;
-    --warning: #FFB627;
-    /* Tom próprio para a taxa de poupança: ela é um indicador, não dinheiro
-       entrando ou saindo. Em verde seria lida como receita. */
-    --rate: #4FD9E8;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 24px -14px rgba(0, 0, 0, 0.6);
-    --shadow-raised: 0 2px 5px rgba(0, 0, 0, 0.5), 0 14px 30px -14px rgba(0, 0, 0, 0.7);
-    /* Canto mais fechado: quanto mais reto, mais corporativo o conjunto lê. */
-    --radius: 4px;
-    color-scheme: dark;
-  }
-  /* Nome da empresa em versalete, o único ajuste tipográfico — é o que mais
-     separa "extrato corporativo" de "app pessoal" sem mexer no layout. */
-  :root[data-perfil="pj"] .brand h1 { letter-spacing: 0.02em; }
 
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -277,29 +219,6 @@
      barras marinho. Sem isso o SVG usaria var(--ink), invisível no tema claro. */
   .topbar .brand-mark rect:first-child { fill: var(--brand-silver); }
   .topbar .brand-mark rect + rect { fill: var(--brand-navy-deep); }
-
-  /* Fica na faixa escura, então não pode herdar as cores dos campos claros. */
-  .perfil-toggle {
-    display: flex;
-    border: 1px solid var(--metal-suave);
-    border-radius: 999px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.08);
-  }
-  .perfil-toggle button {
-    border: none;
-    background: none;
-    font: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: rgba(250, 246, 236, 0.7);
-    padding: 7px 14px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background var(--ease), color var(--ease);
-  }
-  .perfil-toggle button:hover { color: #FFFFFF; }
-  .perfil-toggle button.active { background: var(--brand-silver); color: var(--brand-navy-deep); }
 
   .topbar .qr-btn,
   .topbar .month-nav {
@@ -1591,10 +1510,6 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span class="qr-btn-label" id="logoutLabel">Sair</span>
       </button>
-      <div class="perfil-toggle" id="perfilToggle" role="group" aria-label="Perfil">
-        <button type="button" data-perfil="pf" class="active">Pessoal</button>
-        <button type="button" data-perfil="pj">Empresa</button>
-      </div>
       <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
         <span class="qr-btn-label">Avaliar</span>
@@ -2168,7 +2083,6 @@
     chatAI: false,
     chatTurns: [],
     quickFilter: "mes", // 'mes' | 'hoje' | '7dias' | 'ano'
-    perfil: "pf", // 'pf' (pessoal) | 'pj' (empresa)
     storage: "local", // 'local' | 'cloud' | 'server'
     // O admin fica fora dos modos de storage: ele não guarda lançamento nenhum,
     // mas continua autenticado no servidor (pra mandar e ler feedback).
@@ -2180,19 +2094,6 @@
   var LS_GOALS = "contas_em_dia_goals";
   var LS_INVEST = "contas_em_dia_investments";
   var LS_CARDS = "contas_em_dia_cards";
-  var LS_PERFIL = "contas_em_dia_perfil";
-
-  // A lista guardada é sempre a completa, dos dois perfis: filtrá-la na origem
-  // faria o saveLocal gravar só o perfil visível e apagar o outro. Por isso o
-  // recorte acontece na leitura, nunca no que se salva.
-  //
-  // Registro sem "perfil" é anterior a esta separação e conta como pessoal: era
-  // o único tipo que existia, e tratá-lo como empresa sumiria com o histórico.
-  function doPerfil(lista) {
-    return lista.filter(function (r) { return (r.perfil || "pf") === state.perfil; });
-  }
-  function txVisiveis() { return doPerfil(state.transactions); }
-  function cardsVisiveis() { return doPerfil(state.cards); }
 
   // Coleções simples, de propósito. O caminho privado por usuário ("data/users/me/...")
   // só funciona quando a capacidade "user" é declarada junto com "db" — e ela não está
@@ -2790,37 +2691,6 @@
   document.getElementById("investDate").value = todayISO();
 
   // ---------- Tabs ----------
-  // ---------- Perfil pessoal / empresa ----------
-  var perfilToggle = document.getElementById("perfilToggle");
-
-  function definirPerfil(perfil) {
-    state.perfil = perfil === "pj" ? "pj" : "pf";
-    // É o atributo na raiz que troca a paleta inteira: o CSS do perfil empresa
-    // redefine os mesmos tokens que o resto do app já consome.
-    document.documentElement.setAttribute("data-perfil", state.perfil);
-    Array.prototype.forEach.call(perfilToggle.querySelectorAll("button"), function (b) {
-      b.classList.toggle("active", b.getAttribute("data-perfil") === state.perfil);
-    });
-    // O cartão escolhido pertence ao outro perfil depois da troca: mantê-lo
-    // selecionado gravaria a compra num cartão que nem aparece mais na lista.
-    var sel = document.getElementById("txCard");
-    if (sel) sel.value = "";
-  }
-
-  Array.prototype.forEach.call(perfilToggle.querySelectorAll("button"), function (btn) {
-    btn.addEventListener("click", function () {
-      definirPerfil(btn.getAttribute("data-perfil"));
-      try { localStorage.setItem(LS_PERFIL, state.perfil); } catch (e) {}
-      render();
-    });
-  });
-
-  // A escolha é preferência de visualização deste aparelho, não dado da conta:
-  // fica no navegador e não precisa viajar até o servidor. Sem render aqui — os
-  // dados ainda nem carregaram, e quem os carrega já desenha a tela depois.
-  try {
-    if (localStorage.getItem(LS_PERFIL) === "pj") definirPerfil("pj");
-  } catch (e) {}
 
   var tabButtons = document.querySelectorAll(".tab-btn");
   var tabPanels = document.querySelectorAll(".tab-panel");
@@ -3172,11 +3042,11 @@
           paid: i === 0 ? paid : false,
           parcela: { n: i + 1, de: parcelas, grupo: grupo },
           cartaoId: cartaoId,
-          perfil: state.perfil, createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString()
         });
       });
     } else {
-      addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, cartaoId: cartaoId, perfil: state.perfil, createdAt: new Date().toISOString() });
+      addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, cartaoId: cartaoId, createdAt: new Date().toISOString() });
     }
 
     document.getElementById("txDesc").value = "";
@@ -3280,7 +3150,7 @@
     if (existingId) {
       updateTransactionAmount(existingId, amount, reabilitar);
     } else {
-      addTransaction({ desc: "Salário", amount: amount, type: "receita", category: "salario", date: currentMonthKey() + "-01", paid: true, perfil: state.perfil, createdAt: new Date().toISOString() }, reabilitar);
+      addTransaction({ desc: "Salário", amount: amount, type: "receita", category: "salario", date: currentMonthKey() + "-01", paid: true, createdAt: new Date().toISOString() }, reabilitar);
     }
   });
 
@@ -3290,7 +3160,7 @@
   });
 
   function renderSalaryWidget(mk) {
-    var salaryTx = txVisiveis().find(function (t) { return t.type === "receita" && t.category === "salario" && monthKey(t.date) === mk; });
+    var salaryTx = state.transactions.find(function (t) { return t.type === "receita" && t.category === "salario" && monthKey(t.date) === mk; });
     var input = document.getElementById("salaryInput");
     var status = document.getElementById("salaryStatus");
     status.classList.remove("error");
@@ -3539,7 +3409,7 @@
   // ---------- Export ----------
   document.getElementById("exportBtn").addEventListener("click", function () {
     var rows = [["data", "descrição", "tipo", "categoria", "valor"]];
-    txVisiveis().slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; }).forEach(function (t) {
+    state.transactions.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; }).forEach(function (t) {
       rows.push([t.date, t.desc, t.type, catMeta(t.category).label, String(t.amount).replace(".", ",")]);
     });
     var csv = rows.map(function (r) {
@@ -3569,7 +3439,7 @@
   // duplicar a conta acabaria com as duas telas discordando entre si.
   function agruparParcelamentos() {
     var grupos = {};
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       if (!t.parcela || !t.parcela.grupo) return;
       var g = grupos[t.parcela.grupo];
       if (!g) g = grupos[t.parcela.grupo] = { grupo: t.parcela.grupo, desc: t.desc, de: t.parcela.de, category: t.category, cartaoId: t.cartaoId || null, itens: [] };
@@ -3592,7 +3462,7 @@
   function parcelasDoMesAtual() {
     var mk = todayISO().slice(0, 7);
     var soma = 0;
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       if (t.parcela && !isPaid(t) && monthKey(t.date) === mk) soma += Number(t.amount);
     });
     return soma;
@@ -3669,7 +3539,7 @@
     var sel = document.getElementById("txCard");
     var atual = sel.value;
     sel.innerHTML = '<option value="">à vista / débito</option>' +
-      cardsVisiveis().map(function (c) {
+      state.cards.map(function (c) {
         return '<option value="' + c.id + '">' + escapeHtml(c.nome) + "</option>";
       }).join("") +
       '<option value="' + NOVO_CARTAO + '">+ cadastrar cartão…</option>';
@@ -3699,20 +3569,19 @@
     var lista = document.getElementById("cardsList");
     var hint = document.getElementById("cardsHint");
     renderCardSelect();
-    var cartoes = cardsVisiveis();
+    var cartoes = state.cards;
 
     if (!cartoes.length) {
       hint.textContent = "";
-      lista.innerHTML = '<div class="empty-note">Nenhum cartão cadastrado' +
-        (state.perfil === "pj" ? " nesta empresa" : "") +
-        '. Cadastre os seus acima e eles aparecem como opção ao lançar uma compra.</div>';
+      lista.innerHTML = '<div class="empty-note">Nenhum cartão cadastrado. ' +
+        'Cadastre os seus acima e eles aparecem como opção ao lançar uma compra.</div>';
       return;
     }
 
     // "Em aberto" é o que ainda vai sair do bolso: parcela já paga não ocupa
     // mais limite, então somá-la daria um comprometimento que não existe.
     var emAbertoPorCartao = {};
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       if (!t.cartaoId || isPaid(t)) return;
       emAbertoPorCartao[t.cartaoId] = (emAbertoPorCartao[t.cartaoId] || 0) + Number(t.amount);
     });
@@ -3793,7 +3662,7 @@
       nome: nome,
       vencimento: (dia >= 1 && dia <= 31) ? dia : null,
       limite: (typeof limite === "number" && !isNaN(limite) && limite > 0) ? limite : null,
-      perfil: state.perfil, createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString()
     });
     document.getElementById("cardName").value = "";
     diaEl.value = "";
@@ -3956,7 +3825,7 @@
     document.getElementById("monthLabel").textContent = mLabel + " de " + state.current.getFullYear();
     renderSalaryWidget(mk);
 
-    var real = txVisiveis();
+    var real = state.transactions;
     var monthTx = real.filter(function (t) { return monthKey(t.date) === mk; });
 
     // Os filtros rápidos (Hoje/7 dias/Este ano) recortam uma fatia diferente pra ver —
@@ -4182,7 +4051,7 @@
     wrap.innerHTML = meses.map(function (d) {
       var mk2 = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
       var inc = 0, exp = 0;
-      txVisiveis().forEach(function (t) {
+      state.transactions.forEach(function (t) {
         if (monthKey(t.date) !== mk2) return;
         if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount);
       });
@@ -4216,7 +4085,7 @@
   // meses sem nenhum lançamento não entram na conta, pra não puxar a média pra baixo à toa.
   function computeSpendingAverages(excludeMonthKey) {
     var byMonth = {};
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       if (t.type !== "despesa") return;
       var mk = monthKey(t.date);
       if (mk === excludeMonthKey) return;
@@ -4245,7 +4114,7 @@
   function monthlySavingPace() {
     var atual = todayISO().slice(0, 7);
     var porMes = {};
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       var mk = monthKey(t.date);
       if (mk === atual) return;
       if (!porMes[mk]) porMes[mk] = 0;
@@ -4307,7 +4176,7 @@
   function computeSaldoDisponivel() {
     var rmk = todayISO().slice(0, 7);
     var inc = 0, exp = 0, inv = 0, div = 0;
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       if (monthKey(t.date) !== rmk || !isPaid(t)) return;
       if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount);
     });
@@ -4321,7 +4190,7 @@
   function computeSaldoPrevisto() {
     var rmk = todayISO().slice(0, 7);
     var inc = 0, exp = 0, inv = 0, div = 0;
-    txVisiveis().forEach(function (t) {
+    state.transactions.forEach(function (t) {
       if (monthKey(t.date) !== rmk) return;
       if (t.type === "receita") inc += Number(t.amount); else exp += Number(t.amount);
     });
@@ -4541,7 +4410,7 @@
         var hasCat = validCats.some(function (c) { return c.key === input.category; });
         var category = hasCat ? input.category : (kind === "receita" ? "outros_rec" : "outros_desp");
         var date = /^\d{4}-\d{2}-\d{2}$/.test(input.date || "") ? input.date : todayISO();
-        addTransaction({ desc: String(input.desc || "Lançamento"), amount: amount, type: kind, category: category, date: date, perfil: state.perfil, createdAt: new Date().toISOString() });
+        addTransaction({ desc: String(input.desc || "Lançamento"), amount: amount, type: kind, category: category, date: date, createdAt: new Date().toISOString() });
         return "Lançado: " + input.desc + " — " + fmt(amount) + " (" + kind + ") em " + date + ".";
       }
     },
@@ -4674,13 +4543,13 @@
   function buildWelcomeText() {
     var abertura = saudacaoDoHorario() + "!";
 
-    if (!txVisiveis().length) {
+    if (!state.transactions.length) {
       return abertura + " Me conta qual foi o seu gasto que eu já registro.";
     }
 
     var partes = [abertura];
     var hoje = todayISO();
-    var gastosHoje = txVisiveis().filter(function (t) {
+    var gastosHoje = state.transactions.filter(function (t) {
       return t.date === hoje && t.type === "despesa";
     });
 
