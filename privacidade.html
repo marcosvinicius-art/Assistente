@@ -1,112 +1,299 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Política de Privacidade — Wonner Sols</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #FAFAFA;
+    --bg: #F4F6F9;
     --surface: #FFFFFF;
-    --ink: #18181B;
-    --ink-muted: #71717A;
-    --border: #E4E4E7;
-    --accent: #27272A;
+    --ink: #001539;
+    --ink-muted: #4A5A72;
+    --ink-faint: #617084;
+    --border: #DCE3EC;
+    --accent: #00417F;
+    color-scheme: light;
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #060B14;
+      --surface: #0C1524;
+      --ink: #E8EDF4;
+      --ink-muted: #9AACC2;
+      --ink-faint: #7A8AA1;
+      --border: #1E2D42;
+      --accent: #8FC0F0;
+      color-scheme: dark;
+    }
+  }
+
   * { box-sizing: border-box; }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
-    line-height: 1.6;
+    font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
-  h1 { font-size: 26px; margin: 0 0 4px; }
-  .updated { color: var(--ink-muted); font-size: 13px; margin-bottom: 32px; }
-  h2 { font-size: 17px; margin: 32px 0 8px; }
-  p, li { font-size: 14.5px; color: var(--ink); }
-  ul { padding-left: 20px; }
-  .notice {
+
+  .topo {
+    background: linear-gradient(105deg, #001539 0%, #002C5C 52%, #00417F 100%);
+    border-bottom: 2px solid rgba(196, 196, 196, 0.5);
+    padding: 22px 24px;
+  }
+  .topo-inner { max-width: 680px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  .topo a { color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 19px; letter-spacing: -0.015em; }
+  .topo span { color: #A9BDD4; font-size: 13px; }
+
+  .wrap { max-width: 680px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 6px; }
+  .atualizado { color: var(--ink-faint); font-size: 13px; margin-bottom: 36px; }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  p, li { font-size: 15px; margin: 0 0 12px; }
+  ul { padding-left: 18px; margin: 0 0 12px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--accent); }
+  strong { font-weight: 600; }
+
+  .quem {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    font-size: 13px;
-    color: var(--ink-muted);
-    margin-bottom: 28px;
+    border-top: 2px solid var(--ink);
+    padding: 18px 20px;
+    margin-bottom: 8px;
   }
-  a { color: var(--accent); }
-  footer { margin-top: 48px; font-size: 12px; color: var(--ink-muted); }
+  .quem p { margin: 0; font-size: 14.5px; color: var(--ink-muted); }
+
+  /* Tabela de dados: cada linha responde "o quê", "por quê" e "onde fica" de uma
+     vez. Em lista corrida essas três coisas ficariam espalhadas pelo texto. */
+  .tabela { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: 14px; }
+  .tabela th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink-muted);
+    font-size: 13px;
+    padding: 0 12px 8px 0;
+    border-bottom: 2px solid var(--ink);
+  }
+  .tabela td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .tabela td:last-child, .tabela th:last-child { padding-right: 0; }
+
+  @media (max-width: 560px) {
+    .tabela, .tabela tbody, .tabela tr, .tabela td { display: block; width: 100%; }
+    .tabela thead { display: none; }
+    .tabela tr { border-bottom: 1px solid var(--border); padding: 12px 0; }
+    .tabela td { border: none; padding: 2px 0; }
+    .tabela td:first-child { font-weight: 600; }
+    .tabela td:last-child { color: var(--ink-muted); font-size: 13.5px; }
+  }
+
+  footer {
+    margin-top: 44px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
 </style>
+</head>
+<body>
+
+<div class="topo">
+  <div class="topo-inner">
+    <a href="index.html">Wonner Sols</a>
+    <span>Privacidade</span>
+  </div>
+</div>
 
 <div class="wrap">
   <h1>Política de Privacidade</h1>
-  <div class="updated">Wonner Sols · última atualização: 11 de setembro de 2026</div>
+  <div class="atualizado">Em vigor desde 30 de setembro de 2026</div>
 
-  <div class="notice">
-    Este é um documento inicial, redigido para uso enquanto o Wonner Sols está em fase inicial de operação
-    (ainda sem CNPJ constituído). Recomenda-se revisão por um advogado especializado em LGPD antes de qualquer
-    lançamento comercial, por se tratar de dados financeiros de clientes.
+  <div class="quem">
+    <p>
+      Responsável pelo tratamento dos dados: Marcos Vinícius, pessoa física, ainda sem empresa
+      constituída. Contato para exercer qualquer direito desta política:
+      <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>.
+    </p>
   </div>
 
-  <h2>1. Quem trata seus dados</h2>
+  <h2>1. O ponto de partida</h2>
   <p>
-    O Wonner Sols é operado por Wonner Sols, que pode ser contatado em
-    <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a> para qualquer assunto relacionado a esta
-    política ou aos seus dados pessoais.
+    O Wonner Sols <strong>não se conecta ao seu banco</strong>. Ele não lê extratos, não acessa
+    contas e não recebe dados de nenhuma instituição financeira. Tudo que existe no app é o que
+    você digitou.
+  </p>
+  <p>
+    Por isso o app nunca tem sua senha de banco, o número completo do seu cartão, seu CPF ou seus
+    dados de conta corrente — não há caminho pelo qual essas informações cheguem até ele.
   </p>
 
-  <h2>2. Quais dados são coletados</h2>
+  <h2>2. Quais dados o app guarda</h2>
+  <table class="tabela">
+    <thead>
+      <tr><th>O quê</th><th>Para quê</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>E-mail e senha</td>
+        <td>Identificar sua conta. A senha é guardada com hash (scrypt), nunca em texto legível — nem o operador consegue lê-la.</td>
+      </tr>
+      <tr>
+        <td>Lançamentos</td>
+        <td>Descrição, valor, categoria, data e se já foi pago. É o conteúdo do app.</td>
+      </tr>
+      <tr>
+        <td>Parcelamentos</td>
+        <td>Quantas parcelas, valor de cada uma e vencimentos, para acompanhar o que falta pagar.</td>
+      </tr>
+      <tr>
+        <td>Cartões</td>
+        <td>Apelido, dia de vencimento, limite e a imagem que você escolher. <strong>Nunca o número do cartão</strong>, que o app não pede nem aceita.</td>
+      </tr>
+      <tr>
+        <td>Metas e investimentos</td>
+        <td>Nome, valor alvo, aportes, tipo e dividendos anotados por você.</td>
+      </tr>
+      <tr>
+        <td>Avaliações</td>
+        <td>Se você usar o botão "Avaliar": a nota de 1 a 5, o comentário e o seu e-mail, para que o operador saiba de quem veio.</td>
+      </tr>
+      <tr>
+        <td>Cookie de sessão</td>
+        <td>Um cookie técnico mantém você conectado por 30 dias. Não rastreia navegação nem alimenta publicidade.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    O app <strong>não usa cookies de publicidade, analytics ou rastreamento</strong> de terceiros.
+  </p>
+
+  <h2>3. Onde os dados ficam</h2>
+  <p>
+    Depende de como você usa o app, e a diferença é grande:
+  </p>
   <ul>
-    <li>Lançamentos financeiros que você registra: descrição, valor, categoria e data de receitas e despesas;</li>
-    <li>Metas financeiras e valores aportados nelas;</li>
-    <li>Investimentos que você cadastra: descrição, tipo, valor investido, valor atual e dividendos;</li>
-    <li>Mensagens que você digita ou fala para o assistente, quando essa função é usada.</li>
+    <li>
+      <strong>Sem conta:</strong> tudo fica no armazenamento do próprio navegador, no seu aparelho.
+      Nada é enviado a servidor nenhum, e ninguém além de quem usa aquele aparelho tem acesso.
+      Limpar os dados do site apaga tudo, sem volta.
+    </li>
+    <li>
+      <strong>Com conta:</strong> os dados ficam em banco de dados PostgreSQL hospedado na
+      infraestrutura da Vercel e da Neon, <strong>em servidores localizados nos Estados Unidos</strong>.
+      Usar o app com conta implica essa transferência internacional, permitida pelo artigo 33 da LGPD
+      mediante o seu consentimento.
+    </li>
   </ul>
-  <p>Não coletamos dados bancários (senhas, números de cartão ou conta) — os valores são digitados manualmente por você.</p>
-
-  <h2>3. Como os dados são usados</h2>
   <p>
-    Os dados são usados exclusivamente para exibir seus lançamentos, calcular seus totais e evolução mensal, e,
-    quando você usa o assistente, para interpretar sua mensagem e transformá-la em um lançamento. Não usamos
-    seus dados financeiros para publicidade, e não os vendemos a terceiros.
+    Cada conta só enxerga os próprios dados. As consultas ao banco filtram sempre pelo dono do
+    registro, de modo que um cliente não alcança o registro de outro nem sabendo o identificador dele.
   </p>
 
-  <h2>4. Onde os dados ficam armazenados</h2>
-  <p>
-    Dependendo de como você acessa o Wonner Sols, seus dados ficam guardados na sua conta (sincronizados entre
-    dispositivos) ou apenas no armazenamento local do seu navegador, quando não há conta conectada. Cada
-    cliente só tem acesso aos seus próprios dados — nunca aos de outro cliente.
-  </p>
-
-  <h2>5. Compartilhamento com terceiros</h2>
-  <p>
-    Quando você usa o assistente com IA, o texto da sua mensagem pode ser processado por um provedor de
-    inteligência artificial para gerar a interpretação do lançamento. Esse processamento serve apenas para essa
-    finalidade e não é usado para treinar modelos com seus dados nem repassado para fins comerciais.
-  </p>
-
-  <h2>6. Seus direitos (LGPD)</h2>
-  <p>Você pode, a qualquer momento, solicitar por e-mail:</p>
+  <h2>4. Quem mais recebe esses dados</h2>
+  <p>O app conversa com poucos serviços externos, e cada um recebe só o necessário:</p>
   <ul>
-    <li>Confirmação e acesso aos dados que temos sobre você;</li>
-    <li>Correção de dados incompletos ou desatualizados;</li>
-    <li>Exclusão dos seus dados;</li>
-    <li>Exportação dos seus dados em formato legível (o próprio app já oferece exportação em CSV).</li>
+    <li>
+      <strong>Vercel e Neon</strong> — hospedam o site e o banco de dados. Têm acesso técnico à
+      infraestrutura onde seus dados ficam, como qualquer provedor de hospedagem.
+    </li>
+    <li>
+      <strong>brapi.dev e Alpha Vantage</strong> — fornecem cotações de ações. Recebem apenas o
+      código da ação consultada (por exemplo "PETR4"). <strong>Nenhum dado seu é enviado a eles.</strong>
+    </li>
+    <li>
+      <strong>Google Fonts</strong> — entrega a fonte usada na interface. Seu navegador faz essa
+      requisição ao carregar a página.
+    </li>
+    <li>
+      <strong>Claude (Anthropic)</strong> — apenas quando você abre o app dentro do Claude e usa o
+      assistente. Nesse caso, a frase que você escreve é interpretada lá para virar um lançamento.
+      Na versão web o assistente não funciona, e nada é enviado.
+    </li>
   </ul>
-
-  <h2>7. Retenção e exclusão</h2>
   <p>
-    Seus dados ficam armazenados enquanto você mantiver sua conta ativa. Ao solicitar o encerramento, os dados
-    são apagados em prazo razoável, salvo obrigação legal de retenção.
+    <strong>Seus dados financeiros não são vendidos, alugados nem compartilhados para publicidade.</strong>
   </p>
 
-  <h2>8. Alterações nesta política</h2>
+  <h2>5. Quem consegue ver o que</h2>
   <p>
-    Esta política pode ser atualizada conforme o serviço evolui. Mudanças relevantes serão comunicadas dentro
-    do próprio app.
+    O operador tem um painel administrativo que mostra <strong>a lista de e-mails cadastrados e a
+    data de cadastro</strong>, além das avaliações enviadas pelo botão "Avaliar". Esse painel
+    <strong>não exibe os lançamentos, valores, cartões ou metas de ninguém</strong>.
+  </p>
+  <p>
+    O acesso técnico direto ao banco de dados existe, como em qualquer serviço, e é usado apenas
+    para manutenção — nunca para leitura da vida financeira de clientes.
   </p>
 
-  <h2>9. Contato</h2>
+  <h2>6. Por quanto tempo</h2>
   <p>
-    Dúvidas ou solicitações sobre seus dados: <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>.
+    Enquanto sua conta existir. Ao pedir exclusão, os dados são apagados em até 30 dias. Apagar a
+    conta apaga junto todos os lançamentos, metas, investimentos e cartões vinculados a ela.
+  </p>
+  <p>
+    Dados guardados só no seu navegador não dependem de pedido nenhum: some quando você limpa os
+    dados do site.
   </p>
 
-  <footer>Veja também os <a href="termos-de-uso.html">Termos de Uso</a>.</footer>
+  <h2>7. Seus direitos</h2>
+  <p>A LGPD garante a você, a qualquer momento e sem custo:</p>
+  <ul>
+    <li>Saber se há dados seus e quais são;</li>
+    <li>Corrigir o que estiver errado ou desatualizado;</li>
+    <li>Pedir a exclusão dos seus dados;</li>
+    <li>Levar seus dados embora — o app exporta os lançamentos em CSV a qualquer momento, sem precisar pedir;</li>
+    <li>Revogar o consentimento, o que significa encerrar a conta;</li>
+    <li>Saber com quem os dados foram compartilhados, o que está descrito no item 4.</li>
+  </ul>
+  <p>
+    Escreva para <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>. A resposta vem em até
+    15 dias.
+  </p>
+
+  <h2>8. Segurança</h2>
+  <p>
+    Senhas são guardadas com hash scrypt. O acesso trafega por HTTPS. O cookie de sessão é assinado,
+    marcado como <em>httpOnly</em> — isto é, ilegível por scripts da página — e restrito ao próprio
+    site.
+  </p>
+  <p>
+    Ainda assim, nenhum sistema é inviolável. Em caso de incidente de segurança que possa trazer
+    risco relevante a você, o aviso será enviado por e-mail e a Autoridade Nacional de Proteção de
+    Dados será comunicada, como manda o artigo 48 da LGPD.
+  </p>
+
+  <h2>9. Crianças e adolescentes</h2>
+  <p>
+    O Wonner Sols não é destinado a menores de 18 anos e não coleta dados de crianças e adolescentes
+    de forma intencional.
+  </p>
+
+  <h2>10. Mudanças nesta política</h2>
+  <p>
+    Esta política pode mudar conforme o app evolui. Alterações relevantes são avisadas dentro do
+    próprio app, e a data no topo desta página indica a versão em vigor.
+  </p>
+
+  <footer>
+    Regras de uso do serviço: <a href="termos-de-uso.html">Termos de Uso</a> ·
+    <a href="index.html">Voltar ao app</a>
+  </footer>
 </div>
+
+</body>
+</html>

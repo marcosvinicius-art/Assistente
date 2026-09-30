@@ -1,96 +1,200 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Termos de Uso — Wonner Sols</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #FAFAFA;
+    --bg: #F4F6F9;
     --surface: #FFFFFF;
-    --ink: #18181B;
-    --ink-muted: #71717A;
-    --border: #E4E4E7;
-    --accent: #27272A;
+    --ink: #001539;
+    --ink-muted: #4A5A72;
+    --ink-faint: #617084;
+    --border: #DCE3EC;
+    --accent: #00417F;
+    color-scheme: light;
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #060B14;
+      --surface: #0C1524;
+      --ink: #E8EDF4;
+      --ink-muted: #9AACC2;
+      --ink-faint: #7A8AA1;
+      --border: #1E2D42;
+      --accent: #8FC0F0;
+      color-scheme: dark;
+    }
+  }
+
   * { box-sizing: border-box; }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
-    line-height: 1.6;
+    font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
-  h1 { font-size: 26px; margin: 0 0 4px; }
-  .updated { color: var(--ink-muted); font-size: 13px; margin-bottom: 32px; }
-  h2 { font-size: 17px; margin: 32px 0 8px; }
-  p, li { font-size: 14.5px; color: var(--ink); }
-  ul { padding-left: 20px; }
-  .notice {
+
+  .topo {
+    background: linear-gradient(105deg, #001539 0%, #002C5C 52%, #00417F 100%);
+    border-bottom: 2px solid rgba(196, 196, 196, 0.5);
+    padding: 22px 24px;
+  }
+  .topo-inner { max-width: 680px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  .topo a { color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 19px; letter-spacing: -0.015em; }
+  .topo span { color: #A9BDD4; font-size: 13px; }
+
+  .wrap { max-width: 680px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 6px; }
+  .atualizado { color: var(--ink-faint); font-size: 13px; margin-bottom: 36px; }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 36px 0 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  p, li { font-size: 15px; margin: 0 0 12px; }
+  ul { padding-left: 18px; margin: 0 0 12px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--accent); }
+  strong { font-weight: 600; }
+
+  .quem {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    font-size: 13px;
-    color: var(--ink-muted);
-    margin-bottom: 28px;
+    border-top: 2px solid var(--ink);
+    padding: 18px 20px;
+    margin-bottom: 8px;
   }
-  a { color: var(--accent); }
-  footer { margin-top: 48px; font-size: 12px; color: var(--ink-muted); }
+  .quem p { margin: 0; font-size: 14.5px; color: var(--ink-muted); }
+
+  footer {
+    margin-top: 44px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
 </style>
+</head>
+<body>
+
+<div class="topo">
+  <div class="topo-inner">
+    <a href="index.html">Wonner Sols</a>
+    <span>Termos de Uso</span>
+  </div>
+</div>
 
 <div class="wrap">
   <h1>Termos de Uso</h1>
-  <div class="updated">Wonner Sols · última atualização: 11 de setembro de 2026</div>
+  <div class="atualizado">Em vigor desde 30 de setembro de 2026</div>
 
-  <div class="notice">
-    Este é um documento inicial, redigido para uso enquanto o Wonner Sols está em fase inicial de operação
-    (ainda sem CNPJ constituído). Recomenda-se revisão por um advogado antes de qualquer lançamento comercial,
-    especialmente por lidar com dados financeiros de clientes.
+  <div class="quem">
+    <p>
+      O Wonner Sols é operado por Marcos Vinícius, pessoa física, ainda sem empresa constituída.
+      Contato para qualquer assunto destes termos:
+      <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>.
+    </p>
   </div>
 
-  <h2>1. Sobre o serviço</h2>
+  <h2>1. O que o Wonner Sols faz</h2>
   <p>
-    O Wonner Sols é uma ferramenta para controle de finanças pessoais: registro de receitas e despesas,
-    acompanhamento de investimentos e metas financeiras. O serviço é operado por Wonner Sols
-    (contato: <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>), ainda sem pessoa jurídica formalmente
-    constituída.
+    O Wonner Sols organiza finanças pessoais. Você registra receitas e despesas, acompanha compras
+    parceladas, cadastra cartões com limite e vencimento, define metas e anota investimentos. O app
+    calcula totais, saldos e médias a partir do que você digita.
+  </p>
+  <p>
+    <strong>Todos os valores são digitados por você.</strong> O Wonner Sols não se conecta ao seu banco,
+    não lê extratos, não movimenta dinheiro e não acessa nenhuma conta sua em outra instituição.
   </p>
 
-  <h2>2. Cadastro e uso</h2>
+  <h2>2. Sua conta</h2>
   <p>
-    Ao usar o Wonner Sols, você é responsável pela veracidade dos dados que insere e por manter o acesso à sua
-    conta em segurança. O serviço é fornecido "como está", podendo passar por mudanças, correções e melhorias
-    a qualquer momento.
+    Algumas versões do app funcionam sem cadastro, guardando tudo apenas no seu próprio aparelho.
+    Quando há conta, ela é criada com e-mail e senha, e você é responsável por manter essa senha em
+    segurança e por não compartilhá-la.
+  </p>
+  <p>
+    Você responde pela veracidade do que registra. Como o app apenas soma e organiza o que recebe,
+    um valor digitado errado produz um resultado errado.
   </p>
 
-  <h2>3. Assistente com IA</h2>
+  <h2>3. O que o Wonner Sols não é</h2>
   <p>
-    O Wonner Sols pode usar um assistente de inteligência artificial para interpretar mensagens em texto livre
-    (ex.: "gastei 45 no mercado") e transformá-las em lançamentos financeiros. Essas mensagens podem ser
-    processadas por provedores de IA para gerar essa interpretação. Nenhum lançamento é criado sem o conteúdo
-    que você mesmo digitar ou falar.
+    O Wonner Sols é uma ferramenta de organização. <strong>Não é consultoria financeira, contábil,
+    de investimentos ou tributária</strong>, e nada no app constitui recomendação de compra ou venda.
+  </p>
+  <p>
+    As cotações de ações exibidas são informativas, vêm de serviços externos, podem estar atrasadas
+    ou incorretas, e não devem embasar decisão de investimento. Toda decisão financeira tomada a
+    partir do que você vê aqui é sua.
   </p>
 
-  <h2>4. Isenção de responsabilidade</h2>
+  <h2>4. Assistente com inteligência artificial</h2>
   <p>
-    O Wonner Sols é uma ferramenta de organização financeira pessoal e não presta consultoria financeira,
-    contábil, de investimentos ou tributária. Decisões financeiras tomadas com base nas informações do app são
-    de responsabilidade exclusiva do usuário.
+    Quando o app é aberto dentro do Claude, um assistente pode interpretar frases como
+    "gastei 45 no mercado" e transformá-las em lançamentos. Essa função depende da plataforma do
+    Claude e <strong>não está disponível na versão web</strong>. Nenhum lançamento é criado sem o
+    texto que você escreve ou dita.
   </p>
 
-  <h2>5. Cancelamento</h2>
+  <h2>5. Disponibilidade</h2>
   <p>
-    Você pode parar de usar o serviço e solicitar a exclusão dos seus dados a qualquer momento, escrevendo para
-    <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>.
+    O serviço é fornecido como está, sem garantia de funcionamento ininterrupto. Ele depende de
+    provedores externos de hospedagem e banco de dados, e pode ficar indisponível por manutenção,
+    falha técnica ou indisponibilidade desses provedores.
+  </p>
+  <p>
+    <strong>Mantenha uma cópia do que for importante.</strong> O app exporta seus lançamentos em CSV
+    a qualquer momento, e essa exportação é a forma de você guardar seus próprios registros.
   </p>
 
-  <h2>6. Alterações nestes termos</h2>
+  <h2>6. Limite de responsabilidade</h2>
   <p>
-    Estes termos podem ser atualizados conforme o serviço evolui. Mudanças relevantes serão comunicadas dentro
-    do próprio app.
+    Na máxima extensão permitida pela lei brasileira, o operador não responde por prejuízos
+    decorrentes de decisões financeiras tomadas com base no app, de perda de dados causada por falha
+    de provedores externos ou do seu navegador, nem de indisponibilidade do serviço.
   </p>
 
-  <h2>7. Contato</h2>
+  <h2>7. Encerrar o uso</h2>
   <p>
-    Dúvidas sobre estes termos: <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a>.
+    Você pode parar de usar o Wonner Sols quando quiser e pedir a exclusão dos seus dados por e-mail.
+    Se estiver usando sem conta, basta limpar os dados do site no navegador — nesse caso nada foi
+    enviado a servidor nenhum.
+  </p>
+  <p>
+    O operador pode encerrar contas que usem o serviço para fins ilícitos ou que prejudiquem o
+    funcionamento do app para outras pessoas.
   </p>
 
-  <footer>Veja também a <a href="privacidade.html">Política de Privacidade</a>.</footer>
+  <h2>8. Mudanças nestes termos</h2>
+  <p>
+    Estes termos podem mudar conforme o app evolui. Alterações relevantes são avisadas dentro do
+    próprio app, e a data no topo desta página indica a versão em vigor.
+  </p>
+
+  <h2>9. Lei aplicável</h2>
+  <p>
+    Estes termos seguem a lei brasileira. Questões não resolvidas por e-mail serão tratadas no foro
+    do domicílio do usuário, conforme o Código de Defesa do Consumidor.
+  </p>
+
+  <footer>
+    Como seus dados são tratados: <a href="privacidade.html">Política de Privacidade</a> ·
+    <a href="index.html">Voltar ao app</a>
+  </footer>
 </div>
+
+</body>
+</html>
