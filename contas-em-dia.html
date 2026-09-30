@@ -1,37 +1,39 @@
 <title>Wonner Sols</title>
 <style>
-  /* Paleta do Banco Master, medida no logotipo oficial: o azulejo da marca é um
-     degradê de azul-marinho #001539 (canto escuro) a #00417F (canto claro), e a
-     tipografia é prata #C4C4C4. Nenhum dourado — por isso --brand-silver existe
-     como token próprio: é ele, não o azul, que dá o contraste sobre o marinho. */
+  /* Caderneta, não painel. O vocabulário real deste app é o do papel financeiro
+     brasileiro — extrato, carnê, fatura —, então a base é papel (#F4F5F1, com um
+     leve viés verde de papel de cheque), a tipografia é tinta de fita (#17201B,
+     um verde-preto, nunca cinza) e existe UMA cor forte: o azul-violeta de
+     carimbo. Ela marca o que está ativo e nada mais; espalhá-la devolveria o
+     conjunto ao genérico. */
   :root {
-    --bg: #F4F6F9;
-    --surface: #FFFFFF;
-    --surface-2: #EDF1F6;
-    --ink: #001539;
-    --ink-muted: #4A5A72;
-    --ink-faint: #8795A8;
-    --border: #DCE3EC;
-    --accent: #00417F;
-    --accent-soft: #E4EDF7;
-    --accent-ink: #002C5C;
-    --on-accent: #FFFFFF;
-    --brand-navy-deep: #001539;
-    --brand-navy: #002C5C;
-    --brand-navy-bright: #00417F;
-    --brand-silver: #C4C4C4;
-    /* Filetes metálicos sobre a faixa escura do topo, como token para as seis
-       bordas que os usam não precisarem repetir o mesmo rgba. */
-    --metal-forte: rgba(196, 196, 196, 0.5);
-    --metal-suave: rgba(196, 196, 196, 0.28);
-    --header-ink: #FFFFFF;
-    --header-muted: #A9BDD4;
-    --income: #15803D;
-    --income-soft: #E4F0E8;
-    --expense: #C62F1F;
-    --expense-soft: #FAE7E4;
-    --warning: #C2790B;
-    --rate: #00417F;
+    --bg: #F4F5F1;
+    --surface: #FBFBF9;
+    --surface-2: #E8EAE3;
+    --ink: #17201B;
+    --ink-muted: #5B655D;
+    --ink-faint: #67716A;
+    --border: #D5DBD4;
+    --accent: #2F3A8F;
+    --accent-soft: #E7E8F4;
+    --accent-ink: #252E73;
+    --on-accent: #FBFBF9;
+    --brand-navy-deep: #17201B;
+    --brand-navy: #17201B;
+    --brand-navy-bright: #17201B;
+    --brand-silver: #C8CEC6;
+    /* Filetes sobre a faixa escura do topo, como token para as seis bordas que
+       os usam não precisarem repetir o mesmo rgba. */
+    --metal-forte: rgba(244, 245, 241, 0.34);
+    --metal-suave: rgba(244, 245, 241, 0.18);
+    --header-ink: #F4F5F1;
+    --header-muted: #A7B0A8;
+    --income: #1B6B45;
+    --income-soft: #E2EDE6;
+    --expense: #A32A22;
+    --expense-soft: #F6E6E3;
+    --warning: #8A5D12;
+    --rate: #2F3A8F;
     --shadow: 0 1px 2px rgba(22, 19, 16, 0.05), 0 8px 24px -12px rgba(22, 19, 16, 0.14);
     --shadow-raised: 0 2px 4px rgba(22, 19, 16, 0.08), 0 14px 32px -14px rgba(22, 19, 16, 0.20);
     --radius: 8px;
@@ -41,29 +43,29 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #060B14;
-      --surface: #0C1524;
-      --surface-2: #132033;
-      --ink: #E8EDF4;
-      --ink-muted: #9AACC2;
-      --ink-faint: #64748B;
-      --border: #1E2D42;
-      --accent: #1D6FC0;
-      --accent-soft: #12253C;
-      --accent-ink: #8FC0F0;
-      --on-accent: #FFFFFF;
-      --brand-navy-deep: #001539;
-      --brand-navy: #002C5C;
-      --brand-navy-bright: #00417F;
-      --brand-silver: #C4C4C4;
-      --header-ink: #FFFFFF;
-      --header-muted: #A9BDD4;
-      --income: #4ADE80;
-      --income-soft: #123026;
-      --expense: #FB7185;
-      --expense-soft: #3A1D24;
-      --warning: #F0B429;
-      --rate: #7FB3E8;
+      --bg: #0D1210;
+      --surface: #141B17;
+      --surface-2: #1C241F;
+      --ink: #E7EBE5;
+      --ink-muted: #9AA69C;
+      --ink-faint: #828E85;
+      --border: #28312B;
+      --accent: #8F9BEF;
+      --accent-soft: #1C2138;
+      --accent-ink: #AEB7F5;
+      --on-accent: #10131F;
+      --brand-navy-deep: #0A0E0C;
+      --brand-navy: #0A0E0C;
+      --brand-navy-bright: #0A0E0C;
+      --brand-silver: #9AA69C;
+      --header-ink: #EFF2EC;
+      --header-muted: #8E9A90;
+      --income: #57C88C;
+      --income-soft: #14291D;
+      --expense: #E8756B;
+      --expense-soft: #2C1A18;
+      --warning: #D3A44A;
+      --rate: #8F9BEF;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
       --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
       color-scheme: dark;
@@ -71,29 +73,29 @@
   }
 
   :root[data-theme="dark"] {
-    --bg: #060B14;
-    --surface: #0C1524;
-    --surface-2: #132033;
-    --ink: #E8EDF4;
-    --ink-muted: #9AACC2;
-    --ink-faint: #64748B;
-    --border: #1E2D42;
-    --accent: #1D6FC0;
-    --accent-soft: #12253C;
-    --accent-ink: #8FC0F0;
-    --on-accent: #FFFFFF;
-    --brand-navy-deep: #001539;
-    --brand-navy: #002C5C;
-    --brand-navy-bright: #00417F;
-    --brand-silver: #C4C4C4;
-    --header-ink: #FFFFFF;
-    --header-muted: #A9BDD4;
-    --income: #4ADE80;
-    --income-soft: #123026;
-    --expense: #FB7185;
-    --expense-soft: #3A1D24;
-    --warning: #F0B429;
-    --rate: #7FB3E8;
+    --bg: #0D1210;
+    --surface: #141B17;
+    --surface-2: #1C241F;
+    --ink: #E7EBE5;
+    --ink-muted: #9AA69C;
+    --ink-faint: #828E85;
+    --border: #28312B;
+    --accent: #8F9BEF;
+    --accent-soft: #1C2138;
+    --accent-ink: #AEB7F5;
+    --on-accent: #10131F;
+    --brand-navy-deep: #0A0E0C;
+    --brand-navy: #0A0E0C;
+    --brand-navy-bright: #0A0E0C;
+    --brand-silver: #9AA69C;
+    --header-ink: #EFF2EC;
+    --header-muted: #8E9A90;
+    --income: #57C88C;
+    --income-soft: #14291D;
+    --expense: #E8756B;
+    --expense-soft: #2C1A18;
+    --warning: #D3A44A;
+    --rate: #8F9BEF;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
     --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
     color-scheme: dark;
@@ -123,17 +125,20 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Números alinham em coluna por tabular-nums, não por uma fonte monoespaçada.
+     Mono para rótulo de dado é enfeite herdado de editor de código: ele sinaliza
+     "isto é técnico" numa tela onde o assunto é dinheiro, não código. */
   .num {
-    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   h1, h2, h3 {
-    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
     font-weight: 700;
     letter-spacing: -0.012em;
     text-wrap: balance;
@@ -252,7 +257,7 @@
   .brand .status {
     font-size: 12px;
     color: var(--ink-faint);
-    font-family: "IBM Plex Sans", sans-serif;
+    font-family: "Archivo", sans-serif;
   }
 
   .status-dot {
@@ -316,7 +321,7 @@
   .qr-card h2 { font-size: 19px; margin-bottom: 6px; }
   .qr-hint { font-size: 13px; color: var(--ink-muted); margin: 0 0 18px; }
   .qr-code { display: flex; justify-content: center; padding: 14px; background: #fff; border-radius: 10px; margin: 0 auto; width: fit-content; }
-  .qr-url { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--ink-faint); word-break: break-all; margin: 16px 0 0; }
+  .qr-url { font-size: 10.5px; color: var(--ink-faint); word-break: break-all; margin: 16px 0 0; }
   .qr-url a { color: var(--ink-muted); }
   /* o container do QR tem fundo branco fixo, então este texto não usa os tokens de tema */
   .qr-fail { font-size: 12.5px; color: #18181B; line-height: 1.5; max-width: 200px; text-align: center; }
@@ -407,7 +412,7 @@
   .tab-btn {
     flex: none;
     white-space: nowrap;
-    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
     font-size: 15px;
     font-weight: 600;
     color: var(--ink-faint);
@@ -430,18 +435,26 @@
   }
 
   /* ---- Spendable highlight ---- */
+  /* O único lugar onde a página levanta a voz. Tudo ao redor fica disciplinado
+     para que este número — o que a pessoa abre o app para ver — seja o que ela
+     encontra primeiro. */
   .spend-panel { margin-bottom: 18px; }
   .spend-panel .label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--ink-faint);
-    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-bottom: 10px;
   }
-  .spend-panel .value { font-size: 32px; font-weight: 600; }
-  .spend-panel .sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 6px; }
-  .spend-panel.two-col { display: flex; gap: 28px; flex-wrap: wrap; }
+  .spend-panel .value {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+  .spend-panel .sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 8px; max-width: 34ch; }
+  .spend-panel.two-col { display: flex; gap: 40px; flex-wrap: wrap; }
   .spend-panel.two-col > div { flex: 1; min-width: 160px; }
+  /* O previsto é consequência do disponível, não um irmão gêmeo dele. */
+  .spend-panel.two-col > div + div .value { font-size: 30px; font-weight: 600; color: var(--ink-muted); }
 
   /* ---- Filtros rápidos de período ---- */
   .quick-filters { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -485,7 +498,7 @@
   }
   .month-card:hover { border-color: var(--accent); }
   .month-card.current { border-color: var(--accent); background: var(--accent-soft); }
-  .month-card .mc-label { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .month-card .mc-label { font-size: 11px; color: var(--ink-faint); }
   .month-card .mc-value { font-size: 13px; font-weight: 700; margin-top: 4px; }
   .month-card .mc-value.income { color: var(--income); }
   .month-card .mc-value.expense { color: var(--expense); }
@@ -522,8 +535,7 @@
     align-items: center;
     font-size: 10.5px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+
     padding: 2px 8px;
     border-radius: 999px;
     cursor: pointer;
@@ -534,33 +546,36 @@
   .tx-status.pending { background: var(--expense-soft); color: var(--expense); }
   .tx-status:hover { filter: brightness(0.95); }
 
-  /* ---- Stat tiles ---- */
+  /* ---- Banda de extrato ---- */
+  /* Quatro caixas iguais, com o mesmo raio e a mesma sombra, dizem que os quatro
+     números têm o mesmo peso — e dizem isso com o vocabulário de qualquer
+     dashboard. Uma banda única dividida por filetes lê como as colunas de um
+     extrato: o mesmo dado, na linguagem do assunto. */
   .stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    background: var(--surface);
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--border);
     margin-bottom: 28px;
   }
 
   .stat {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    border-left: 1px solid var(--border);
   }
+  .stat:first-child { border-left: none; }
 
   .stat .label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--ink-faint);
-    margin-bottom: 8px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
   }
 
   .stat .value {
-    font-size: 22px;
+    font-size: 25px;
     font-weight: 600;
+    letter-spacing: -0.02em;
   }
   .stat .value.income { color: var(--income); }
   .stat .value.expense { color: var(--expense); }
@@ -608,12 +623,15 @@
     align-items: start;
   }
 
+  /* Sem sombra. A mesma sombra macia sob cada bloco é o que faz tudo parecer o
+     mesmo cartão repetido; a hierarquia aqui vem do filete superior mais forte,
+     como a régua que abre uma seção de extrato. */
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 20px;
+    border-top: 2px solid var(--ink);
+    border-radius: 0;
+    padding: 22px;
   }
 
   .panel + .panel { margin-top: 18px; }
@@ -651,8 +669,7 @@
   .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; position: relative; }
   .field label {
     font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
     color: var(--ink-faint);
   }
 
@@ -873,7 +890,7 @@
   }
   .pitem:hover { border-color: var(--accent); }
   .pitem .pitem-n { font-weight: 700; color: var(--ink); }
-  .pitem .pitem-val { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11px; }
+  .pitem .pitem-val { font-size: 11px; }
   .pitem.paga { background: var(--income-soft); border-color: transparent; color: var(--income); }
   .pitem.paga .pitem-n { color: var(--income); }
   .pitem.atrasada { background: var(--expense-soft); border-color: var(--expense); color: var(--expense); }
@@ -1005,7 +1022,7 @@
     padding: 26px 28px;
     margin-bottom: 18px;
   }
-  .pm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brand-silver); font-weight: 600; margin-bottom: 8px; }
+  .pm-label { font-size: 11px; color: var(--brand-silver); font-weight: 600; margin-bottom: 8px; }
   .pm-hero { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
   .pm-value {
     font-family: "Fraunces", Georgia, serif;
@@ -1016,8 +1033,8 @@
     color: #FFFFFF;
   }
   .pm-badge {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
     font-size: 13px;
+    font-variant-numeric: tabular-nums;
     font-weight: 700;
     padding: 4px 11px;
     border-radius: 999px;
@@ -1079,7 +1096,7 @@
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 999px;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
   }
   .invest-gain-badge.gain { background: var(--income-soft); color: var(--income); }
   .invest-gain-badge.loss { background: var(--expense-soft); color: var(--expense); }
@@ -1138,9 +1155,8 @@
     text-align: right;
     font-weight: 600;
     color: var(--ink-faint);
-    text-transform: uppercase;
     font-size: 10px;
-    letter-spacing: 0.03em;
+    
     padding-bottom: 4px;
   }
   .goal-plans-table th:first-child { text-align: left; }
@@ -1169,7 +1185,7 @@
   #marketSearchResult:not(:empty) { margin-bottom: 16px; padding-top: 6px; border-top: 1px dashed var(--border); }
   .market-group { margin-bottom: 16px; }
   .market-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-  .market-group-head h3 { font-size: 13px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .market-group-head h3 { font-size: 13px; font-weight: 700; color: var(--ink-muted); }
   .market-list { display: flex; flex-direction: column; gap: 2px; }
   .market-row {
     display: grid;
@@ -1233,7 +1249,7 @@
     margin-top: 4px;
   }
   .market-mover { display: flex; flex-direction: column; gap: 3px; }
-  .market-mover .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+  .market-mover .k { font-size: 11px; color: var(--ink-faint); }
   .market-mover .v { font-size: 14px; font-weight: 700; }
   .market-mover .v.income { color: var(--income); }
   .market-mover .v.expense { color: var(--expense); }
@@ -1408,7 +1424,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='7' fill='%2318181B'/%3E%3Crect x='5.3' y='15.4' width='4.2' height='5.8' rx='1.3' fill='%23FAFAFA'/%3E%3Crect x='11.9' y='11.2' width='4.2' height='10' rx='1.3' fill='%23FAFAFA'/%3E%3Crect x='18.5' y='6.8' width='4.2' height='14.4' rx='1.3' fill='%23FAFAFA'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#27272A">
@@ -2882,7 +2898,7 @@
         : "";
 
       return '<div class="market-row" title="' + escapeHtml(r.symbol + (r.name ? " — " + r.name : "")) +
-          "\n" + priceTxt + " · " + changeTxt + " hoje" + periodo + '">' +
+          "\n" + priceTxt + ", " + changeTxt + " hoje" + periodo + '">' +
         '<div class="market-label"><div class="market-symbol">' + r.symbol + '</div><div class="market-name">' + escapeHtml(r.name || "") + '</div></div>' +
         '<div class="mk-track">' + grafico + '</div>' +
         '<div class="market-price num">' + priceTxt + '</div>' +
@@ -3596,7 +3612,7 @@
       livreTotal += c.limite - (emAbertoPorCartao[c.id] || 0);
     });
     hint.textContent = cartoes.length + (cartoes.length === 1 ? " cartão" : " cartões") +
-      (algumComLimite ? " · " + fmt(livreTotal) + " livres" : "");
+      (algumComLimite ? ", com " + fmt(livreTotal) + " livres" : "");
 
     lista.innerHTML = cartoes.map(function (c) {
       var usado = emAbertoPorCartao[c.id] || 0;
@@ -3606,11 +3622,13 @@
       // O número e a barra usam a mesma faixa: se a barra está vermelha, o valor
       // livre em verde ao lado diria o contrário no mesmo instante.
       var faixa = !temLimite ? "" : (disponivel <= 0 || pct >= 85) ? "critico" : pct >= 60 ? "atencao" : "ok";
-      var detalhes = [];
-      if (c.vencimento) detalhes.push("vence dia " + c.vencimento);
-      // O quanto já foi desce para a linha de detalhe: continua à mão, mas quem
-      // ocupa o lugar de destaque é o que ainda dá pra gastar.
-      if (temLimite) detalhes.push("usado " + fmt(usado) + " de " + fmt(c.limite));
+      // Frase corrida no lugar de fragmentos colados por "·". O ponto do meio
+      // junta pedaços que não formam oração e é um dos vícios mais visíveis de
+      // interface gerada; escrito por extenso, lê-se de uma vez.
+      var detalhe = temLimite
+        ? "Usou " + fmt(usado) + " dos " + fmt(c.limite)
+        : "Sem limite informado";
+      if (c.vencimento) detalhe += ", vence dia " + c.vencimento;
       return '<div class="card-item">' +
         '<button type="button" class="card-chip' + (c.logo ? " com-foto" : "") + '" data-id="' + c.id +
           '" title="' + (c.logo ? "Trocar" : "Escolher") + ' a foto deste cartão">' +
@@ -3618,7 +3636,7 @@
         '</button>' +
         '<div class="card-info">' +
           '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
-          '<div class="card-sub">' + (detalhes.join(" · ") || "sem limite informado") + '</div>' +
+          '<div class="card-sub">' + escapeHtml(detalhe) + '</div>' +
           (temLimite ? '<div class="card-limite-bar"><span class="card-limite-fill ' + faixa +
             '" style="width:' + pct + '%"></span></div>' : "") +
         '</div>' +
@@ -3706,7 +3724,7 @@
     var emAberto = grupos.filter(function (g) { return g.proxima; }).length;
     document.getElementById("parcTabHint").textContent =
       grupos.length + (grupos.length === 1 ? " parcelamento" : " parcelamentos") +
-      (emAberto ? " · " + emAberto + " em aberto" : "");
+      (emAberto ? ", " + emAberto + " em aberto" : "");
 
     lista.innerHTML = grupos.map(function (g) {
       var quitado = !g.proxima;
@@ -3734,9 +3752,9 @@
           '<div>' +
             '<div class="pgroup-desc">' + escapeHtml(g.desc) + '</div>' +
             '<div class="pgroup-sub">' +
-              '<span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span> · ' +
-              g.de + "x de " + fmt(valorParcela) + " · total " + fmt(g.total) +
-              (cartao ? " · " + escapeHtml(cartao.nome) : "") +
+              '<span class="chip"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span> ' +
+              g.de + "x de " + fmt(valorParcela) + ", somando " + fmt(g.total) +
+              (cartao ? " no " + escapeHtml(cartao.nome) : "") +
             '</div>' +
           '</div>' +
           '<div class="pgroup-right">' +
@@ -4351,7 +4369,7 @@
       var v = (max / steps) * s;
       var y = padT + plotH - (v / max) * plotH;
       svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--border)" stroke-width="1" />';
-      svg += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace">' + fmtShort(v) + '</text>';
+      svg += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="var(--ink-faint)" font-family="Archivo, sans-serif" font-variant-numeric="tabular-nums">' + fmtShort(v) + '</text>';
     }
 
     data.forEach(function (d, idx) {
@@ -4360,7 +4378,7 @@
       var incX = gx - barW - 3, expX = gx + 3;
       svg += '<rect x="' + incX + '" y="' + (padT + plotH - incH) + '" width="' + barW + '" height="' + incH + '" rx="2" fill="var(--income)" />';
       svg += '<rect x="' + expX + '" y="' + (padT + plotH - expH) + '" width="' + barW + '" height="' + expH + '" rx="2" fill="var(--expense)" />';
-      svg += '<text x="' + gx + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="IBM Plex Sans, sans-serif">' + d.label + '</text>';
+      svg += '<text x="' + gx + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="Archivo, sans-serif">' + d.label + '</text>';
     });
 
     svg += '</svg>';
