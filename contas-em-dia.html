@@ -823,11 +823,26 @@
   .card-limite-fill.ok { background: var(--income); }
   .card-limite-fill.atencao { background: var(--warning); }
   .card-limite-fill.critico { background: var(--expense); }
-  .card-del {
+  .card-del, .card-edit-btn {
     border: none; background: none; cursor: pointer; color: var(--ink-faint);
     padding: 4px; border-radius: 6px; display: flex; transition: color var(--ease), background var(--ease);
   }
   .card-del:hover { color: var(--expense); background: var(--expense-soft); }
+  .card-edit-btn:hover { color: var(--accent-ink); background: var(--accent-soft); }
+
+  .card-edit {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) 96px minmax(110px, 1fr) auto auto;
+    gap: 8px;
+    align-items: end;
+    padding: 12px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-edit:last-child { border-bottom: none; }
+  @media (max-width: 560px) {
+    .card-edit { grid-template-columns: 1fr 1fr; }
+    .card-edit .btn-add, .card-edit .export-btn { grid-column: span 1; }
+  }
 
   @media (max-width: 560px) {
     .card-form { grid-template-columns: 1fr 1fr; }
@@ -2025,6 +2040,7 @@
   var MONTHS_PT = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   var MONTHS_SHORT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 
+  var ICON_PENCIL = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
   var ICON_CAMERA = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
   var ICON_TRASH = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
   var ICON_EDIT = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -3541,6 +3557,8 @@
     });
   });
 
+  var editandoCartaoId = null;
+
   function cardMeta(id) {
     for (var i = 0; i < state.cards.length; i++) if (state.cards[i].id === id) return state.cards[i];
     return null;
@@ -3615,6 +3633,28 @@
       (algumComLimite ? ", com " + fmt(livreTotal) + " livres" : "");
 
     lista.innerHTML = cartoes.map(function (c) {
+      // Em edição, a linha inteira vira o formulário no lugar de abrir um campo
+      // extra embaixo: o limite aparece ao lado do valor que ele governa, e a
+      // lista não muda de altura ao alternar.
+      if (c.id === editandoCartaoId) {
+        return '<form class="card-edit" data-id="' + c.id + '">' +
+          '<div class="field">' +
+            '<label for="editNome">Apelido</label>' +
+            '<input id="editNome" type="text" value="' + escapeHtml(c.nome) + '" required maxlength="40">' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="editDia">Vence dia</label>' +
+            '<input id="editDia" type="number" min="1" max="31" step="1" value="' + (c.vencimento || "") + '">' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="editLimite">Limite</label>' +
+            '<input id="editLimite" type="text" inputmode="numeric" placeholder="0,00">' +
+          '</div>' +
+          '<button type="submit" class="btn-add">Salvar</button>' +
+          '<button type="button" class="export-btn" id="editCancelar">Cancelar</button>' +
+        '</form>';
+      }
+
       var usado = emAbertoPorCartao[c.id] || 0;
       var temLimite = typeof c.limite === "number" && c.limite > 0;
       var pct = temLimite ? Math.min(100, Math.round((usado / c.limite) * 100)) : 0;
@@ -3647,6 +3687,8 @@
             (temLimite ? (disponivel > 0 ? "livre pra gastar" : "acima do limite") : "em aberto") +
           '</div>' +
         '</div>' +
+        '<button type="button" class="card-edit-btn" data-id="' + c.id +
+          '" title="Editar limite e vencimento">' + ICON_PENCIL + '</button>' +
         '<button type="button" class="card-del" data-id="' + c.id + '" data-nome="' + escapeHtml(c.nome) +
           '" title="Excluir cartão">' + ICON_TRASH + '</button>' +
       '</div>';
@@ -3667,6 +3709,50 @@
         deleteCard(btn.getAttribute("data-id"));
       });
     });
+
+    Array.prototype.forEach.call(lista.querySelectorAll(".card-edit-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        editandoCartaoId = btn.getAttribute("data-id");
+        renderCards();
+        var nomeEl = document.getElementById("editNome");
+        if (nomeEl) nomeEl.focus();
+      });
+    });
+
+    var formEdicao = lista.querySelector(".card-edit");
+    if (formEdicao) {
+      // Máscara e preenchimento ficam aqui, não no clique: qualquer render() —
+      // uma sincronização chegando, um lançamento novo — redesenha este
+      // formulário, e no clique a máscara se perderia junto com o valor.
+      var limiteEl = document.getElementById("editLimite");
+      attachAmountMask(limiteEl);
+      var emEdicao = cardMeta(formEdicao.getAttribute("data-id"));
+      setAmountValue(limiteEl, (emEdicao && emEdicao.limite) || null);
+
+      formEdicao.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var nome = document.getElementById("editNome").value.trim();
+        if (!nome) return;
+        var dia = parseInt(document.getElementById("editDia").value, 10);
+        var limite = parseAmount(document.getElementById("editLimite").value);
+        var id = formEdicao.getAttribute("data-id");
+        editandoCartaoId = null;
+        // Fecha na hora. No modo servidor updateCard só redesenha quando a
+        // resposta chega, e até lá o formulário pareceria travado.
+        renderCards();
+        updateCard(id, {
+          nome: nome,
+          vencimento: (dia >= 1 && dia <= 31) ? dia : null,
+          // Limite zerado vira null e não 0: "sem limite informado" e "limite de
+          // zero reais" são coisas diferentes, e zero travaria o cartão inteiro.
+          limite: (typeof limite === "number" && !isNaN(limite) && limite > 0) ? limite : null
+        });
+      });
+      document.getElementById("editCancelar").addEventListener("click", function () {
+        editandoCartaoId = null;
+        renderCards();
+      });
+    }
   }
 
   document.getElementById("cardForm").addEventListener("submit", function (e) {
