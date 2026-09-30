@@ -1,39 +1,39 @@
 <title>Wonner Sols</title>
 <style>
-  /* Caderneta, não painel. O vocabulário real deste app é o do papel financeiro
-     brasileiro — extrato, carnê, fatura —, então a base é papel (#F4F5F1, com um
-     leve viés verde de papel de cheque), a tipografia é tinta de fita (#17201B,
-     um verde-preto, nunca cinza) e existe UMA cor forte: o azul-violeta de
-     carimbo. Ela marca o que está ativo e nada mais; espalhá-la devolveria o
-     conjunto ao genérico. */
+  /* Paleta do Banco Master, medida no logotipo oficial: o azulejo da marca é um
+     degradê de azul-marinho #001539 (canto escuro) a #00417F (canto claro), e a
+     tipografia é prata #C4C4C4. Nenhum dourado — por isso --brand-silver existe
+     como token próprio: é ele, não o azul, que dá o contraste sobre o marinho. */
   :root {
-    --bg: #F4F5F1;
-    --surface: #FBFBF9;
-    --surface-2: #E8EAE3;
-    --ink: #17201B;
-    --ink-muted: #5B655D;
-    --ink-faint: #67716A;
-    --border: #D5DBD4;
-    --accent: #2F3A8F;
-    --accent-soft: #E7E8F4;
-    --accent-ink: #252E73;
-    --on-accent: #FBFBF9;
-    --brand-navy-deep: #17201B;
-    --brand-navy: #17201B;
-    --brand-navy-bright: #17201B;
-    --brand-silver: #C8CEC6;
+    --bg: #F4F6F9;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1F6;
+    --ink: #001539;
+    --ink-muted: #4A5A72;
+    /* Mesmo azul de sempre, só escurecido o suficiente para passar de 4,5:1.
+       O tom anterior (#8795A8) parava em 3,05:1 sobre o branco do painel. */
+    --ink-faint: #617084;
+    --border: #DCE3EC;
+    --accent: #00417F;
+    --accent-soft: #E4EDF7;
+    --accent-ink: #002C5C;
+    --on-accent: #FFFFFF;
+    --brand-navy-deep: #001539;
+    --brand-navy: #002C5C;
+    --brand-navy-bright: #00417F;
+    --brand-silver: #C4C4C4;
     /* Filetes sobre a faixa escura do topo, como token para as seis bordas que
        os usam não precisarem repetir o mesmo rgba. */
-    --metal-forte: rgba(244, 245, 241, 0.34);
-    --metal-suave: rgba(244, 245, 241, 0.18);
-    --header-ink: #F4F5F1;
-    --header-muted: #A7B0A8;
-    --income: #1B6B45;
-    --income-soft: #E2EDE6;
-    --expense: #A32A22;
-    --expense-soft: #F6E6E3;
-    --warning: #8A5D12;
-    --rate: #2F3A8F;
+    --metal-forte: rgba(196, 196, 196, 0.5);
+    --metal-suave: rgba(196, 196, 196, 0.28);
+    --header-ink: #FFFFFF;
+    --header-muted: #A9BDD4;
+    --income: #15803D;
+    --income-soft: #E4F0E8;
+    --expense: #C62F1F;
+    --expense-soft: #FAE7E4;
+    --warning: #C2790B;
+    --rate: #00417F;
     --shadow: 0 1px 2px rgba(22, 19, 16, 0.05), 0 8px 24px -12px rgba(22, 19, 16, 0.14);
     --shadow-raised: 0 2px 4px rgba(22, 19, 16, 0.08), 0 14px 32px -14px rgba(22, 19, 16, 0.20);
     --radius: 8px;
@@ -43,29 +43,29 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0D1210;
-      --surface: #141B17;
-      --surface-2: #1C241F;
-      --ink: #E7EBE5;
-      --ink-muted: #9AA69C;
-      --ink-faint: #828E85;
-      --border: #28312B;
-      --accent: #8F9BEF;
-      --accent-soft: #1C2138;
-      --accent-ink: #AEB7F5;
-      --on-accent: #10131F;
-      --brand-navy-deep: #0A0E0C;
-      --brand-navy: #0A0E0C;
-      --brand-navy-bright: #0A0E0C;
-      --brand-silver: #9AA69C;
-      --header-ink: #EFF2EC;
-      --header-muted: #8E9A90;
-      --income: #57C88C;
-      --income-soft: #14291D;
-      --expense: #E8756B;
-      --expense-soft: #2C1A18;
-      --warning: #D3A44A;
-      --rate: #8F9BEF;
+      --bg: #060B14;
+      --surface: #0C1524;
+      --surface-2: #132033;
+      --ink: #E8EDF4;
+      --ink-muted: #9AACC2;
+      --ink-faint: #7A8AA1;
+      --border: #1E2D42;
+      --accent: #1D6FC0;
+      --accent-soft: #12253C;
+      --accent-ink: #8FC0F0;
+      --on-accent: #FFFFFF;
+      --brand-navy-deep: #001539;
+      --brand-navy: #002C5C;
+      --brand-navy-bright: #00417F;
+      --brand-silver: #C4C4C4;
+      --header-ink: #FFFFFF;
+      --header-muted: #A9BDD4;
+      --income: #4ADE80;
+      --income-soft: #123026;
+      --expense: #FB7185;
+      --expense-soft: #3A1D24;
+      --warning: #F0B429;
+      --rate: #7FB3E8;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
       --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
       color-scheme: dark;
@@ -73,29 +73,29 @@
   }
 
   :root[data-theme="dark"] {
-    --bg: #0D1210;
-    --surface: #141B17;
-    --surface-2: #1C241F;
-    --ink: #E7EBE5;
-    --ink-muted: #9AA69C;
-    --ink-faint: #828E85;
-    --border: #28312B;
-    --accent: #8F9BEF;
-    --accent-soft: #1C2138;
-    --accent-ink: #AEB7F5;
-    --on-accent: #10131F;
-    --brand-navy-deep: #0A0E0C;
-    --brand-navy: #0A0E0C;
-    --brand-navy-bright: #0A0E0C;
-    --brand-silver: #9AA69C;
-    --header-ink: #EFF2EC;
-    --header-muted: #8E9A90;
-    --income: #57C88C;
-    --income-soft: #14291D;
-    --expense: #E8756B;
-    --expense-soft: #2C1A18;
-    --warning: #D3A44A;
-    --rate: #8F9BEF;
+    --bg: #060B14;
+    --surface: #0C1524;
+    --surface-2: #132033;
+    --ink: #E8EDF4;
+    --ink-muted: #9AACC2;
+    --ink-faint: #7A8AA1;
+    --border: #1E2D42;
+    --accent: #1D6FC0;
+    --accent-soft: #12253C;
+    --accent-ink: #8FC0F0;
+    --on-accent: #FFFFFF;
+    --brand-navy-deep: #001539;
+    --brand-navy: #002C5C;
+    --brand-navy-bright: #00417F;
+    --brand-silver: #C4C4C4;
+    --header-ink: #FFFFFF;
+    --header-muted: #A9BDD4;
+    --income: #4ADE80;
+    --income-soft: #123026;
+    --expense: #FB7185;
+    --expense-soft: #3A1D24;
+    --warning: #F0B429;
+    --rate: #7FB3E8;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 28px -14px rgba(0, 0, 0, 0.55);
     --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 36px -14px rgba(0, 0, 0, 0.65);
     color-scheme: dark;
