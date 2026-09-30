@@ -739,33 +739,63 @@
     outline-offset: 1px;
   }
 
-  .type-toggle {
-    display: flex;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .type-toggle button {
+  /* Duas ações, e não um formulário sempre aberto. A decisão que mais importa —
+     entrou ou saiu — é tomada antes de qualquer campo, e enquanto ela não é
+     tomada a tela pertence à lista de lançamentos. */
+  .acoes-lancamento { display: flex; gap: 10px; margin-bottom: 18px; }
+  .acao {
     flex: 1;
-    border: none;
-    border-top: 2px solid transparent;
-    background: var(--surface-2);
-    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     font: inherit;
-    font-size: 12.5px;
+    font-size: 14px;
     font-weight: 600;
-    padding: 8px 16px;
-    white-space: nowrap;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
     cursor: pointer;
-    transition: background var(--ease), color var(--ease), border-color var(--ease);
+    transition: border-color var(--ease), background var(--ease);
   }
-  .type-toggle button:hover { color: var(--ink-muted); }
-  /* O selecionado sobe para a superfície e ganha um filete no topo, em vez de um
-     bloco chapado na cor. Preenchido de vermelho, "Despesa" — que é o estado
-     normal do formulário — parecia mensagem de erro. */
-  .type-toggle button.active { background: var(--surface); }
-  .type-toggle button.active[data-type="receita"] { color: var(--income); border-top-color: var(--income); }
-  .type-toggle button.active[data-type="despesa"] { color: var(--expense); border-top-color: var(--expense); }
+  .acao-sinal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  /* A cor fica no sinal, não no botão inteiro: dois retângulos chapados, um
+     verde e um vermelho, brigariam com os próprios valores da lista abaixo. */
+  .acao.saida .acao-sinal { background: var(--expense-soft); color: var(--expense); }
+  .acao.entrada .acao-sinal { background: var(--income-soft); color: var(--income); }
+  .acao.saida:hover { border-color: var(--expense); background: var(--expense-soft); }
+  .acao.entrada:hover { border-color: var(--income); background: var(--income-soft); }
+  .acao:active { transform: scale(0.99); }
+
+  .entry-cabecalho {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 2px;
+  }
+  .entry-cabecalho h3 { font-size: 15px; font-weight: 700; margin: 0; }
+  .entry-cabecalho .auth-toggle { margin-top: 0; }
+  /* O filete que abre o formulário herda a cor do que se está lançando. */
+  form.entry { border-top: 2px solid var(--expense); padding-top: 16px; }
+  form.entry.e-receita { border-top-color: var(--income); }
+
+  @media (max-width: 560px) {
+    .acoes-lancamento { flex-direction: column; }
+  }
 
   .btn-add {
     height: 34px;
@@ -1768,7 +1798,20 @@
             <span class="hint" id="txCount"></span>
           </div>
 
-          <form class="entry" id="txForm">
+          <div class="acoes-lancamento" id="acoesLancamento">
+            <button type="button" class="acao saida" data-tipo="despesa">
+              <span class="acao-sinal">−</span>Registrar saída
+            </button>
+            <button type="button" class="acao entrada" data-tipo="receita">
+              <span class="acao-sinal">+</span>Registrar entrada
+            </button>
+          </div>
+
+          <form class="entry" id="txForm" hidden>
+            <div class="entry-cabecalho">
+              <h3 id="entryTitulo">Nova saída</h3>
+              <button type="button" class="auth-toggle" id="entryCancelar">Cancelar</button>
+            </div>
             <div class="field">
               <label for="txDesc">Descrição</label>
               <input id="txDesc" type="text" placeholder="Ex: Supermercado" required maxlength="80">
@@ -1786,13 +1829,6 @@
               <input id="txDate" type="date" required>
             </div>
             <div class="entry-pagamento">
-              <div class="field">
-                <span class="field-rotulo">Tipo</span>
-                <div class="type-toggle" id="typeToggle">
-                  <button type="button" data-type="despesa" class="active">Despesa</button>
-                  <button type="button" data-type="receita">Receita</button>
-                </div>
-              </div>
               <div class="field">
                 <label for="txCard">Cartão</label>
                 <select id="txCard"></select>
@@ -2767,7 +2803,6 @@
   }
 
   // ---------- Category select ----------
-  var typeToggle = document.getElementById("typeToggle");
   var txCategory = document.getElementById("txCategory");
   var currentType = "despesa";
 
@@ -2775,14 +2810,40 @@
     var list = currentType === "despesa" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
     txCategory.innerHTML = list.map(function (c) { return '<option value="' + c.key + '">' + c.label + "</option>"; }).join("");
   }
-  typeToggle.addEventListener("click", function (e) {
-    var btn = e.target.closest("button");
-    if (!btn) return;
-    currentType = btn.getAttribute("data-type");
-    Array.prototype.forEach.call(typeToggle.querySelectorAll("button"), function (b) { b.classList.toggle("active", b === btn); });
+
+  // Entrada e saída são decididas antes de abrir o formulário, não por um campo
+  // dentro dele. Quem lança já sabe se o dinheiro entrou ou saiu, e essa é a
+  // escolha que mais muda o resto — a cor da tela, as categorias, o rótulo do
+  // "já paguei". Escolhida na porta, ela para de ser mais um campo a conferir.
+  var txForm = document.getElementById("txForm");
+  var acoesLancamento = document.getElementById("acoesLancamento");
+
+  function abrirLancamento(tipo) {
+    currentType = tipo === "receita" ? "receita" : "despesa";
+    txForm.classList.toggle("e-receita", currentType === "receita");
+    document.getElementById("entryTitulo").textContent =
+      currentType === "receita" ? "Nova entrada" : "Nova saída";
     populateCategories();
     atualizarRotuloPago();
+    txForm.hidden = false;
+    acoesLancamento.hidden = true;
+    document.getElementById("txDesc").focus();
+  }
+
+  function fecharLancamento() {
+    txForm.hidden = true;
+    acoesLancamento.hidden = false;
+    document.getElementById("txDesc").value = "";
+    setAmountValue(document.getElementById("txAmount"), null);
+    document.getElementById("txParcelas").value = "1";
+    atualizarHintParcelas();
+  }
+
+  acoesLancamento.addEventListener("click", function (e) {
+    var btn = e.target.closest("button");
+    if (btn) abrirLancamento(btn.getAttribute("data-tipo"));
   });
+  document.getElementById("entryCancelar").addEventListener("click", fecharLancamento);
 
   // Com um cartão escolhido, a caixa deixa de significar "já saiu do bolso" e
   // passa a significar "a fatura já foi paga" — que é o momento em que o limite
@@ -3160,11 +3221,9 @@
       addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, cartaoId: cartaoId, createdAt: new Date().toISOString() });
     }
 
-    document.getElementById("txDesc").value = "";
-    setAmountValue(document.getElementById("txAmount"), null);
-    document.getElementById("txParcelas").value = "1";
-    atualizarHintParcelas();
-    document.getElementById("txDesc").focus();
+    // Fecha e devolve os botões: a lista volta a ser o que a tela mostra, e o
+    // lançamento recém-criado aparece nela sem o formulário por cima.
+    fecharLancamento();
   });
 
   function atualizarHintParcelas() {
