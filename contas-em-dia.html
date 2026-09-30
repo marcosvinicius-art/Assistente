@@ -871,8 +871,12 @@
   .parc-pay:active { transform: scale(0.97); }
 
   /* ---- Aba Parcelas ---- */
-  .pgroup { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; }
-  .pgroup.quitado { opacity: 0.72; }
+  /* Cada compra é uma entrada de uma lista, separada por filete, e não mais um
+     cartão dentro de outro cartão — caixa dentro de caixa era o que fazia a aba
+     parecer um amontoado. */
+  .pgroup { border-top: 1px solid var(--border); padding: 20px 0; }
+  .pgroup:first-child { border-top: none; padding-top: 4px; }
+  .pgroup.quitado { opacity: 0.6; }
   .pgroup-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
   .pgroup-desc { font-size: 15px; font-weight: 600; }
   .pgroup-sub { font-size: 12.5px; color: var(--ink-muted); margin-top: 3px; }
@@ -886,30 +890,50 @@
   }
   .pgroup-del:hover { color: var(--expense); background: var(--expense-soft); }
 
-  .pgroup-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  /* Carnê. As parcelas eram chips soltos, todos iguais, e era preciso ler cada
+     um para achar o que importa. Aqui elas viram os canhotos de um carnê: unidos
+     por picote, o pago já destacado, e um único em evidência — o próximo a
+     vencer, que é a pergunta que se faz ao abrir a aba. */
+  .pgroup-items {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
   .pitem {
+    flex: 1 1 86px;
     font: inherit;
     font-size: 11.5px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1px;
-    min-width: 76px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
+    gap: 2px;
+    padding: 9px 10px;
+    border: none;
+    border-left: 1px dashed var(--border);
+    background: none;
     color: var(--ink-muted);
+    text-align: left;
     cursor: pointer;
-    transition: border-color var(--ease), background var(--ease), color var(--ease);
+    transition: background var(--ease), color var(--ease);
   }
-  .pitem:hover { border-color: var(--accent); }
-  .pitem .pitem-n { font-weight: 700; color: var(--ink); }
-  .pitem .pitem-val { font-size: 11px; }
-  .pitem.paga { background: var(--income-soft); border-color: transparent; color: var(--income); }
+  .pitem:first-child { border-left: none; }
+  .pitem:hover { background: var(--surface-2); }
+  .pitem .pitem-n { font-weight: 700; font-size: 12px; color: var(--ink); }
+  .pitem .pitem-val { font-variant-numeric: tabular-nums; }
+
+  /* Pago é canhoto já destacado: recua sem sumir, porque continua servindo de
+     comprovante do que foi quitado. */
+  .pitem.paga { background: var(--surface-2); color: var(--ink-faint); }
   .pitem.paga .pitem-n { color: var(--income); }
-  .pitem.atrasada { background: var(--expense-soft); border-color: var(--expense); color: var(--expense); }
+  .pitem.paga .pitem-val { text-decoration: line-through; }
+
+  .pitem.atrasada { background: var(--expense-soft); color: var(--expense); }
   .pitem.atrasada .pitem-n { color: var(--expense); }
+
+  /* O único que pede ação agora. */
+  .pitem.proxima { background: var(--accent-soft); box-shadow: inset 0 2px 0 var(--accent); }
+  .pitem.proxima .pitem-n { color: var(--accent-ink); }
 
   .tx-desc { font-size: 13.5px; font-weight: 500; }
   .tx-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
@@ -3794,8 +3818,21 @@
 
     if (!grupos.length) {
       document.getElementById("parcTabHint").textContent = "";
-      lista.innerHTML = '<div class="empty-note">Você ainda não parcelou nada. ' +
-        'Ao lançar uma compra, preencha o campo "Parcelas" com o número de vezes.</div>';
+      // Tela vazia é convite, não aviso: leva direto ao lugar onde se resolve,
+      // em vez de descrever o caminho e deixar a pessoa procurar.
+      lista.innerHTML = '<div class="empty-note">Ao lançar uma compra, o campo "Parcelas" ' +
+        'divide o valor e cria uma linha por mês. Elas aparecem aqui como um carnê.<br>' +
+        '<button type="button" class="auth-toggle" id="parcIrLancar">Lançar uma compra parcelada</button></div>';
+      var irLancar = document.getElementById("parcIrLancar");
+      if (irLancar) {
+        irLancar.addEventListener("click", function () {
+          var aba = document.querySelector('.tab-btn[data-tab="lancamentos"]');
+          if (aba) aba.click();
+          var parcelas = document.getElementById("txParcelas");
+          document.getElementById("txDesc").focus();
+          parcelas.scrollIntoView({ block: "center" });
+        });
+      }
       return;
     }
 
@@ -3823,8 +3860,12 @@
       var itens = g.itens.map(function (t) {
         var pago = isPaid(t);
         var venceu = !pago && t.date < hoje;
+        // g.proxima é a primeira em aberto; destacá-la evita ter que percorrer a
+        // fila inteira para descobrir qual é a da vez.
+        var eProxima = !pago && !venceu && g.proxima && g.proxima.id === t.id;
         var d = new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-        return '<button type="button" class="pitem' + (pago ? " paga" : venceu ? " atrasada" : "") + '"' +
+        return '<button type="button" class="pitem' +
+          (pago ? " paga" : venceu ? " atrasada" : eProxima ? " proxima" : "") + '"' +
           ' data-id="' + t.id + '" data-paid="' + pago + '"' +
           ' title="Toque para marcar como ' + (pago ? "não paga" : "paga") + '">' +
           '<span class="pitem-n">' + t.parcela.n + "ª</span>" +
