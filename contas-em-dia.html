@@ -786,8 +786,14 @@
   form.entry { border-top: 2px solid var(--expense); padding-top: 16px; }
   form.entry.e-receita { border-top-color: var(--income); }
 
+  /* Em tela estreita os dois continuam lado a lado, e o verbo cai. Empilhados em
+     largura inteira, viravam dois blocos altos com texto solto no meio e comiam
+     um terço da tela — empurrando para baixo justamente a lista que eles deviam
+     deixar em primeiro plano. "Saída" e "entrada" já dizem tudo. */
   @media (max-width: 560px) {
-    .acoes-lancamento { flex-direction: column; }
+    .acoes-lancamento { gap: 8px; }
+    .acao { padding: 11px 10px; font-size: 13.5px; gap: 6px; }
+    .acao-verbo { display: none; }
   }
 
   .btn-add {
@@ -1793,10 +1799,10 @@
 
           <div class="acoes-lancamento" id="acoesLancamento">
             <button type="button" class="acao saida" data-tipo="despesa">
-              <span class="acao-sinal">−</span>Registrar saída
+              <span class="acao-sinal">−</span><span class="acao-verbo">Registrar </span>saída
             </button>
             <button type="button" class="acao entrada" data-tipo="receita">
-              <span class="acao-sinal">+</span>Registrar entrada
+              <span class="acao-sinal">+</span><span class="acao-verbo">Registrar </span>entrada
             </button>
           </div>
 
