@@ -2,11 +2,11 @@ const crypto = require("crypto");
 const db = require("./_db");
 const auth = require("./_auth");
 
+// Avaliação não exige conta. Exigir login aqui travava justamente quem o
+// operador mais quer ouvir: a pessoa que abriu o link para experimentar e ainda
+// não se cadastrou. Sem conta, o contato é opcional e vem de quem escreve.
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
-
-  var session = auth.getSession(req);
-  if (!session) return res.status(401).json({ error: "not_authenticated" });
 
   var body = req.body || {};
   var rating = Number(body.rating);
@@ -16,15 +16,22 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // O email vem sempre do servidor, nunca do que o cliente mandou no corpo da
-    // requisição — senão qualquer um poderia mandar feedback se passando por outro.
+    var session = auth.getSession(req);
     var email;
-    if (session.isAdmin) {
+
+    if (session && session.isAdmin) {
       email = process.env.ADMIN_EMAIL || "admin";
-    } else {
+    } else if (session) {
+      // Com sessão, o email vem do banco e nunca do corpo da requisição: aceitá-lo
+      // de fora deixaria qualquer um enviar avaliação se passando por outra conta.
       var user = await db.query("SELECT email FROM users WHERE id = $1", [session.uid]);
-      if (!user.rows.length) return res.status(401).json({ error: "not_authenticated" });
-      email = user.rows[0].email;
+      email = user.rows.length ? user.rows[0].email : "anônimo";
+    } else {
+      // Sem sessão o contato é só um recado para resposta, não identidade: não
+      // prova nada e não dá acesso a nada. Marcado como tal para o painel não
+      // exibi-lo com o mesmo peso de um email verificado.
+      var contato = String(body.contato || "").trim().slice(0, 254);
+      email = contato ? contato + " (sem conta)" : "anônimo";
     }
 
     var id = crypto.randomUUID();

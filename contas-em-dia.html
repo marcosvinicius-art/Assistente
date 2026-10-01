@@ -1691,6 +1691,8 @@
             <button type="button" data-star="5">★</button>
           </div>
           <textarea id="feedbackComment" placeholder="Quer contar mais alguma coisa? (opcional)" rows="3"></textarea>
+          <input id="feedbackContato" type="email" maxlength="254" hidden
+                 placeholder="Seu email, se quiser resposta (opcional)">
           <div class="auth-error" id="feedbackError" hidden></div>
           <button type="button" class="btn-add" id="feedbackSubmitBtn" style="width:100%;margin-top:10px;">Enviar feedback</button>
           <button type="button" class="auth-toggle" id="feedbackViewBtn" hidden>Ver avaliações recebidas</button>
@@ -3416,6 +3418,11 @@
     feedbackRating = 0;
     Array.prototype.forEach.call(starRatingEl.querySelectorAll("button"), function (b) { b.classList.remove("active"); });
     document.getElementById("feedbackComment").value = "";
+    // O campo de contato só faz sentido sem conta. Com sessão, o email já é
+    // conhecido, e pedi-lo de novo seria perguntar o que já se sabe.
+    var contatoEl = document.getElementById("feedbackContato");
+    contatoEl.value = "";
+    contatoEl.hidden = feedbackVaiPraNuvem();
     document.getElementById("feedbackError").hidden = true;
     document.getElementById("feedbackFormWrap").hidden = false;
     document.getElementById("feedbackThanks").hidden = true;
@@ -3508,34 +3515,41 @@
       return;
     }
     var comentario = document.getElementById("feedbackComment").value.trim() || null;
+    var contato = document.getElementById("feedbackContato").value.trim() || null;
 
-    // Sem sessão no servidor não existe painel do admin pra receber: guarda neste
-    // navegador e diz isso, em vez de mostrar "enviado" pra algo que não saiu daqui.
-    if (!feedbackVaiPraNuvem()) {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Enviando…";
+
+    // Tenta sempre o servidor, com conta ou sem. Antes, quem não tinha sessão
+    // nem chegava a tentar: a avaliação era guardada no próprio navegador e
+    // nunca chegava a ninguém — justamente de quem mais se quer ouvir, a pessoa
+    // que abriu o link pra experimentar.
+    apiJson("POST", "/api/feedback", {
+      rating: feedbackRating,
+      comment: comentario,
+      contato: contato
+    }).then(function () {
+      mostrarObrigado("Seu feedback foi enviado. Obrigado!", true);
+    }).catch(function (e) {
+      // Só quando não há backend nenhum (arquivo local, artifact) o erro vem sem
+      // status. Aí guardar aqui é o melhor possível — e a tela diz a verdade.
+      if (e && e.status) {
+        erroEl.textContent = (e && e.message) || "Não consegui enviar agora — tenta de novo.";
+        erroEl.hidden = false;
+        return;
+      }
       try {
         var guardados = JSON.parse(localStorage.getItem(LS_FEEDBACK) || "[]");
         guardados.push({ rating: feedbackRating, comment: comentario, criadoEm: new Date().toISOString() });
         localStorage.setItem(LS_FEEDBACK, JSON.stringify(guardados));
       } catch (err) {
-        erroEl.textContent = "Não consegui guardar o feedback neste navegador.";
+        erroEl.textContent = "Não consegui enviar nem guardar o feedback.";
         erroEl.hidden = false;
         return;
       }
-      mostrarObrigado("Anotado neste navegador. Pra chegar no painel do admin, use o link da Vercel com a conta conectada.", false);
-      return;
-    }
-
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = "Enviando…";
-    apiJson("POST", "/api/feedback", {
-      rating: feedbackRating,
-      comment: comentario
-    }).then(function () {
-      mostrarObrigado("Seu feedback foi enviado.", true);
-    }).catch(function (e) {
-      erroEl.textContent = (e && e.message) || "Não consegui enviar agora — tenta de novo.";
-      erroEl.hidden = false;
+      mostrarObrigado("Anotado neste aparelho. Esta versão do app não tem servidor, " +
+        "então o recado fica só aqui.", false);
     }).finally(function () {
       btn.disabled = false;
       btn.textContent = "Enviar feedback";
