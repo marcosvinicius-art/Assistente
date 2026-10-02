@@ -34,6 +34,20 @@ module.exports = async function handler(req, res) {
       email = contato ? contato + " (sem conta)" : "anônimo";
     }
 
+    // Esta rota aceita escrita sem conta, então é a porta mais exposta do app:
+    // sem teto, um script encheria a tabela sozinho. O limite é global e alto o
+    // bastante para nenhuma pessoa real alcançá-lo — ninguém avalia 20 vezes
+    // por minuto —, e não exige guardar IP de ninguém para funcionar.
+    var recentes = await db.query(
+      "SELECT COUNT(*)::int AS total FROM feedback WHERE created_at > now() - interval '1 minute'"
+    );
+    if (recentes.rows[0].total >= 20) {
+      return res.status(429).json({
+        error: "muitos_envios",
+        message: "Muitas avaliações ao mesmo tempo. Tente de novo em um minuto.",
+      });
+    }
+
     var id = crypto.randomUUID();
     await db.query(
       "INSERT INTO feedback (id, email, rating, comment) VALUES ($1, $2, $3, $4)",

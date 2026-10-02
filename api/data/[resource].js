@@ -12,6 +12,21 @@ var KIND_BY_RESOURCE = {
   cards: "card",
 };
 
+// O conteúdo de cada registro é decidido pelo front-end, então este arquivo não
+// sabe quais campos existem — mas sabe que nenhum registro legítimo é grande.
+// Sem teto, uma conta qualquer encheria o banco com um único POST, e a foto de
+// cartão (data URL) é o campo que mais cresce.
+var LIMITE_BYTES = 300 * 1024;
+
+function cabeNoRegistro(obj) {
+  try {
+    return Buffer.byteLength(JSON.stringify(obj || {}), "utf8") <= LIMITE_BYTES;
+  } catch (e) {
+    // Referência circular e afins: se nem serializa, não entra no banco.
+    return false;
+  }
+}
+
 function rowToRecord(row) {
   // O front-end usa objetos simples com "id" no nível raiz (ex: {id, desc, amount});
   // no banco o conteúdo fica dentro de "data", então remonta aqui antes de responder.
@@ -37,6 +52,9 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "POST") {
       var novo = req.body || {};
+      if (!cabeNoRegistro(novo)) {
+        return res.status(413).json({ error: "muito_grande", message: "Esse registro é grande demais." });
+      }
       var id = crypto.randomUUID();
       await db.query(
         "INSERT INTO records (id, user_id, kind, data) VALUES ($1, $2, $3, $4)",
@@ -58,6 +76,11 @@ module.exports = async function handler(req, res) {
       );
       if (!atual.rows.length) return res.status(404).json({ error: "not_found" });
       var mesclado = Object.assign({}, atual.rows[0].data, patch);
+      // Conferido depois da mesclagem: um patch pequeno sobre um registro já
+      // grande ainda estouraria o limite.
+      if (!cabeNoRegistro(mesclado)) {
+        return res.status(413).json({ error: "muito_grande", message: "Esse registro é grande demais." });
+      }
       await db.query("UPDATE records SET data = $1 WHERE id = $2 AND user_id = $3", [
         JSON.stringify(mesclado), alvoId, userId,
       ]);

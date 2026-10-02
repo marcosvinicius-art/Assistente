@@ -4007,6 +4007,10 @@
       }
 
       var usado = emAbertoPorCartao[c.id] || 0;
+      // O logo vai dentro de um atributo src, e a API aceita qualquer texto
+      // nesse campo. Exigir o prefixo de imagem barra um valor gravado direto na
+      // rota que tentasse fechar o atributo e injetar marcação.
+      var temFoto = /^data:image\//.test(c.logo || "");
       var temLimite = typeof c.limite === "number" && c.limite > 0;
       var pct = temLimite ? Math.min(100, Math.round((usado / c.limite) * 100)) : 0;
       var disponivel = temLimite ? c.limite - usado : 0;
@@ -4021,9 +4025,9 @@
         : "Sem limite informado";
       if (c.vencimento) detalhe += ", vence dia " + c.vencimento;
       return '<div class="card-item">' +
-        '<button type="button" class="card-chip' + (c.logo ? " com-foto" : "") + '" data-id="' + c.id +
+        '<button type="button" class="card-chip' + (temFoto ? " com-foto" : "") + '" data-id="' + c.id +
           '" title="' + (c.logo ? "Trocar" : "Escolher") + ' a foto deste cartão">' +
-          (c.logo ? '<img src="' + c.logo + '" alt="">' : ICON_CAMERA) +
+          (temFoto ? '<img src="' + escapeHtml(c.logo) + '" alt="">' : ICON_CAMERA) +
         '</button>' +
         '<div class="card-info">' +
           '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +

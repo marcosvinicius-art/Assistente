@@ -80,6 +80,10 @@ function ensureSchema() {
       -- o CREATE TABLE acima não altera tabela que já existe. Por isso a trava
       -- fica num lugar só. DROP IF EXISTS torna isto seguro de repetir.
       ALTER TABLE records DROP CONSTRAINT IF EXISTS records_kind_check;
+      -- Freio de força bruta. Sem isto, nada impede um script de testar senhas
+      -- sem limite: o login respondia na mesma velocidade para sempre.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS falhas INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS travado_ate TIMESTAMPTZ;
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,

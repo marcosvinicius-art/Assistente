@@ -40,15 +40,44 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ email: email, isAdmin: true });
     }
 
-    var result = await db.query("SELECT id, password_hash FROM users WHERE email = $1", [email]);
+    var result = await db.query(
+      "SELECT id, password_hash, falhas, travado_ate FROM users WHERE email = $1",
+      [email]
+    );
     // Mesma mensagem pra email inexistente e senha errada — dizer qual dos dois
     // errou permite a quem tenta invadir descobrir emails cadastrados um a um.
     var invalido = { error: "invalid_credentials", message: "Email ou senha incorretos." };
     if (!result.rows.length) return res.status(401).json(invalido);
 
     var user = result.rows[0];
+
+    // A conta trava por alguns minutos depois de erros seguidos. Testar senha
+    // deixa de ser barato: a espera cresce a cada rodada, e um ataque que fazia
+    // milhares de tentativas por minuto passa a fazer cinco.
+    if (user.travado_ate && new Date(user.travado_ate) > new Date()) {
+      var faltam = Math.ceil((new Date(user.travado_ate) - new Date()) / 60000);
+      return res.status(429).json({
+        error: "muitas_tentativas",
+        message: "Muitas tentativas seguidas. Tente de novo em " + faltam +
+          (faltam === 1 ? " minuto." : " minutos."),
+      });
+    }
+
     if (!auth.verifyPassword(password, user.password_hash)) {
+      var falhas = (user.falhas || 0) + 1;
+      // Até a quinta, nada muda; a partir daí a espera dobra a cada erro, com
+      // teto de 1 hora. Quem erra a própria senha uma ou duas vezes não sente.
+      var minutos = falhas < 5 ? 0 : Math.min(60, Math.pow(2, falhas - 5));
+      await db.query(
+        "UPDATE users SET falhas = $1, travado_ate = $2 WHERE id = $3",
+        [falhas, minutos ? new Date(Date.now() + minutos * 60000) : null, user.id]
+      );
       return res.status(401).json(invalido);
+    }
+
+    // Acertou: o contador zera, senão um erro antigo ainda penalizaria depois.
+    if (user.falhas) {
+      await db.query("UPDATE users SET falhas = 0, travado_ate = NULL WHERE id = $1", [user.id]);
     }
 
     auth.setSessionCookie(res, auth.createSessionToken(user.id));
