@@ -175,7 +175,7 @@
   }
   .admin-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
     align-items: center;
     gap: 12px;
     padding: 12px 4px;
@@ -184,6 +184,21 @@
   /* No celular o email ocupa a linha inteira e as ações descem para a segunda:
      quatro colunas não cabem, e encolher o email cortaria justamente o dado que
      identifica de quem é a conta prestes a ser excluída. */
+  /* Pendente é a linha que pede ação: ganha um filete na lateral para ser
+     achada de relance numa lista que cresce. */
+  .admin-row.pendente { border-left: 3px solid var(--warning); padding-left: 10px; }
+  .selo-pendente {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--warning);
+    border: 1px solid var(--warning);
+    border-radius: 999px;
+    padding: 0 7px;
+    margin-left: 8px;
+    vertical-align: 1px;
+  }
+
   @media (max-width: 560px) {
     .admin-row { grid-template-columns: 1fr auto auto; row-gap: 8px; }
     .admin-row .admin-email { grid-column: 1 / -1; }
@@ -2510,22 +2525,51 @@
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
     apiJson("GET", "/api/admin/clients").then(function (clientes) {
-      contador.textContent = clientes.length + (clientes.length === 1 ? " cliente" : " clientes");
       if (!clientes.length) {
+        contador.textContent = "";
         lista.innerHTML = '<div class="empty-note">Nenhum cliente cadastrado ainda.</div>';
         return;
       }
+      var pendentes = clientes.filter(function (c) { return c.aprovado === false; }).length;
+      contador.textContent = clientes.length + (clientes.length === 1 ? " cliente" : " clientes") +
+        (pendentes ? ", " + pendentes + " aguardando" : "");
+
       lista.innerHTML = clientes.map(function (c) {
         var data = new Date(c.criadoEm).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-        return '<div class="admin-row">' +
-          '<span class="admin-email">' + escapeHtml(c.email) + '</span>' +
+        var pendente = c.aprovado === false;
+        return '<div class="admin-row' + (pendente ? " pendente" : "") + '">' +
+          '<span class="admin-email">' + escapeHtml(c.email) +
+            (pendente ? '<span class="selo-pendente">aguardando</span>' : "") + '</span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
+          '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
+            '" data-aprovar="' + (pendente ? "1" : "0") + '">' +
+            (pendente ? "Liberar" : "Suspender") + '</button>' +
           '<button type="button" class="export-btn admin-reset" data-email="' + escapeHtml(c.email) +
             '">Redefinir senha</button>' +
           '<button type="button" class="card-del admin-excluir" data-email="' + escapeHtml(c.email) +
             '" title="Excluir conta">' + ICON_TRASH + '</button>' +
         '</div>';
       }).join("");
+
+      Array.prototype.forEach.call(lista.querySelectorAll(".admin-aprovar"), function (btn) {
+        btn.addEventListener("click", function () {
+          var alvo = btn.getAttribute("data-email");
+          var liberar = btn.getAttribute("data-aprovar") === "1";
+          // Suspender tira o acesso de quem já estava usando, então pede
+          // confirmação. Liberar não tira nada de ninguém e vai direto.
+          if (!liberar && !window.confirm('Suspender o acesso de "' + alvo +
+            '"?\n\nOs dados dela ficam guardados, mas ela não consegue mais entrar.')) return;
+          btn.disabled = true;
+          btn.textContent = liberar ? "Liberando…" : "Suspendendo…";
+          apiJson("POST", "/api/admin/aprovar", { email: alvo, aprovado: liberar })
+            .then(enterAdminMode)
+            .catch(function (e) {
+              window.alert((e && e.message) || "Não consegui salvar agora.");
+              btn.disabled = false;
+              btn.textContent = liberar ? "Liberar" : "Suspender";
+            });
+        });
+      });
 
       Array.prototype.forEach.call(lista.querySelectorAll(".admin-excluir"), function (btn) {
         btn.addEventListener("click", function () {
@@ -2638,6 +2682,16 @@
     apiJson("POST", authMode === "login" ? "/api/auth/login" : "/api/auth/signup", { email: email, password: password })
       .then(function (data) {
         document.getElementById("authPassword").value = "";
+        // Cadastro não entra no app: a conta nasce aguardando liberação, e a
+        // tela precisa dizer isso — senão a pessoa fica tentando entrar achando
+        // que errou a senha que acabou de escolher.
+        if (data.aprovado === false) {
+          setAuthMode("login");
+          authError.textContent = "Conta criada. Ela precisa ser liberada antes do primeiro acesso — " +
+            "você recebe um aviso assim que isso acontecer.";
+          authError.hidden = false;
+          return;
+        }
         enterServerMode(data.email, data.isAdmin);
       })
       .catch(function (e) {

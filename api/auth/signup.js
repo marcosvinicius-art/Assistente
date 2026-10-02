@@ -30,19 +30,14 @@ module.exports = async function handler(req, res) {
     var id = crypto.randomUUID();
     var hash = auth.hashPassword(password);
 
-    // O token vem antes do INSERT de propósito: criá-lo depende de SESSION_SECRET
-    // e estoura se ela faltar. Na ordem inversa, a conta já estava gravada quando
-    // isso acontecia — a pessoa via erro, tentava de novo e batia em "email já em
-    // uso", sem nunca conseguir entrar numa conta que existia.
-    var token = auth.createSessionToken(id);
-
+    // Nasce aguardando aprovação, e por isso nenhum cookie é emitido: entrar
+    // agora e ser barrado na tela seguinte seria pior que não entrar.
     await db.query(
-      "INSERT INTO users (id, email, password_hash) VALUES ($1, $2, $3)",
+      "INSERT INTO users (id, email, password_hash, aprovado) VALUES ($1, $2, $3, false)",
       [id, email, hash]
     );
 
-    auth.setSessionCookie(res, token);
-    return res.status(200).json({ email: email });
+    return res.status(200).json({ email: email, aprovado: false });
   } catch (e) {
     console.error("signup falhou:", e);
     return res.status(500).json({

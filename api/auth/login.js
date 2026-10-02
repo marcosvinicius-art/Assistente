@@ -14,8 +14,10 @@ async function garantirContaDoAdmin(email) {
   var achou = await db.query("SELECT id FROM users WHERE email = $1", [email]);
   if (achou.rows.length) return achou.rows[0].id;
   var id = crypto.randomUUID();
+  // Aprovada de saída: quem aprova é ela mesma, e nascer pendente trancaria o
+  // operador para fora do próprio painel.
   await db.query(
-    "INSERT INTO users (id, email, password_hash) VALUES ($1, $2, $3)",
+    "INSERT INTO users (id, email, password_hash, aprovado) VALUES ($1, $2, $3, true)",
     [id, email, "sem-senha-propria"]
   );
   return id;
@@ -41,7 +43,7 @@ module.exports = async function handler(req, res) {
     }
 
     var result = await db.query(
-      "SELECT id, password_hash, falhas, travado_ate FROM users WHERE email = $1",
+      "SELECT id, password_hash, falhas, travado_ate, aprovado FROM users WHERE email = $1",
       [email]
     );
     // Mesma mensagem pra email inexistente e senha errada — dizer qual dos dois
@@ -78,6 +80,16 @@ module.exports = async function handler(req, res) {
     // Acertou: o contador zera, senão um erro antigo ainda penalizaria depois.
     if (user.falhas) {
       await db.query("UPDATE users SET falhas = 0, travado_ate = NULL WHERE id = $1", [user.id]);
+    }
+
+    // A aprovação é conferida só depois da senha. Antes dela, a resposta
+    // distinguiria email cadastrado de email inexistente e entregaria a lista
+    // de clientes a quem quisesse descobri-la.
+    if (user.aprovado === false) {
+      return res.status(403).json({
+        error: "aguardando_aprovacao",
+        message: "Sua conta ainda não foi liberada. Você recebe um aviso assim que for.",
+      });
     }
 
     auth.setSessionCookie(res, auth.createSessionToken(user.id));

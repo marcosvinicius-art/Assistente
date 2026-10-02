@@ -84,6 +84,11 @@ function ensureSchema() {
       -- sem limite: o login respondia na mesma velocidade para sempre.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS falhas INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS travado_ate TIMESTAMPTZ;
+      -- Conta nova nasce aguardando aprovação. O DEFAULT é true de propósito:
+      -- ele vale para as linhas que já existiam, que não podem ser trancadas
+      -- fora do app de uma hora pra outra. Quem decide o contrário é o cadastro,
+      -- que grava false explicitamente.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS aprovado BOOLEAN NOT NULL DEFAULT true;
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,
