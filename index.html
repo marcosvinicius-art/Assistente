@@ -2574,25 +2574,20 @@
       Array.prototype.forEach.call(lista.querySelectorAll(".admin-excluir"), function (btn) {
         btn.addEventListener("click", function () {
           var alvo = btn.getAttribute("data-email");
-          // Exige digitar o email por extenso. Exclusão de conta alheia não tem
-          // desfazer, e um "OK" é fácil demais de clicar sem ler.
-          var digitado = window.prompt(
-            "EXCLUIR a conta de " + alvo + "?\n\n" +
-            "Isso apaga para sempre os lançamentos, metas, investimentos e cartões dela.\n" +
-            "As avaliações ficam, mas sem o email.\n\n" +
-            "Para confirmar, digite o email:"
-          );
-          if (digitado === null) return;
-          if (digitado.trim().toLowerCase() !== alvo.toLowerCase()) {
-            window.alert("O email digitado não confere. Nada foi excluído.");
-            return;
-          }
+          // Um clique, não digitar o email por extenso: a tarefa real é limpar
+          // várias contas de uma vez, e a digitação punia justamente quem estava
+          // certo do que fazia. A pergunta fica porque não há desfazer.
+          if (!window.confirm("Excluir a conta de " + alvo + "?\n\n" +
+            "Apaga para sempre os lançamentos, metas, investimentos e cartões dela. " +
+            "As avaliações ficam, sem o email.")) return;
           btn.disabled = true;
           apiJson("DELETE", "/api/admin/cliente?email=" + encodeURIComponent(alvo)).then(function (r) {
-            window.alert("Conta de " + r.email + " excluída.\n\n" +
-              r.lancamentos + " lançamentos, " + r.metas + " metas, " +
-              r.investimentos + " investimentos e " + r.cartoes + " cartões apagados.\n" +
-              r.avaliacoesAnonimizadas + " avaliações mantidas sem o email.");
+            // Sem caixa de aviso no fim: excluindo várias seguidas, ela viraria
+            // um clique a mais por conta. A lista se redesenha e a linha some —
+            // é esse o retorno de que deu certo.
+            var total = r.lancamentos + r.metas + r.investimentos + r.cartoes;
+            setStorageAlert(true, "Conta de " + r.email + " excluída" +
+              (total ? ", com " + total + (total === 1 ? " registro apagado." : " registros apagados.") : "."));
             enterAdminMode();
           }).catch(function (e) {
             window.alert((e && e.message) || "Não consegui excluir agora.");
