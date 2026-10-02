@@ -175,11 +175,18 @@
   }
   .admin-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     align-items: center;
     gap: 12px;
     padding: 12px 4px;
     border-bottom: 1px solid var(--border);
+  }
+  /* No celular o email ocupa a linha inteira e as ações descem para a segunda:
+     quatro colunas não cabem, e encolher o email cortaria justamente o dado que
+     identifica de quem é a conta prestes a ser excluída. */
+  @media (max-width: 560px) {
+    .admin-row { grid-template-columns: 1fr auto auto; row-gap: 8px; }
+    .admin-row .admin-email { grid-column: 1 / -1; }
   }
   .admin-row:last-child { border-bottom: none; }
   .admin-email {
@@ -2515,8 +2522,40 @@
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-reset" data-email="' + escapeHtml(c.email) +
             '">Redefinir senha</button>' +
+          '<button type="button" class="card-del admin-excluir" data-email="' + escapeHtml(c.email) +
+            '" title="Excluir conta">' + ICON_TRASH + '</button>' +
         '</div>';
       }).join("");
+
+      Array.prototype.forEach.call(lista.querySelectorAll(".admin-excluir"), function (btn) {
+        btn.addEventListener("click", function () {
+          var alvo = btn.getAttribute("data-email");
+          // Exige digitar o email por extenso. Exclusão de conta alheia não tem
+          // desfazer, e um "OK" é fácil demais de clicar sem ler.
+          var digitado = window.prompt(
+            "EXCLUIR a conta de " + alvo + "?\n\n" +
+            "Isso apaga para sempre os lançamentos, metas, investimentos e cartões dela.\n" +
+            "As avaliações ficam, mas sem o email.\n\n" +
+            "Para confirmar, digite o email:"
+          );
+          if (digitado === null) return;
+          if (digitado.trim().toLowerCase() !== alvo.toLowerCase()) {
+            window.alert("O email digitado não confere. Nada foi excluído.");
+            return;
+          }
+          btn.disabled = true;
+          apiJson("DELETE", "/api/admin/cliente?email=" + encodeURIComponent(alvo)).then(function (r) {
+            window.alert("Conta de " + r.email + " excluída.\n\n" +
+              r.lancamentos + " lançamentos, " + r.metas + " metas, " +
+              r.investimentos + " investimentos e " + r.cartoes + " cartões apagados.\n" +
+              r.avaliacoesAnonimizadas + " avaliações mantidas sem o email.");
+            enterAdminMode();
+          }).catch(function (e) {
+            window.alert((e && e.message) || "Não consegui excluir agora.");
+            btn.disabled = false;
+          });
+        });
+      });
 
       Array.prototype.forEach.call(lista.querySelectorAll(".admin-reset"), function (btn) {
         btn.addEventListener("click", function () {
