@@ -917,6 +917,33 @@
     border-bottom: 1px solid var(--border);
   }
   .card-edit:last-child { border-bottom: none; }
+
+  .senha-gerada {
+    border: 1px solid var(--accent);
+    border-top: 2px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .senha-gerada-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .senha-gerada-topo span { font-size: 13px; font-weight: 600; color: var(--accent-ink); }
+  .senha-gerada-topo .qr-close { position: static; }
+  .senha-gerada-linha { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  /* Grande, espaçada e selecionável: ela vai ser lida em voz alta ou copiada. */
+  .senha-gerada code {
+    flex: 1;
+    font-family: ui-monospace, "SFMono-Regular", monospace;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    user-select: all;
+    word-break: break-all;
+  }
+  .senha-gerada-aviso { font-size: 12px; color: var(--ink-muted); margin: 10px 0 0; }
   @media (max-width: 560px) {
     .card-edit { grid-template-columns: 1fr 1fr; }
     .card-edit .btn-add, .card-edit .export-btn { grid-column: span 1; }
@@ -1614,6 +1641,19 @@
       <div class="panel-head">
         <h2>Clientes cadastrados</h2>
         <span class="hint" id="adminCount">carregando…</span>
+      </div>
+      <div class="senha-gerada" id="adminSenhaNova" hidden>
+        <div class="senha-gerada-topo">
+          <span id="adminSenhaAlvo"></span>
+          <button type="button" class="qr-close" id="adminSenhaFechar" aria-label="Fechar">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="senha-gerada-linha">
+          <code id="adminSenhaValor"></code>
+          <button type="button" class="btn-add" id="adminSenhaCopiar">Copiar</button>
+        </div>
+        <p class="senha-gerada-aviso">Some ao fechar e não aparece de novo — o banco guarda só o hash.</p>
       </div>
       <div id="adminClientList"></div>
     </div>
@@ -2479,10 +2519,7 @@
           btn.disabled = true;
           btn.textContent = "Gerando…";
           apiJson("POST", "/api/admin/redefinir-senha", { email: alvo }).then(function (r) {
-            // Mostrada uma vez e não guardada em lugar nenhum: o banco só tem o
-            // hash, então nem o operador consegue consultá-la depois.
-            window.prompt("Senha nova de " + alvo +
-              "\n\nCopie agora e mande para a pessoa. Ela não aparece de novo.", r.senha);
+            mostrarSenhaGerada(alvo, r.senha);
           }).catch(function (e) {
             window.alert((e && e.message) || "Não consegui redefinir agora.");
           }).finally(function () {
@@ -2544,7 +2581,10 @@
   authForm.addEventListener("submit", function (e) {
     e.preventDefault();
     var email = document.getElementById("authEmail").value.trim();
-    var password = document.getElementById("authPassword").value;
+    // Apara as pontas: senha colada de uma mensagem vem com espaço no fim com
+    // frequência, e o login respondia "senha incorreta" sem que ninguém
+    // enxergasse o motivo. Nenhuma senha legítima depende de um espaço na borda.
+    var password = document.getElementById("authPassword").value.trim();
     authError.hidden = true;
     authSubmitBtn.disabled = true;
     authSubmitBtn.textContent = authMode === "login" ? "Entrando…" : "Criando conta…";
@@ -2588,6 +2628,45 @@
       "Quando o servidor voltar, recarregue a página para entrar na sua conta.");
   });
 
+  // A senha gerada aparece num bloco de verdade, não num prompt do navegador.
+  // Selecionar texto dentro de um prompt erra fácil — perde-se um caractere ou
+  // leva-se um espaço junto —, e a senha vai ser repassada por mensagem, onde
+  // um caractere errado vira "senha incorreta" sem ninguém entender por quê.
+  function mostrarSenhaGerada(email, senha) {
+    var caixa = document.getElementById("adminSenhaNova");
+    document.getElementById("adminSenhaAlvo").textContent = "Senha nova de " + email;
+    document.getElementById("adminSenhaValor").textContent = senha;
+    caixa.hidden = false;
+    caixa.scrollIntoView({ block: "center" });
+  }
+
+  document.getElementById("adminSenhaFechar").addEventListener("click", function () {
+    document.getElementById("adminSenhaNova").hidden = true;
+    document.getElementById("adminSenhaValor").textContent = "";
+  });
+
+  document.getElementById("adminSenhaCopiar").addEventListener("click", function () {
+    var btn = this;
+    var senha = document.getElementById("adminSenhaValor").textContent;
+    var feito = function () { btn.textContent = "Copiado"; setTimeout(function () { btn.textContent = "Copiar"; }, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(senha).then(feito, function () { selecionarSenha(); });
+    } else {
+      // Sem permissão de área de transferência, seleciona o texto para a pessoa
+      // copiar à mão — melhor que um botão que não faz nada.
+      selecionarSenha();
+    }
+  });
+
+  function selecionarSenha() {
+    var el = document.getElementById("adminSenhaValor");
+    var faixa = document.createRange();
+    faixa.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(faixa);
+  }
+
   // A administração é consultada, não habitada: abre, mostra o que precisa e
   // fecha. Por isso recarrega a lista a cada abertura, em vez de guardar o que
   // leu da primeira vez.
@@ -2615,8 +2694,8 @@
     btn.disabled = true;
     btn.textContent = "Trocando…";
     apiJson("POST", "/api/auth/senha", {
-      atual: document.getElementById("senhaAtual").value,
-      nova: document.getElementById("senhaNova").value
+      atual: document.getElementById("senhaAtual").value.trim(),
+      nova: document.getElementById("senhaNova").value.trim()
     }).then(function () {
       senhaOverlay.hidden = true;
       setStorageAlert(true, "Senha trocada. A nova já vale para as próximas entradas.");
