@@ -94,6 +94,11 @@ function verifySessionToken(token) {
     return null;
   }
   if (!payload || !payload.uid || !payload.exp || payload.exp < Date.now()) return null;
+  // O id precisa ser UUID porque é ele que vai na coluna user_id. Sessões
+  // emitidas antes de o admin ganhar conta própria levavam a string "admin":
+  // o cookie continua válido por 30 dias e faria o Postgres recusar a consulta,
+  // virando erro 500 em vez de pedir login. Aqui ela simplesmente expira.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.uid)) return null;
   return { uid: payload.uid, isAdmin: !!payload.admin };
 }
 
