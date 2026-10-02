@@ -1576,6 +1576,7 @@
 
     <button type="submit" class="btn-add auth-submit" id="authSubmitBtn">Entrar</button>
     <button type="button" class="auth-toggle" id="authToggleBtn">Não tem conta? Criar uma</button>
+    <button type="button" class="auth-toggle" id="authEsqueciBtn">Esqueci minha senha</button>
     <button type="button" class="auth-toggle" id="authLocalBtn" hidden>Usar sem conta, só neste aparelho</button>
   </form>
 </div>
@@ -1647,6 +1648,10 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span class="qr-btn-label" id="logoutLabel">Sair</span>
       </button>
+      <button type="button" class="qr-btn" id="senhaOpenBtn" title="Trocar senha" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M10 13 20 3"/><path d="m17 6 2 2"/><path d="m14 9 2 2"/></svg>
+        <span class="qr-btn-label">Senha</span>
+      </button>
       <button type="button" class="qr-btn" id="adminOpenBtn" title="Abrir administração" hidden>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
         <span class="qr-btn-label">Administração</span>
@@ -1680,6 +1685,29 @@
         <div class="qr-code" id="qrCode"></div>
         <p class="qr-url" id="qrUrl"></p>
         <p class="qr-hint" style="margin: 12px 0 0;">Por este link o app abre no modo simples: sem IA, sem leitura de nota fiscal e com dados só neste aparelho. Pra ter tudo isso, abra o app por dentro do Claude.</p>
+      </div>
+    </div>
+
+    <div class="qr-overlay" id="senhaOverlay" hidden>
+      <div class="qr-card">
+        <button type="button" class="qr-close" id="senhaCloseBtn" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <form id="senhaForm">
+          <h2>Trocar senha</h2>
+          <p class="qr-hint">A senha atual confirma que é você — mesmo com a sessão aberta.</p>
+          <div class="field" style="margin-top:14px;">
+            <label for="senhaAtual">Senha atual</label>
+            <input id="senhaAtual" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label for="senhaNova">Senha nova</label>
+            <input id="senhaNova" type="password" autocomplete="new-password" required minlength="8" maxlength="200">
+            <span class="auth-hint">mínimo 8 caracteres</span>
+          </div>
+          <div class="auth-error" id="senhaErro" hidden></div>
+          <button type="submit" class="btn-add" id="senhaSalvarBtn" style="width:100%;margin-top:14px;">Trocar senha</button>
+        </form>
       </div>
     </div>
 
@@ -2400,6 +2428,9 @@
     // que ele abre quando quer. Antes o painel substituía o app inteiro: entrar
     // como admin significava não poder lançar nada.
     document.getElementById("adminOpenBtn").hidden = !isAdmin;
+    // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
+    // prometeria uma troca que o servidor recusa.
+    document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
     Promise.all([
       serverList("transactions"),
       serverList("goals"),
@@ -2435,8 +2466,31 @@
         return '<div class="admin-row">' +
           '<span class="admin-email">' + escapeHtml(c.email) + '</span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
+          '<button type="button" class="export-btn admin-reset" data-email="' + escapeHtml(c.email) +
+            '">Redefinir senha</button>' +
         '</div>';
       }).join("");
+
+      Array.prototype.forEach.call(lista.querySelectorAll(".admin-reset"), function (btn) {
+        btn.addEventListener("click", function () {
+          var alvo = btn.getAttribute("data-email");
+          if (!window.confirm('Gerar uma senha nova para "' + alvo +
+            '"?\n\nA senha atual deixa de funcionar na hora, e a nova aparece aqui uma vez só.')) return;
+          btn.disabled = true;
+          btn.textContent = "Gerando…";
+          apiJson("POST", "/api/admin/redefinir-senha", { email: alvo }).then(function (r) {
+            // Mostrada uma vez e não guardada em lugar nenhum: o banco só tem o
+            // hash, então nem o operador consegue consultá-la depois.
+            window.prompt("Senha nova de " + alvo +
+              "\n\nCopie agora e mande para a pessoa. Ela não aparece de novo.", r.senha);
+          }).catch(function (e) {
+            window.alert((e && e.message) || "Não consegui redefinir agora.");
+          }).finally(function () {
+            btn.disabled = false;
+            btn.textContent = "Redefinir senha";
+          });
+        });
+      });
     }).catch(function (e) {
       contador.textContent = "";
       lista.innerHTML = '<div class="empty-note">Não consegui carregar a lista: ' +
@@ -2473,6 +2527,16 @@
     document.getElementById("authPassword").autocomplete = entrar ? "current-password" : "new-password";
     authError.hidden = true;
   }
+  // Sem provedor de email não há link de recuperação. Dizer isso e apontar o
+  // caminho real é melhor que esconder: quem esqueceu a senha fica olhando uma
+  // tela que não tem saída e conclui que perdeu os dados.
+  document.getElementById("authEsqueciBtn").addEventListener("click", function () {
+    authError.innerHTML = "A senha é guardada com hash e nem o operador consegue lê-la. " +
+      'Escreva para <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a> pedindo uma senha nova — ' +
+      "ela é gerada na hora e você troca por uma sua depois de entrar.";
+    authError.hidden = false;
+  });
+
   authToggleBtn.addEventListener("click", function () {
     setAuthMode(authMode === "login" ? "signup" : "login");
   });
@@ -2527,6 +2591,44 @@
   // A administração é consultada, não habitada: abre, mostra o que precisa e
   // fecha. Por isso recarrega a lista a cada abertura, em vez de guardar o que
   // leu da primeira vez.
+  // ---------- Trocar senha ----------
+  var senhaOverlay = document.getElementById("senhaOverlay");
+
+  function abrirTrocaSenha() {
+    document.getElementById("senhaAtual").value = "";
+    document.getElementById("senhaNova").value = "";
+    document.getElementById("senhaErro").hidden = true;
+    senhaOverlay.hidden = false;
+    document.getElementById("senhaAtual").focus();
+  }
+  document.getElementById("senhaOpenBtn").addEventListener("click", abrirTrocaSenha);
+  document.getElementById("senhaCloseBtn").addEventListener("click", function () { senhaOverlay.hidden = true; });
+  senhaOverlay.addEventListener("click", function (e) {
+    if (e.target === senhaOverlay) senhaOverlay.hidden = true;
+  });
+
+  document.getElementById("senhaForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var erro = document.getElementById("senhaErro");
+    var btn = document.getElementById("senhaSalvarBtn");
+    erro.hidden = true;
+    btn.disabled = true;
+    btn.textContent = "Trocando…";
+    apiJson("POST", "/api/auth/senha", {
+      atual: document.getElementById("senhaAtual").value,
+      nova: document.getElementById("senhaNova").value
+    }).then(function () {
+      senhaOverlay.hidden = true;
+      setStorageAlert(true, "Senha trocada. A nova já vale para as próximas entradas.");
+    }).catch(function (err) {
+      erro.textContent = (err && err.message) || "Não consegui trocar a senha agora.";
+      erro.hidden = false;
+    }).finally(function () {
+      btn.disabled = false;
+      btn.textContent = "Trocar senha";
+    });
+  });
+
   document.getElementById("adminOpenBtn").addEventListener("click", enterAdminMode);
   document.getElementById("adminCloseBtn").addEventListener("click", function () {
     document.getElementById("adminPanel").hidden = true;
