@@ -89,6 +89,9 @@ function ensureSchema() {
       -- fora do app de uma hora pra outra. Quem decide o contrário é o cadastro,
       -- que grava false explicitamente.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS aprovado BOOLEAN NOT NULL DEFAULT true;
+      -- Aviso que o admin manda só para este cliente (uma cobrança, por
+      -- exemplo): { texto, tipo }. Some junto com a conta.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS aviso JSONB;
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,

@@ -24,9 +24,9 @@ async function listarClientes(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   // Pendentes primeiro: são as únicas linhas que pedem uma decisão, e no fim de
   // uma lista longa ficariam sem ser vistas.
-  var r = await db.query("SELECT email, created_at, aprovado FROM users ORDER BY aprovado ASC, created_at DESC");
+  var r = await db.query("SELECT email, created_at, aprovado, aviso FROM users ORDER BY aprovado ASC, created_at DESC");
   return res.status(200).json(r.rows.map(function (u) {
-    return { email: u.email, criadoEm: u.created_at, aprovado: u.aprovado };
+    return { email: u.email, criadoEm: u.created_at, aprovado: u.aprovado, aviso: u.aviso || null };
   }));
 }
 
@@ -184,15 +184,31 @@ async function salvarConfig(req, res) {
   ["cadastrosAbertos", "manutencao", "assistente"].forEach(function (k) {
     if (typeof body[k] === "boolean") mudancas[k] = body[k];
   });
-  if ("aviso" in body) {
-    var texto = body.aviso && String(body.aviso.texto || "").trim().slice(0, 300);
-    mudancas.aviso = texto
-      ? { texto: texto, tipo: ["alerta", "urgente"].indexOf(body.aviso.tipo) >= 0 ? body.aviso.tipo : "info" }
-      : null;
-  }
+  if ("aviso" in body) mudancas.aviso = normalizarAviso(body.aviso);
   if (!Object.keys(mudancas).length) return res.status(400).json({ error: "nada_para_salvar" });
 
   return res.status(200).json(await db.gravarConfig(mudancas));
+}
+
+// Texto vazio (ou aviso null) significa "tirar o aviso".
+function normalizarAviso(a) {
+  var texto = a && String(a.texto || "").trim().slice(0, 300);
+  if (!texto) return null;
+  return { texto: texto, tipo: ["alerta", "urgente"].indexOf(a.tipo) >= 0 ? a.tipo : "info" };
+}
+
+// Aviso para um cliente só. Fica na linha dele em "users", e o /api/config o
+// entrega apenas à sessão dessa conta — nenhum outro cliente chega a recebê-lo.
+async function avisoCliente(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+  var body = req.body || {};
+  var email = String(body.email || "").trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: "missing_email" });
+
+  var aviso = normalizarAviso(body.aviso);
+  var r = await db.query("UPDATE users SET aviso = $1 WHERE email = $2 RETURNING id", [aviso, email]);
+  if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
+  return res.status(200).json({ email: email, aviso: aviso });
 }
 
 var ACOES = {
@@ -203,6 +219,7 @@ var ACOES = {
   cliente: excluirCliente,
   numeros: numeros,
   config: salvarConfig,
+  "aviso-cliente": avisoCliente,
 };
 
 module.exports = async function handler(req, res) {

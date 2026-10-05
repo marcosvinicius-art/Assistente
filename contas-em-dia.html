@@ -208,6 +208,7 @@
     background: color-mix(in srgb, var(--warning) 14%, transparent);
     border-color: var(--warning);
   }
+  .selo-aviso { color: var(--expense); border-color: var(--expense); }
   .site-aviso.urgente {
     background: var(--expense-soft);
     border-color: var(--expense);
@@ -1779,6 +1780,7 @@
   </div>
 
   <div class="site-aviso" id="siteAviso" role="status" hidden></div>
+  <div class="site-aviso" id="clienteAviso" role="status" hidden></div>
 
   <div class="tabs" role="tablist">
     <button class="tab-btn active" data-tab="lancamentos" type="button" role="tab" aria-selected="true">Lançamentos</button>
@@ -2221,11 +2223,17 @@
 
     <div class="panel" style="margin-top: 18px;">
       <div class="panel-head">
-        <h2>Aviso para todos</h2>
+        <h2>Avisos</h2>
         <span class="hint" id="adminAvisoStatus">carregando…</span>
       </div>
+      <div class="field" style="margin-bottom: 10px;">
+        <label for="adminAvisoPara">Para quem</label>
+        <select id="adminAvisoPara">
+          <option value="">Todos os clientes</option>
+        </select>
+      </div>
       <div class="field">
-        <label for="adminAvisoTexto">Mensagem que aparece no topo do app e na tela de login</label>
+        <label for="adminAvisoTexto" id="adminAvisoTextoLabel">Mensagem que aparece no topo do app e na tela de login</label>
         <textarea id="adminAvisoTexto" rows="2" maxlength="300" placeholder="Ex: manutenção amanhã às 22h, o site fica fora por uns 10 minutos"></textarea>
       </div>
       <div class="admin-aviso-acoes">
@@ -2599,18 +2607,21 @@
   // O padrão é o site como sempre foi: sem /api/config (arquivo local, dentro
   // do Claude) nada muda. A tela só reflete as chaves; quem barra cadastro e
   // manutenção de verdade é o servidor.
-  state.config = { aviso: null, cadastrosAbertos: true, manutencao: false, assistente: true };
+  state.config = { aviso: null, meuAviso: null, cadastrosAbertos: true, manutencao: false, assistente: true };
 
   function aplicarConfig(cfg) {
     if (!cfg) return;
     state.config = cfg;
-    ["siteAviso", "authAviso"].forEach(function (id) {
-      var el = document.getElementById(id);
-      el.hidden = !cfg.aviso;
-      if (!cfg.aviso) return;
-      el.textContent = cfg.aviso.texto;
-      el.classList.toggle("alerta", cfg.aviso.tipo === "alerta");
-      el.classList.toggle("urgente", cfg.aviso.tipo === "urgente");
+    // O aviso pessoal (cobrança, por exemplo) vem do servidor só para a conta
+    // logada; fica em faixa própria, abaixo do aviso geral, até o admin tirar.
+    [["siteAviso", cfg.aviso], ["authAviso", cfg.aviso], ["clienteAviso", cfg.meuAviso]].forEach(function (par) {
+      var el = document.getElementById(par[0]);
+      var aviso = par[1];
+      el.hidden = !aviso;
+      if (!aviso) return;
+      el.textContent = aviso.texto;
+      el.classList.toggle("alerta", aviso.tipo === "alerta");
+      el.classList.toggle("urgente", aviso.tipo === "urgente");
     });
 
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
@@ -2701,11 +2712,63 @@
       document.getElementById("adminChaveCadastros").checked = cfg.cadastrosAbertos;
       document.getElementById("adminChaveAssistente").checked = cfg.assistente;
       document.getElementById("adminChaveManutencao").checked = cfg.manutencao;
-      document.getElementById("adminAvisoTexto").value = cfg.aviso ? cfg.aviso.texto : "";
-      document.getElementById("adminAvisoTipo").value = cfg.aviso ? cfg.aviso.tipo : "info";
-      document.getElementById("adminAvisoStatus").textContent = cfg.aviso ? "no ar" : "nenhum aviso no ar";
+      mostrarAvisoDoAlvo();
     }).catch(function () {
       document.getElementById("adminAvisoStatus").textContent = "não consegui ler a configuração";
+    });
+  }
+
+  // ---------- Avisos: para todos ou para um cliente só ----------
+  state.adminClientes = [];
+
+  function avisoAlvo() { return document.getElementById("adminAvisoPara").value; }
+
+  // O formulário mostra o aviso que está no ar para quem foi escolhido em
+  // "Para quem", então trocar o destinatário já mostra o que ele vê hoje.
+  function mostrarAvisoDoAlvo() {
+    var email = avisoAlvo();
+    var cliente = email && state.adminClientes.filter(function (c) { return c.email === email; })[0];
+    var aviso = email ? (cliente && cliente.aviso) : state.config.aviso;
+    document.getElementById("adminAvisoTextoLabel").textContent = email
+      ? "Mensagem que só " + email + " vê, no topo do app, até você tirar"
+      : "Mensagem que aparece no topo do app e na tela de login";
+    document.getElementById("adminAvisoTexto").value = aviso ? aviso.texto : "";
+    document.getElementById("adminAvisoTipo").value = aviso ? aviso.tipo : (email ? "urgente" : "info");
+    document.getElementById("adminAvisoStatus").textContent = aviso
+      ? (email ? "no ar para este cliente" : "no ar para todos")
+      : "nenhum aviso no ar";
+  }
+
+  function preencherDestinatarios() {
+    var select = document.getElementById("adminAvisoPara");
+    var atual = select.value;
+    select.innerHTML = '<option value="">Todos os clientes</option>' +
+      // Fora da lista: contas aguardando (não entram no app) e a do próprio admin.
+      state.adminClientes.filter(function (c) {
+        return c.aprovado !== false && !(state.sessao && c.email === state.sessao.email);
+      }).map(function (c) {
+        return '<option value="' + escapeHtml(c.email) + '">' + escapeHtml(c.email) +
+          (c.aviso ? " · aviso no ar" : "") + '</option>';
+      }).join("");
+    // Mantém o cliente escolhido depois de recarregar a lista (ex.: logo após publicar).
+    if (atual && state.adminClientes.some(function (c) { return c.email === atual; })) select.value = atual;
+    mostrarAvisoDoAlvo();
+  }
+
+  function salvarAviso(aviso) {
+    var email = avisoAlvo();
+    var status = document.getElementById("adminAvisoStatus");
+    if (!email) {
+      return salvarConfig({ aviso: aviso }, "adminAvisoStatus", aviso ? "no ar para todos" : "nenhum aviso no ar");
+    }
+    status.textContent = "salvando…";
+    return apiJson("POST", "/api/admin/aviso-cliente", { email: email, aviso: aviso }).then(function (r) {
+      state.adminClientes.forEach(function (c) { if (c.email === email) c.aviso = r.aviso; });
+      preencherDestinatarios();
+      enterAdminMode(); // atualiza o selo "aviso" na lista de clientes
+    }).catch(function (e) {
+      status.textContent = "não salvou: " + ((e && e.message) || "erro");
+      throw e;
     });
   }
 
@@ -2731,6 +2794,8 @@
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
     apiJson("GET", "/api/admin/clients").then(function (clientes) {
+      state.adminClientes = clientes;
+      preencherDestinatarios();
       if (!clientes.length) {
         contador.textContent = "";
         lista.innerHTML = '<div class="empty-note">Nenhum cliente cadastrado ainda.</div>';
@@ -2745,7 +2810,8 @@
         var pendente = c.aprovado === false;
         return '<div class="admin-row' + (pendente ? " pendente" : "") + '">' +
           '<span class="admin-email">' + escapeHtml(c.email) +
-            (pendente ? '<span class="selo-pendente">aguardando</span>' : "") + '</span>' +
+            (pendente ? '<span class="selo-pendente">aguardando</span>' : "") +
+            (c.aviso ? '<span class="selo-pendente selo-aviso">aviso</span>' : "") + '</span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
             '" data-aprovar="' + (pendente ? "1" : "0") + '">' +
@@ -2894,6 +2960,9 @@
           return;
         }
         enterServerMode(data.email, data.isAdmin);
+        // Antes do login a configuração veio sem o aviso pessoal: busca de novo
+        // para ele aparecer já, sem esperar a próxima conferência.
+        conferirConfig();
       })
       .catch(function (e) {
         authError.textContent = (e && e.message) || "Não consegui completar — tenta de novo.";
@@ -3035,14 +3104,14 @@
   document.getElementById("adminAvisoPublicar").addEventListener("click", function () {
     var texto = document.getElementById("adminAvisoTexto").value.trim();
     if (!texto) { document.getElementById("adminAvisoStatus").textContent = "escreva a mensagem primeiro"; return; }
-    salvarConfig({ aviso: { texto: texto, tipo: document.getElementById("adminAvisoTipo").value } },
-      "adminAvisoStatus", "no ar").catch(function () {});
+    salvarAviso({ texto: texto, tipo: document.getElementById("adminAvisoTipo").value }).catch(function () {});
   });
   document.getElementById("adminAvisoTirar").addEventListener("click", function () {
-    salvarConfig({ aviso: null }, "adminAvisoStatus", "nenhum aviso no ar").then(function () {
+    salvarAviso(null).then(function () {
       document.getElementById("adminAvisoTexto").value = "";
     }).catch(function () {});
   });
+  document.getElementById("adminAvisoPara").addEventListener("change", mostrarAvisoDoAlvo);
 
   document.getElementById("logoutBtn").addEventListener("click", function () {
     apiJson("POST", "/api/auth/logout").finally(function () {
