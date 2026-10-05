@@ -2557,6 +2557,8 @@
   }
 
   function enterServerMode(email, isAdmin) {
+    state.sessao = { email: email, isAdmin: !!isAdmin };
+    state.parouNaManutencao = false;
     hideAuthGate();
     state.storage = "server";
     state.isAdmin = !!isAdmin;
@@ -2574,6 +2576,7 @@
     // Em manutenção o servidor recusa os dados de qualquer cliente; pedir e
     // mostrar erro seria pior que dizer logo o motivo.
     if (state.config.manutencao && !isAdmin) {
+      state.parouNaManutencao = true;
       showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
       return;
     }
@@ -2621,6 +2624,37 @@
     if (abaAssistente.hidden && abaAssistente.classList.contains("active")) {
       document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
     }
+  }
+
+  // O que o admin muda no painel chega a quem está com o app aberto sem
+  // recarregar. A Vercel (plano gratuito) não mantém conexão aberta com o
+  // navegador, então o app pergunta de tempos em tempos — e só com a aba à
+  // vista: aba escondida não gasta chamada, e ao voltar confere na hora.
+  var INTERVALO_CONFIG_MS = 15000;
+
+  function conferirConfig() {
+    if (document.hidden) return;
+    apiJson("GET", "/api/config").then(function (cfg) {
+      var entrouManutencao = cfg.manutencao && !state.config.manutencao;
+      aplicarConfig(cfg);
+      var s = state.sessao;
+      if (!s || s.isAdmin) return;
+      // Cliente logado: a manutenção ligada o tira do app na hora, e desligada
+      // o devolve sem pedir login de novo — a sessão dele continua valendo.
+      if (entrouManutencao) {
+        state.parouNaManutencao = true;
+        showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
+      } else if (!cfg.manutencao && state.parouNaManutencao) {
+        enterServerMode(s.email, false);
+      }
+    }).catch(function () {});
+  }
+
+  function acompanharConfig() {
+    if (state.acompanhandoConfig) return;
+    state.acompanhandoConfig = true;
+    setInterval(conferirConfig, INTERVALO_CONFIG_MS);
+    document.addEventListener("visibilitychange", conferirConfig);
   }
 
   function carregarNumeros() {
@@ -3046,7 +3080,10 @@
       // backend primeiro; se a rede falhar (arquivo local), cai pro modo local sozinho.
       // A configuração chega antes de decidir a tela: em manutenção, o cliente
       // logado vai direto para o aviso, sem passar pelo app vazio.
-      var configPronta = apiJson("GET", "/api/config").then(aplicarConfig).catch(function () {});
+      var configPronta = apiJson("GET", "/api/config").then(function (cfg) {
+        aplicarConfig(cfg);
+        acompanharConfig();
+      }).catch(function () {});
       apiJson("GET", "/api/auth/me")
         .then(function (data) { return configPronta.then(function () { enterServerMode(data.email, data.isAdmin); }); })
         .catch(function (e) {
