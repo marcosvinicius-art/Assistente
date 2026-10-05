@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const db = require("../_db");
 const auth = require("../_auth");
 
-// As cinco rotas de administração num arquivo só. O plano gratuito da Vercel
+// As rotas de administração num arquivo só. O plano gratuito da Vercel
 // permite 12 funções por implantação, e cada arquivo aqui dentro contava como
 // uma: a sexta rota fazia o build inteiro falhar, sem subir nada.
 //
@@ -122,12 +122,87 @@ async function excluirCliente(req, res) {
   });
 }
 
+// Só contagens: o painel diz quanto o site é usado, nunca o que cada cliente
+// lançou. A conta do admin fica fora de tudo — ela não é cliente.
+async function numeros(req, res) {
+  if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
+  var admin = String(process.env.ADMIN_EMAIL || "").toLowerCase();
+
+  var r = await Promise.all([
+    db.query(
+      "SELECT COUNT(*)::int AS total, " +
+      "COUNT(*) FILTER (WHERE aprovado = false)::int AS pendentes, " +
+      "COUNT(*) FILTER (WHERE created_at > now() - interval '30 days')::int AS novos30 " +
+      "FROM users WHERE lower(email) <> $1",
+      [admin]
+    ),
+    // "Ativo" = criou algum registro nos últimos 30 dias. Login não deixa
+    // rastro no banco, então lançar é o único sinal de uso que existe.
+    db.query(
+      "SELECT COUNT(DISTINCT r.user_id)::int AS ativos FROM records r JOIN users u ON u.id = r.user_id " +
+      "WHERE r.created_at > now() - interval '30 days' AND lower(u.email) <> $1",
+      [admin]
+    ),
+    db.query(
+      "SELECT r.kind, COUNT(*)::int AS total FROM records r JOIN users u ON u.id = r.user_id " +
+      "WHERE lower(u.email) <> $1 GROUP BY r.kind",
+      [admin]
+    ),
+    db.query(
+      "SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS mes, COUNT(*)::int AS total " +
+      "FROM users WHERE lower(email) <> $1 AND created_at >= date_trunc('month', now()) - interval '5 months' " +
+      "GROUP BY 1 ORDER BY 1",
+      [admin]
+    ),
+    db.query("SELECT COUNT(*)::int AS total, AVG(rating)::float AS media FROM feedback"),
+  ]);
+
+  var porTipo = {};
+  r[2].rows.forEach(function (c) { porTipo[c.kind] = c.total; });
+  return res.status(200).json({
+    clientes: r[0].rows[0].total,
+    pendentes: r[0].rows[0].pendentes,
+    novos30: r[0].rows[0].novos30,
+    ativos30: r[1].rows[0].ativos,
+    lancamentos: porTipo.transaction || 0,
+    metas: porTipo.goal || 0,
+    investimentos: porTipo.investment || 0,
+    cartoes: porTipo.card || 0,
+    cadastrosPorMes: r[3].rows,
+    avaliacoes: r[4].rows[0].total,
+    notaMedia: r[4].rows[0].media,
+  });
+}
+
+// Aceita só os campos conhecidos, cada um no formato certo: o corpo vem do
+// navegador e não pode gravar no banco nada além do que o painel oferece.
+async function salvarConfig(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+  var body = req.body || {};
+  var mudancas = {};
+
+  ["cadastrosAbertos", "manutencao", "assistente"].forEach(function (k) {
+    if (typeof body[k] === "boolean") mudancas[k] = body[k];
+  });
+  if ("aviso" in body) {
+    var texto = body.aviso && String(body.aviso.texto || "").trim().slice(0, 300);
+    mudancas.aviso = texto
+      ? { texto: texto, tipo: body.aviso.tipo === "alerta" ? "alerta" : "info" }
+      : null;
+  }
+  if (!Object.keys(mudancas).length) return res.status(400).json({ error: "nada_para_salvar" });
+
+  return res.status(200).json(await db.gravarConfig(mudancas));
+}
+
 var ACOES = {
   clients: listarClientes,
   feedback: listarFeedback,
   aprovar: aprovar,
   "redefinir-senha": redefinirSenha,
   cliente: excluirCliente,
+  numeros: numeros,
+  config: salvarConfig,
 };
 
 module.exports = async function handler(req, res) {

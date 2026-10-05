@@ -1,7 +1,7 @@
 // Conexão com o Postgres da Vercel (integração "Storage" no dashboard, que define
 // a variável de conexão sozinha) e criação das tabelas na primeira chamada.
 //
-// Três tabelas:
+// Quatro tabelas (a quarta, config, guarda as chaves do painel do admin):
 //   users    — conta de cada cliente (email + senha com hash, nunca em texto puro)
 //   records  — todo lançamento/meta/investimento de todo cliente, cada linha marcada
 //              com o dono (user_id) e o tipo (kind); o conteúdo variável vai num JSONB,
@@ -96,6 +96,14 @@ function ensureSchema() {
         comment TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
+      -- Chaves que o admin liga e desliga pelo painel (aviso, cadastros,
+      -- manutenção, assistente). Uma linha só, chave "site": são poucos campos,
+      -- sempre lidos juntos.
+      CREATE TABLE IF NOT EXISTS config (
+        chave TEXT PRIMARY KEY,
+        valor JSONB NOT NULL,
+        atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
     `).catch(function (e) {
       // Um erro guardado na promise se repetiria pra sempre, mesmo depois do banco
       // voltar: a próxima chamada precisa poder tentar de novo.
@@ -117,4 +125,28 @@ function mensagemDeFalha(e, padrao) {
   return (e && e.configMissing) ? e.message : padrao;
 }
 
-module.exports = { query, mensagemDeFalha, stringDeConexao };
+// Sem linha gravada vale o padrão: o site como sempre funcionou. Campos novos
+// entram aqui e passam a valer até para quem já tinha salvo uma configuração.
+var CONFIG_PADRAO = {
+  aviso: null, // { texto, tipo: "info" | "alerta" }
+  cadastrosAbertos: true,
+  manutencao: false,
+  assistente: true,
+};
+
+async function lerConfig() {
+  var r = await query("SELECT valor FROM config WHERE chave = 'site'");
+  return Object.assign({}, CONFIG_PADRAO, r.rows.length ? r.rows[0].valor : {});
+}
+
+async function gravarConfig(mudancas) {
+  var nova = Object.assign(await lerConfig(), mudancas);
+  await query(
+    "INSERT INTO config (chave, valor, atualizado_em) VALUES ('site', $1, now()) " +
+    "ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, atualizado_em = now()",
+    [nova]
+  );
+  return nova;
+}
+
+module.exports = { query, mensagemDeFalha, stringDeConexao, lerConfig, gravarConfig };

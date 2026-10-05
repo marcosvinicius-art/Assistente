@@ -198,6 +198,50 @@
   }
   .admin-date { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
 
+  /* Aviso que o admin publica para todos. Informativo usa a cor da marca;
+     "atenção" usa a mesma cor de alerta do selo de conta pendente. */
+  .site-aviso {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 11px 14px;
+    margin-bottom: 18px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+  .site-aviso.alerta {
+    background: color-mix(in srgb, var(--warning) 14%, transparent);
+    border-color: var(--warning);
+  }
+  .auth-card .site-aviso { text-align: left; margin: 0 0 14px; }
+
+  .admin-aviso-acoes { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .admin-aviso-acoes select { width: auto; flex: 1 1 180px; }
+
+  .admin-chave {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .admin-chave:last-child { border-bottom: none; }
+  .admin-chave input { width: 18px; height: 18px; flex: none; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
+  .admin-chave strong { display: block; font-size: 14px; }
+  .admin-chave small { display: block; font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; line-height: 1.4; }
+
+  /* Uma série só, então uma cor só; o número fica escrito ao lado de cada
+     barra, e isso dispensa legenda e tooltip. */
+  .admin-barras { display: flex; flex-direction: column; gap: 8px; }
+  .admin-barra { display: grid; grid-template-columns: 64px 1fr 32px; align-items: center; gap: 10px; font-size: 12.5px; }
+  .admin-barra-mes { color: var(--ink-muted); }
+  .admin-barra-trilho { height: 10px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .admin-barra-cheia { height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+  .admin-barra-valor { text-align: right; font-weight: 600; }
+
   .feedback-row { padding: 12px 4px; border-bottom: 1px solid var(--border); }
   .feedback-row:last-child { border-bottom: none; }
   .feedback-row-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -1601,6 +1645,7 @@
     </svg>
     <h1>Wonner Sols</h1>
     <p class="auth-sub" id="authSub">Entre com seu email e senha.</p>
+    <p class="site-aviso" id="authAviso" role="status" hidden></p>
 
     <div class="field">
       <label for="authEmail">Email</label>
@@ -1735,6 +1780,8 @@
       </div>
     </div>
   </div>
+
+  <div class="site-aviso" id="siteAviso" role="status" hidden></div>
 
   <div class="tabs" role="tablist">
     <button class="tab-btn active" data-tab="lancamentos" type="button" role="tab" aria-selected="true">Lançamentos</button>
@@ -2145,7 +2192,78 @@
   </div>
 
   <div class="tab-panel" data-panel="admin" hidden>
+    <div class="stats" id="adminStats">
+      <div class="stat">
+        <div class="label">Clientes</div>
+        <div class="value num" id="adminStatClientes">—</div>
+        <div class="sub" id="adminStatClientesSub"></div>
+      </div>
+      <div class="stat">
+        <div class="label">Ativos nos últimos 30 dias</div>
+        <div class="value num" id="adminStatAtivos">—</div>
+        <div class="sub">lançaram algo no período</div>
+      </div>
+      <div class="stat">
+        <div class="label">Novos nos últimos 30 dias</div>
+        <div class="value num" id="adminStatNovos">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Lançamentos</div>
+        <div class="value num" id="adminStatLanc">—</div>
+        <div class="sub" id="adminStatLancSub"></div>
+      </div>
+    </div>
+
     <div class="panel">
+      <div class="panel-head">
+        <h2>Cadastros por mês</h2>
+        <span class="hint">últimos 6 meses</span>
+      </div>
+      <div class="admin-barras" id="adminCadastrosMes"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <h2>Aviso para todos</h2>
+        <span class="hint" id="adminAvisoStatus">carregando…</span>
+      </div>
+      <div class="field">
+        <label for="adminAvisoTexto">Mensagem que aparece no topo do app e na tela de login</label>
+        <textarea id="adminAvisoTexto" rows="2" maxlength="300" placeholder="Ex: manutenção amanhã às 22h, o site fica fora por uns 10 minutos"></textarea>
+      </div>
+      <div class="admin-aviso-acoes">
+        <select id="adminAvisoTipo" aria-label="Tipo do aviso">
+          <option value="info">Informativo (azul)</option>
+          <option value="alerta">Atenção (amarelo)</option>
+        </select>
+        <button type="button" class="btn-add" id="adminAvisoPublicar">Publicar aviso</button>
+        <button type="button" class="export-btn" id="adminAvisoTirar">Tirar aviso</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <h2>Recursos do site</h2>
+        <span class="hint" id="adminRecursosStatus"></span>
+      </div>
+      <label class="admin-chave">
+        <input type="checkbox" id="adminChaveCadastros">
+        <span><strong>Cadastros abertos</strong>
+          <small>Desligado, ninguém consegue criar conta nova. Quem já tem conta continua entrando.</small></span>
+      </label>
+      <label class="admin-chave">
+        <input type="checkbox" id="adminChaveAssistente">
+        <span><strong>Assistente ligado</strong>
+          <small>Desligado, a aba Assistente some para todos os clientes.</small></span>
+      </label>
+      <label class="admin-chave">
+        <input type="checkbox" id="adminChaveManutencao">
+        <span><strong>Modo manutenção</strong>
+          <small>Ligado, só o admin entra. Os clientes veem uma mensagem de manutenção e ninguém grava nada.</small></span>
+      </label>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
       <div class="panel-head">
         <h2>Clientes cadastrados</h2>
         <span class="hint" id="adminCount">carregando…</span>
@@ -2452,6 +2570,13 @@
     // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
     // prometeria uma troca que o servidor recusa.
     document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
+    aplicarConfig(state.config);
+    // Em manutenção o servidor recusa os dados de qualquer cliente; pedir e
+    // mostrar erro seria pior que dizer logo o motivo.
+    if (state.config.manutencao && !isAdmin) {
+      showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
+      return;
+    }
     Promise.all([
       serverList("transactions"),
       serverList("goals"),
@@ -2469,10 +2594,107 @@
     });
   }
 
+  // ---------- Chaves do site (definidas pelo admin) ----------
+  // O padrão é o site como sempre foi: sem /api/config (arquivo local, dentro
+  // do Claude) nada muda. A tela só reflete as chaves; quem barra cadastro e
+  // manutenção de verdade é o servidor.
+  state.config = { aviso: null, cadastrosAbertos: true, manutencao: false, assistente: true };
+
+  function aplicarConfig(cfg) {
+    if (!cfg) return;
+    state.config = cfg;
+    ["siteAviso", "authAviso"].forEach(function (id) {
+      var el = document.getElementById(id);
+      el.hidden = !cfg.aviso;
+      if (!cfg.aviso) return;
+      el.textContent = cfg.aviso.texto;
+      el.classList.toggle("alerta", cfg.aviso.tipo === "alerta");
+    });
+
+    var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
+    authToggleBtn.hidden = !podeCadastrar;
+    if (!podeCadastrar && authMode === "signup") setAuthMode("login");
+
+    // O admin continua vendo o Assistente desligado: precisa testar antes de religar.
+    var abaAssistente = document.querySelector('.tab-btn[data-tab="assistente"]');
+    abaAssistente.hidden = !cfg.assistente && !state.isAdmin;
+    if (abaAssistente.hidden && abaAssistente.classList.contains("active")) {
+      document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
+    }
+  }
+
+  function carregarNumeros() {
+    apiJson("GET", "/api/admin/numeros").then(function (n) {
+      var fmt = function (v) { return Number(v || 0).toLocaleString("pt-BR"); };
+      var qtd = function (v, um, varios) { return fmt(v) + " " + (Number(v) === 1 ? um : varios); };
+      document.getElementById("adminStatClientes").textContent = fmt(n.clientes);
+      document.getElementById("adminStatClientesSub").textContent = n.pendentes ? fmt(n.pendentes) + " aguardando liberação" : "nenhum aguardando";
+      document.getElementById("adminStatAtivos").textContent = fmt(n.ativos30);
+      document.getElementById("adminStatNovos").textContent = fmt(n.novos30);
+      document.getElementById("adminStatLanc").textContent = fmt(n.lancamentos);
+      document.getElementById("adminStatLancSub").textContent =
+        qtd(n.metas, "meta", "metas") + " · " + qtd(n.investimentos, "investimento", "investimentos") +
+        " · " + qtd(n.cartoes, "cartão", "cartões");
+
+      // Os seis meses sempre aparecem, inclusive os sem cadastro: um mês
+      // faltando na lista some do olho, um mês com zero não.
+      var porMes = {};
+      (n.cadastrosPorMes || []).forEach(function (m) { porMes[m.mes] = m.total; });
+      var meses = [];
+      var hoje = new Date();
+      for (var i = 5; i >= 0; i--) {
+        var d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        var chave = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        meses.push({ rotulo: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(". de ", "/").replace(" de ", "/"), total: porMes[chave] || 0 });
+      }
+      var maior = Math.max.apply(null, meses.map(function (m) { return m.total; })) || 1;
+      document.getElementById("adminCadastrosMes").innerHTML = meses.map(function (m) {
+        return '<div class="admin-barra">' +
+          '<span class="admin-barra-mes">' + escapeHtml(m.rotulo) + '</span>' +
+          '<span class="admin-barra-trilho"><span class="admin-barra-cheia" style="display:block;width:' +
+            (m.total ? (m.total / maior * 100) : 0) + '%"></span></span>' +
+          '<span class="admin-barra-valor num">' + m.total + '</span>' +
+        '</div>';
+      }).join("");
+    }).catch(function (e) {
+      document.getElementById("adminCadastrosMes").innerHTML =
+        '<div class="empty-note">Não consegui carregar os números: ' + escapeHtml((e && e.message) || "erro") + '</div>';
+    });
+  }
+
+  function preencherControlesAdmin() {
+    apiJson("GET", "/api/config").then(function (cfg) {
+      aplicarConfig(cfg);
+      document.getElementById("adminChaveCadastros").checked = cfg.cadastrosAbertos;
+      document.getElementById("adminChaveAssistente").checked = cfg.assistente;
+      document.getElementById("adminChaveManutencao").checked = cfg.manutencao;
+      document.getElementById("adminAvisoTexto").value = cfg.aviso ? cfg.aviso.texto : "";
+      document.getElementById("adminAvisoTipo").value = cfg.aviso ? cfg.aviso.tipo : "info";
+      document.getElementById("adminAvisoStatus").textContent = cfg.aviso ? "no ar" : "nenhum aviso no ar";
+    }).catch(function () {
+      document.getElementById("adminAvisoStatus").textContent = "não consegui ler a configuração";
+    });
+  }
+
+  function salvarConfig(mudancas, statusId, okMsg) {
+    var status = document.getElementById(statusId);
+    status.textContent = "salvando…";
+    return apiJson("POST", "/api/admin/config", mudancas).then(function (cfg) {
+      aplicarConfig(cfg);
+      status.textContent = okMsg;
+      return cfg;
+    }).catch(function (e) {
+      status.textContent = "não salvou: " + ((e && e.message) || "erro");
+      throw e;
+    });
+  }
+
   // O admin nunca toca nos endpoints de dados financeiros: o "id" dele ("admin")
   // não é um UUID válido, e a query no banco quebraria. Por isso a aba dele só
   // chama /api/admin/clients, e recarrega a lista toda vez que é aberta.
   function enterAdminMode() {
+    carregarNumeros();
+    preencherControlesAdmin();
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
     apiJson("GET", "/api/admin/clients").then(function (clientes) {
@@ -2754,6 +2976,41 @@
     });
   });
 
+  [
+    { id: "adminChaveCadastros", campo: "cadastrosAbertos", liga: "cadastros abertos", desliga: "cadastros fechados" },
+    { id: "adminChaveAssistente", campo: "assistente", liga: "assistente ligado", desliga: "assistente desligado" },
+    { id: "adminChaveManutencao", campo: "manutencao", liga: "manutenção ligada", desliga: "manutenção desligada" },
+  ].forEach(function (c) {
+    var caixa = document.getElementById(c.id);
+    caixa.addEventListener("change", function () {
+      var valor = caixa.checked;
+      // Manutenção derruba todos os clientes na hora: pede confirmação.
+      if (c.campo === "manutencao" && valor &&
+          !window.confirm("Ligar o modo manutenção? Todos os clientes saem do app até você desligar.")) {
+        caixa.checked = false;
+        return;
+      }
+      var mudanca = {};
+      mudanca[c.campo] = valor;
+      caixa.disabled = true;
+      salvarConfig(mudanca, "adminRecursosStatus", valor ? c.liga : c.desliga)
+        .catch(function () { caixa.checked = !valor; })
+        .finally(function () { caixa.disabled = false; });
+    });
+  });
+
+  document.getElementById("adminAvisoPublicar").addEventListener("click", function () {
+    var texto = document.getElementById("adminAvisoTexto").value.trim();
+    if (!texto) { document.getElementById("adminAvisoStatus").textContent = "escreva a mensagem primeiro"; return; }
+    salvarConfig({ aviso: { texto: texto, tipo: document.getElementById("adminAvisoTipo").value } },
+      "adminAvisoStatus", "no ar").catch(function () {});
+  });
+  document.getElementById("adminAvisoTirar").addEventListener("click", function () {
+    salvarConfig({ aviso: null }, "adminAvisoStatus", "nenhum aviso no ar").then(function () {
+      document.getElementById("adminAvisoTexto").value = "";
+    }).catch(function () {});
+  });
+
   document.getElementById("logoutBtn").addEventListener("click", function () {
     apiJson("POST", "/api/auth/logout").finally(function () {
       window.location.reload();
@@ -2787,8 +3044,11 @@
       // Sem window.claude: pode ser o arquivo aberto direto (sem servidor pra falar com
       // ele) ou o site publicado de verdade (Vercel, com o backend de contas). Tenta o
       // backend primeiro; se a rede falhar (arquivo local), cai pro modo local sozinho.
+      // A configuração chega antes de decidir a tela: em manutenção, o cliente
+      // logado vai direto para o aviso, sem passar pelo app vazio.
+      var configPronta = apiJson("GET", "/api/config").then(aplicarConfig).catch(function () {});
       apiJson("GET", "/api/auth/me")
-        .then(function (data) { enterServerMode(data.email, data.isAdmin); })
+        .then(function (data) { return configPronta.then(function () { enterServerMode(data.email, data.isAdmin); }); })
         .catch(function (e) {
           if (e && e.status === 401) { exigirLoginSeDerConta(); return; }
           state.storage = "local"; loadLocal(); setSyncStatus("local"); setChatStatus(false);

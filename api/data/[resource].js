@@ -42,6 +42,15 @@ module.exports = async function handler(req, res) {
   var userId = session.uid;
 
   try {
+    // Quem já estava logado também para: a sessão dura 30 dias, e barrar só o
+    // login deixaria essas pessoas gravando no meio da manutenção.
+    if (!session.isAdmin && (await db.lerConfig()).manutencao) {
+      return res.status(503).json({
+        error: "manutencao",
+        message: "O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.",
+      });
+    }
+
     if (req.method === "GET") {
       var lista = await db.query(
         "SELECT id, data FROM records WHERE user_id = $1 AND kind = $2 ORDER BY created_at ASC",

@@ -22,6 +22,13 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // A tela esconde o botão de cadastro quando o admin fecha, mas quem barra é
+    // aqui: o endereço da rota continua aberto para qualquer script.
+    var config = await db.lerConfig();
+    if (!config.cadastrosAbertos || config.manutencao) {
+      return res.status(403).json({ error: "cadastros_fechados", message: "Novos cadastros estão fechados no momento." });
+    }
+
     var existe = await db.query("SELECT id FROM users WHERE email = $1", [email]);
     if (existe.rows.length) {
       return res.status(409).json({ error: "email_in_use", message: "Já existe uma conta com este email." });

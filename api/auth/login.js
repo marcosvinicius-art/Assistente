@@ -23,6 +23,8 @@ async function garantirContaDoAdmin(email) {
   return id;
 }
 
+var MSG_MANUTENCAO = "O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.";
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
 
@@ -40,6 +42,12 @@ module.exports = async function handler(req, res) {
       var adminId = await garantirContaDoAdmin(email);
       auth.setSessionCookie(res, auth.createSessionToken(adminId, true));
       return res.status(200).json({ email: email, isAdmin: true });
+    }
+
+    // Em manutenção só o admin entra — ele vem antes, logo acima, para nunca
+    // ficar trancado fora do painel que desliga a própria manutenção.
+    if ((await db.lerConfig()).manutencao) {
+      return res.status(503).json({ error: "manutencao", message: MSG_MANUTENCAO });
     }
 
     var result = await db.query(
