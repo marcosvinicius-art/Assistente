@@ -1176,7 +1176,9 @@
   .tx-amount.income { color: var(--income); }
   .tx-amount.expense { color: var(--expense); }
 
-  .tx-del {
+  /* O clipe divide o formato com a lixeira, mas não a classe: a lista liga
+     "excluir" a todo .tx-del, e o clipe apagava o lançamento ao ser tocado. */
+  .tx-del, .tx-comprovante {
     border: none;
     background: transparent;
     color: var(--ink-faint);
@@ -1190,6 +1192,38 @@
     transition: background var(--ease), color var(--ease);
   }
   .tx-del:hover { background: var(--expense-soft); color: var(--expense); }
+  .tx-comprovante { color: var(--accent-ink); }
+  .tx-comprovante:hover { background: var(--accent-soft); color: var(--accent-ink); }
+
+  /* ---- Comprovante ---- */
+  .comprovante-campo { grid-column: 1 / -1; }
+  form.entry.e-receita .comprovante-campo { display: none; }
+  .comprovante-zona {
+    display: flex; align-items: center; gap: 10px;
+    border: 1.5px dashed var(--border); border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; color: var(--ink-muted); cursor: pointer;
+    transition: border-color var(--ease), background var(--ease), color var(--ease);
+  }
+  .comprovante-zona:hover, .comprovante-zona.arrastando { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  .comprovante-zona[hidden] { display: none; }
+  .comprovante-anexo {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface-2);
+  }
+  .comprovante-anexo[hidden] { display: none; }
+  .comprovante-anexo img { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex: none; }
+  .comprovante-pdf {
+    width: 44px; height: 44px; border-radius: 6px; flex: none; display: flex; align-items: center; justify-content: center;
+    background: var(--expense-soft); color: var(--expense); font-size: 11px; font-weight: 800;
+  }
+  .comprovante-pdf[hidden] { display: none; }
+  .comprovante-nome { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .comprovante-erro { font-size: 12.5px; color: var(--expense); }
+
+  .comprovante-card { max-width: 560px; }
+  .comprovante-visor { display: flex; justify-content: center; margin-bottom: 14px; min-height: 60px; }
+  .comprovante-visor img { max-width: 100%; max-height: 62vh; border-radius: 8px; border: 1px solid var(--border); }
+  .comprovante-baixar { text-decoration: none; }
 
   .empty-note {
     font-size: 12.5px;
@@ -1845,6 +1879,18 @@
   <div class="site-aviso" id="siteAviso" role="status" hidden></div>
   <div class="site-aviso" id="clienteAviso" role="status" hidden></div>
 
+  <div class="qr-overlay" id="comprovanteOverlay" hidden>
+    <div class="qr-card comprovante-card" role="dialog" aria-modal="true" aria-labelledby="comprovanteTitulo">
+      <button type="button" class="qr-close" id="comprovanteFechar" aria-label="Fechar">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h2 id="comprovanteTitulo">Comprovante</h2>
+      <p class="qr-hint" id="comprovanteSub"></p>
+      <div class="comprovante-visor" id="comprovanteVisor"></div>
+      <a class="btn-add comprovante-baixar" id="comprovanteBaixar" hidden>Baixar</a>
+    </div>
+  </div>
+
   <button type="button" class="cobranca-faixa" id="cobrancaFaixa" hidden>
     <span class="cobranca-pulso" aria-hidden="true"></span>
     <span class="cobranca-faixa-texto" id="cobrancaFaixaTexto"></span>
@@ -1995,6 +2041,23 @@
             <div class="field">
               <label for="txDate">Data</label>
               <input id="txDate" type="date" required>
+            </div>
+            <div class="field comprovante-campo">
+              <span class="field-rotulo">Comprovante (opcional)</span>
+              <label class="comprovante-zona" id="txComprovanteZona">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <span id="txComprovanteTexto">Anexar foto ou PDF do comprovante</span>
+                <input type="file" id="txComprovanteInput" accept="image/*,application/pdf" hidden>
+              </label>
+              <div class="comprovante-anexo" id="txComprovanteAnexo" hidden>
+                <img id="txComprovanteMini" alt="" hidden>
+                <span class="comprovante-pdf" id="txComprovantePdf" hidden>PDF</span>
+                <span class="comprovante-nome" id="txComprovanteNome"></span>
+                <button type="button" class="tx-del" id="txComprovanteRemover" title="Tirar comprovante" aria-label="Tirar comprovante">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <span class="comprovante-erro" id="txComprovanteErro" hidden></span>
             </div>
             <div class="entry-pagamento">
               <div class="field">
@@ -2472,6 +2535,7 @@
   var ICON_PENCIL = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
   var ICON_CAMERA = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
   var ICON_TRASH = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+  var ICON_CLIPE = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
   var ICON_EDIT = '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
   var money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -3773,6 +3837,7 @@
     setAmountValue(document.getElementById("txAmount"), null);
     document.getElementById("txParcelas").value = "1";
     atualizarHintParcelas();
+    limparComprovanteDoForm();
   }
 
   acoesLancamento.addEventListener("click", function (e) {
@@ -4127,6 +4192,163 @@
     searchTicker(document.getElementById("marketSearchInput").value);
   });
 
+  // ---------- Comprovante da saída ----------
+  // Cada lançamento guarda no máximo ~250 KB (o servidor recusa acima de 300 KB
+  // por registro). Foto de celular tem vários MB, então é reduzida aqui mesmo,
+  // no aparelho, até caber — legível para conferir valor e loja. PDF não dá
+  // para reduzir no navegador: só entra se já for pequeno.
+  var COMPROVANTE_MAX = 250 * 1024;
+  var PDF_MAX = 180 * 1024; // vira ~240 KB em base64
+  state.txComprovante = null; // { dados (data URL), nome, tipo }
+
+  function reduzirFoto(file, pronto) {
+    var reader = new FileReader();
+    reader.onerror = function () { pronto(null); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { pronto(null); };
+      img.onload = function () {
+        var lado = 1600, qualidade = 0.75, dados = null;
+        // Vai encolhendo até caber; 6 rodadas chegam a ~500px, ainda legível.
+        for (var i = 0; i < 6; i++) {
+          var escala = Math.min(1, lado / Math.max(img.width, img.height));
+          var c = document.createElement("canvas");
+          c.width = Math.round(img.width * escala);
+          c.height = Math.round(img.height * escala);
+          var ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff"; // PNG transparente viraria preto no JPEG
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          dados = c.toDataURL("image/jpeg", qualidade);
+          if (dados.length <= COMPROVANTE_MAX) break;
+          lado *= 0.8;
+          qualidade = Math.max(0.5, qualidade - 0.06);
+        }
+        pronto(dados && dados.length <= COMPROVANTE_MAX ? dados : null);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function mostrarComprovanteNoForm() {
+    var c = state.txComprovante;
+    document.getElementById("txComprovanteZona").hidden = !!c;
+    document.getElementById("txComprovanteAnexo").hidden = !c;
+    if (!c) return;
+    var ehPdf = c.tipo === "application/pdf";
+    var mini = document.getElementById("txComprovanteMini");
+    mini.hidden = ehPdf;
+    if (!ehPdf) mini.src = c.dados;
+    document.getElementById("txComprovantePdf").hidden = !ehPdf;
+    document.getElementById("txComprovanteNome").textContent = c.nome;
+  }
+
+  function erroComprovante(msg) {
+    var el = document.getElementById("txComprovanteErro");
+    el.hidden = !msg;
+    el.textContent = msg || "";
+  }
+
+  function anexarComprovante(file) {
+    if (!file) return;
+    erroComprovante(null);
+    var nome = (file.name || "comprovante").slice(0, 80);
+    if (file.type === "application/pdf") {
+      if (file.size > PDF_MAX) {
+        erroComprovante("Esse PDF é grande demais (máx. 180 KB). Tire um print ou uma foto do comprovante e anexe a imagem.");
+        return;
+      }
+      var r = new FileReader();
+      r.onload = function () {
+        state.txComprovante = { dados: r.result, nome: nome, tipo: "application/pdf" };
+        mostrarComprovanteNoForm();
+      };
+      r.onerror = function () { erroComprovante("Não consegui ler esse arquivo."); };
+      r.readAsDataURL(file);
+      return;
+    }
+    if (!/^image\//.test(file.type)) { erroComprovante("Use uma foto (JPG, PNG…) ou um PDF."); return; }
+    document.getElementById("txComprovanteTexto").textContent = "Preparando a imagem…";
+    reduzirFoto(file, function (dados) {
+      document.getElementById("txComprovanteTexto").textContent = "Anexar foto ou PDF do comprovante";
+      if (!dados) { erroComprovante("Não consegui usar essa imagem — tenta outra foto."); return; }
+      state.txComprovante = { dados: dados, nome: nome, tipo: "image/jpeg" };
+      mostrarComprovanteNoForm();
+    });
+  }
+
+  function limparComprovanteDoForm() {
+    state.txComprovante = null;
+    document.getElementById("txComprovanteInput").value = "";
+    erroComprovante(null);
+    mostrarComprovanteNoForm();
+  }
+
+  document.getElementById("txComprovanteInput").addEventListener("change", function () {
+    anexarComprovante(this.files && this.files[0]);
+  });
+  document.getElementById("txComprovanteRemover").addEventListener("click", limparComprovanteDoForm);
+  // Arrastar o arquivo para a área também anexa (no computador).
+  var zonaComprovante = document.getElementById("txComprovanteZona");
+  ["dragenter", "dragover"].forEach(function (ev) {
+    zonaComprovante.addEventListener(ev, function (e) { e.preventDefault(); zonaComprovante.classList.add("arrastando"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    zonaComprovante.addEventListener(ev, function () { zonaComprovante.classList.remove("arrastando"); });
+  });
+  zonaComprovante.addEventListener("drop", function (e) {
+    e.preventDefault();
+    anexarComprovante(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+  });
+
+  // Na conta (servidor) a lista vem sem a imagem; ela é buscada só aqui.
+  function abrirComprovante(t) {
+    var overlay = document.getElementById("comprovanteOverlay");
+    var visor = document.getElementById("comprovanteVisor");
+    var baixar = document.getElementById("comprovanteBaixar");
+    document.getElementById("comprovanteSub").textContent = t.desc + " · " + fmt(t.amount) + " · " +
+      new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR");
+    visor.innerHTML = '<div class="empty-note">Carregando…</div>';
+    baixar.hidden = true;
+    overlay.hidden = false;
+
+    var obter = t.comprovante
+      ? Promise.resolve(t.comprovante)
+      : apiJson("GET", "/api/data/transactions?id=" + encodeURIComponent(t.id)).then(function (r) { return r.comprovante; });
+    obter.then(function (c) {
+      if (!c || !/^data:(image\/(jpeg|png|webp|gif)|application\/pdf);base64,/.test(c.dados)) {
+        visor.innerHTML = '<div class="empty-note">Comprovante não encontrado.</div>';
+        return;
+      }
+      if (c.tipo === "application/pdf") {
+        // A política de segurança do site não deixa embutir PDF na página; ele
+        // abre ou baixa como arquivo.
+        visor.innerHTML = '<div class="comprovante-pdf" style="width:64px;height:64px;font-size:14px">PDF</div>';
+      } else {
+        var img = document.createElement("img");
+        img.src = c.dados;
+        img.alt = "Comprovante de " + t.desc;
+        visor.innerHTML = "";
+        visor.appendChild(img);
+      }
+      baixar.href = c.dados;
+      baixar.download = c.nome || "comprovante";
+      baixar.textContent = c.tipo === "application/pdf" ? "Baixar PDF" : "Baixar imagem";
+      baixar.hidden = false;
+    }).catch(function (e) {
+      visor.innerHTML = '<div class="empty-note">Não consegui abrir: ' + escapeHtml((e && e.message) || "erro") + '</div>';
+    });
+  }
+  function fecharComprovante() { document.getElementById("comprovanteOverlay").hidden = true; }
+  document.getElementById("comprovanteFechar").addEventListener("click", fecharComprovante);
+  document.getElementById("comprovanteOverlay").addEventListener("click", function (e) {
+    if (e.target === e.currentTarget) fecharComprovante();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !document.getElementById("comprovanteOverlay").hidden) fecharComprovante();
+  });
+
   // ---------- Form submit ----------
   document.getElementById("txForm").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -4140,11 +4362,14 @@
     var parcelas = Math.max(1, Math.min(60, parseInt(document.getElementById("txParcelas").value, 10) || 1));
     var cardSel = document.getElementById("txCard");
     var cartaoId = (cardSel.value && cardSel.value !== NOVO_CARTAO) ? cardSel.value : null;
+    // Só saída leva comprovante; numa compra parcelada ele fica na 1ª parcela,
+    // em vez de repetir a mesma imagem em todas.
+    var comprovante = currentType === "despesa" ? state.txComprovante : null;
 
     if (parcelas > 1) {
       var grupo = "p" + Date.now() + Math.random().toString(36).slice(2, 7);
       dividirParcelas(amount, parcelas).forEach(function (valor, i) {
-        addTransaction({
+        var tx = {
           desc: desc, amount: valor, type: currentType, category: category,
           date: addMonthsISO(date, i),
           // "Já paguei" vale só para a primeira: as seguintes ainda nem venceram.
@@ -4152,10 +4377,14 @@
           parcela: { n: i + 1, de: parcelas, grupo: grupo },
           cartaoId: cartaoId,
           createdAt: new Date().toISOString()
-        });
+        };
+        if (i === 0 && comprovante) tx.comprovante = comprovante;
+        addTransaction(tx);
       });
     } else {
-      addTransaction({ desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, cartaoId: cartaoId, createdAt: new Date().toISOString() });
+      var tx = { desc: desc, amount: amount, type: currentType, category: category, date: date, paid: paid, cartaoId: cartaoId, createdAt: new Date().toISOString() };
+      if (comprovante) tx.comprovante = comprovante;
+      addTransaction(tx);
     }
 
     // Fecha e devolve os botões: a lista volta a ser o que a tela mostra, e o
@@ -5136,9 +5365,18 @@
           '</div>' +
           '<div class="tx-amount ' + (t.type === "receita" ? "income" : "expense") + ' num">' + (t.type === "receita" ? "+ " : "− ") + fmt(t.amount) + '</div>' +
           '<button class="tx-del" data-id="' + t.id + '" title="Excluir">' + ICON_TRASH + '</button>' +
-          '<span></span>' +
+          ((t.comprovante || t.temComprovante)
+            ? '<button type="button" class="tx-comprovante" data-id="' + t.id + '" title="Ver comprovante" aria-label="Ver comprovante">' + ICON_CLIPE + '</button>'
+            : '<span></span>') +
         '</div>';
       }).join("");
+      Array.prototype.forEach.call(list.querySelectorAll(".tx-comprovante"), function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-id");
+          var t = state.transactions.find(function (x) { return x.id === id; });
+          if (t) abrirComprovante(t);
+        });
+      });
       Array.prototype.forEach.call(list.querySelectorAll(".tx-del"), function (btn) {
         btn.addEventListener("click", function () { deleteTransaction(btn.getAttribute("data-id")); });
       });

@@ -33,6 +33,17 @@ function rowToRecord(row) {
   return Object.assign({ id: row.id }, row.data);
 }
 
+// O comprovante (foto ou PDF de até ~250 KB) mora no próprio lançamento, mas
+// nunca vai na lista: com o tempo seriam megabytes baixados a cada abertura do
+// app. A lista leva só "temComprovante"; a imagem vem por GET ?id= quando a
+// pessoa toca para ver.
+function semComprovante(registro) {
+  if (!registro || !registro.comprovante) return registro;
+  var leve = Object.assign({}, registro, { temComprovante: true });
+  delete leve.comprovante;
+  return leve;
+}
+
 module.exports = async function handler(req, res) {
   var kind = KIND_BY_RESOURCE[req.query.resource];
   if (!kind) return res.status(404).json({ error: "not_found" });
@@ -51,12 +62,28 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (req.method === "GET" && req.query.id) {
+      var um = await db.query(
+        "SELECT id, data FROM records WHERE id = $1 AND user_id = $2 AND kind = $3",
+        [req.query.id, userId, kind]
+      );
+      if (!um.rows.length) return res.status(404).json({ error: "not_found" });
+      return res.status(200).json(rowToRecord(um.rows[0]));
+    }
+
     if (req.method === "GET") {
+      // O corte do comprovante é feito no próprio banco, para a imagem nem
+      // trafegar até aqui.
       var lista = await db.query(
-        "SELECT id, data FROM records WHERE user_id = $1 AND kind = $2 ORDER BY created_at ASC",
+        "SELECT id, data - 'comprovante' AS data, (data ? 'comprovante') AS tem_comprovante " +
+        "FROM records WHERE user_id = $1 AND kind = $2 ORDER BY created_at ASC",
         [userId, kind]
       );
-      return res.status(200).json(lista.rows.map(rowToRecord));
+      return res.status(200).json(lista.rows.map(function (row) {
+        var r = rowToRecord(row);
+        if (row.tem_comprovante) r.temComprovante = true;
+        return r;
+      }));
     }
 
     if (req.method === "POST") {
@@ -69,7 +96,7 @@ module.exports = async function handler(req, res) {
         "INSERT INTO records (id, user_id, kind, data) VALUES ($1, $2, $3, $4)",
         [id, userId, kind, JSON.stringify(novo)]
       );
-      return res.status(200).json(Object.assign({ id: id }, novo));
+      return res.status(200).json(semComprovante(Object.assign({ id: id }, novo)));
     }
 
     var alvoId = req.query.id;
@@ -93,7 +120,7 @@ module.exports = async function handler(req, res) {
       await db.query("UPDATE records SET data = $1 WHERE id = $2 AND user_id = $3", [
         JSON.stringify(mesclado), alvoId, userId,
       ]);
-      return res.status(200).json(Object.assign({ id: alvoId }, mesclado));
+      return res.status(200).json(semComprovante(Object.assign({ id: alvoId }, mesclado)));
     }
 
     if (req.method === "DELETE") {
