@@ -151,21 +151,6 @@
     padding: 28px 24px 64px;
   }
 
-  /* Tela cheia e opaca, cobrindo o app por baixo — mesmo truque do .auth-gate,
-     então nunca precisa mexer na visibilidade do .app em si. */
-  .admin-panel {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    background: var(--bg);
-    overflow-y: auto;
-  }
-  .admin-panel:not([hidden]) { animation: panel-in 0.22s var(--ease); }
-  .admin-inner {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 28px 24px 64px;
-  }
   .admin-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto auto auto;
@@ -216,8 +201,7 @@
   .feedback-avg strong { color: var(--ink); font-size: 15px; }
 
   /* ---- Topbar ---- */
-  /* Faixa institucional. As margens negativas cancelam o padding do .app (e do
-     .admin-inner, que usa o mesmo), então a faixa encosta nas bordas sem precisar
+  /* Faixa institucional. As margens negativas cancelam o padding do .app, então a faixa encosta nas bordas sem precisar
      tirar a barra de dentro do container — e sem 100vw, que causaria rolagem
      horizontal quando há barra de rolagem vertical. */
   .topbar {
@@ -1630,66 +1614,6 @@
   </form>
 </div>
 
-<div class="admin-panel" id="adminPanel" hidden>
-  <div class="admin-inner">
-    <div class="topbar">
-      <div class="brand">
-        <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-          <rect x="0.5" y="0.5" width="27" height="27" rx="7" fill="var(--ink)"/>
-          <rect x="5.3" y="15.4" width="4.2" height="5.8" rx="1.3" fill="var(--bg)"/>
-          <rect x="11.9" y="11.2" width="4.2" height="10" rx="1.3" fill="var(--bg)"/>
-          <rect x="18.5" y="6.8" width="4.2" height="14.4" rx="1.3" fill="var(--bg)"/>
-        </svg>
-        <h1>Wonner Sols</h1>
-        <span class="status"><span class="status-dot"></span>admin</span>
-      </div>
-      <div class="topbar-actions">
-        <button type="button" class="qr-btn" id="adminFeedbackBtn" title="Dar feedback">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
-          <span class="qr-btn-label">Avaliar</span>
-        </button>
-        <button type="button" class="qr-btn" id="adminCloseBtn" title="Voltar para o app">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          <span class="qr-btn-label">Voltar ao app</span>
-        </button>
-        <button type="button" class="qr-btn" id="adminLogoutBtn">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          <span class="qr-btn-label">Sair</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Clientes cadastrados</h2>
-        <span class="hint" id="adminCount">carregando…</span>
-      </div>
-      <div class="senha-gerada" id="adminSenhaNova" hidden>
-        <div class="senha-gerada-topo">
-          <span id="adminSenhaAlvo"></span>
-          <button type="button" class="qr-close" id="adminSenhaFechar" aria-label="Fechar">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div class="senha-gerada-linha">
-          <code id="adminSenhaValor"></code>
-          <button type="button" class="btn-add" id="adminSenhaCopiar">Copiar</button>
-        </div>
-        <p class="senha-gerada-aviso">Some ao fechar e não aparece de novo — o banco guarda só o hash.</p>
-      </div>
-      <div id="adminClientList"></div>
-    </div>
-
-    <div class="panel" style="margin-top: 18px;">
-      <div class="panel-head">
-        <h2>Feedback dos clientes</h2>
-        <span class="hint" id="adminFeedbackCount">carregando…</span>
-      </div>
-      <div id="adminFeedbackList"></div>
-    </div>
-  </div>
-</div>
-
 <div class="app">
 
   <div class="storage-alert" id="storageAlert" hidden></div>
@@ -1722,10 +1646,6 @@
       <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
         <span class="qr-btn-label">Avaliar</span>
-      </button>
-      <button type="button" class="qr-btn" id="adminOpenBtn" title="Abrir administração" hidden>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-        <span class="qr-btn-label">Administração</span>
       </button>
       <button type="button" class="qr-btn" id="senhaOpenBtn" title="Trocar senha" hidden>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M10 13 20 3"/><path d="m17 6 2 2"/><path d="m14 9 2 2"/></svg>
@@ -1814,6 +1734,7 @@
     <button class="tab-btn" data-tab="parcelas" type="button" role="tab" aria-selected="false">Parcelas</button>
     <button class="tab-btn" data-tab="investimentos" type="button" role="tab" aria-selected="false">Investimentos &amp; metas</button>
     <button class="tab-btn" data-tab="assistente" type="button" role="tab" aria-selected="false">Assistente</button>
+    <button class="tab-btn" data-tab="admin" type="button" role="tab" aria-selected="false" hidden>Administração</button>
   </div>
 
   <div class="tab-panel" data-panel="lancamentos">
@@ -2216,6 +2137,37 @@
     </div>
   </div>
 
+  <div class="tab-panel" data-panel="admin" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Clientes cadastrados</h2>
+        <span class="hint" id="adminCount">carregando…</span>
+      </div>
+      <div class="senha-gerada" id="adminSenhaNova" hidden>
+        <div class="senha-gerada-topo">
+          <span id="adminSenhaAlvo"></span>
+          <button type="button" class="qr-close" id="adminSenhaFechar" aria-label="Fechar">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="senha-gerada-linha">
+          <code id="adminSenhaValor"></code>
+          <button type="button" class="btn-add" id="adminSenhaCopiar">Copiar</button>
+        </div>
+        <p class="senha-gerada-aviso">Some ao fechar e não aparece de novo — o banco guarda só o hash.</p>
+      </div>
+      <div id="adminClientList"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
+        <h2>Feedback dos clientes</h2>
+        <span class="hint" id="adminFeedbackCount">carregando…</span>
+      </div>
+      <div id="adminFeedbackList"></div>
+    </div>
+  </div>
+
   <footer id="footerNote">
     <span id="footerSyncText">Wonner Sols · dados sincronizados com sua conta</span>
     <span class="footer-links">
@@ -2486,16 +2438,13 @@
     setSyncStatus("server", email);
     setChatStatus(false);
     document.getElementById("logoutBtn").hidden = false;
-    // O admin usa o app como qualquer pessoa, e a administração vira uma tela
-    // que ele abre quando quer. Antes o painel substituía o app inteiro: entrar
-    // como admin significava não poder lançar nada.
-    document.getElementById("adminOpenBtn").hidden = !isAdmin;
+    // O admin usa o app como qualquer pessoa, e a administração é mais uma aba,
+    // que só a conta admin enxerga. Esconder é só interface: quem barra de fato
+    // é o servidor, que responde 404 a /api/admin para qualquer outra sessão.
+    document.querySelector('.tab-btn[data-tab="admin"]').hidden = !isAdmin;
     // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
     // prometeria uma troca que o servidor recusa.
     document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
-    // A aba aberta pelo botão Administração chega com #admin e já entra no
-    // painel; o app continua intacto na aba de origem.
-    if (isAdmin && window.location.hash === "#admin") enterAdminMode();
     Promise.all([
       serverList("transactions"),
       serverList("goals"),
@@ -2514,10 +2463,9 @@
   }
 
   // O admin nunca toca nos endpoints de dados financeiros: o "id" dele ("admin")
-  // não é um UUID válido, e a query no banco quebraria. Por isso é uma tela
-  // completamente separada, que só chama /api/admin/clients.
+  // não é um UUID válido, e a query no banco quebraria. Por isso a aba dele só
+  // chama /api/admin/clients, e recarrega a lista toda vez que é aberta.
   function enterAdminMode() {
-    document.getElementById("adminPanel").hidden = false;
     var lista = document.getElementById("adminClientList");
     var contador = document.getElementById("adminCount");
     apiJson("GET", "/api/admin/clients").then(function (clientes) {
@@ -2799,23 +2747,7 @@
     });
   });
 
-  // Nome fixo de janela: clicar de novo reaproveita a aba de administração já
-  // aberta em vez de empilhar abas iguais.
-  document.getElementById("adminOpenBtn").addEventListener("click", function () {
-    var aba = window.open(window.location.pathname + "#admin", "wonner-admin");
-    if (!aba) enterAdminMode(); // pop-up bloqueado: abre aqui mesmo
-  });
-  document.getElementById("adminCloseBtn").addEventListener("click", function () {
-    document.getElementById("adminPanel").hidden = true;
-    if (window.location.hash === "#admin") history.replaceState(null, "", window.location.pathname);
-  });
-
   document.getElementById("logoutBtn").addEventListener("click", function () {
-    apiJson("POST", "/api/auth/logout").finally(function () {
-      window.location.reload();
-    });
-  });
-  document.getElementById("adminLogoutBtn").addEventListener("click", function () {
     apiJson("POST", "/api/auth/logout").finally(function () {
       window.location.reload();
     });
@@ -3170,6 +3102,7 @@
       Array.prototype.forEach.call(tabButtons, function (b) { b.classList.toggle("active", b === btn); b.setAttribute("aria-selected", b === btn ? "true" : "false"); });
       Array.prototype.forEach.call(tabPanels, function (p) { p.hidden = p.getAttribute("data-panel") !== name; });
       if (name === "investimentos" && !marketLoadedOnce) refreshMarket();
+      if (name === "admin") enterAdminMode();
     });
   });
 
@@ -3780,13 +3713,9 @@
     resetFeedbackForm();
   });
 
-  // Dois gatilhos porque o painel do admin é uma tela por cima do app: o botão da
-  // barra de baixo fica inalcançável enquanto ele está aberto.
-  ["feedbackFab", "adminFeedbackBtn"].forEach(function (id) {
-    document.getElementById(id).addEventListener("click", function () {
-      resetFeedbackForm();
-      document.getElementById("feedbackOverlay").hidden = false;
-    });
+  document.getElementById("feedbackFab").addEventListener("click", function () {
+    resetFeedbackForm();
+    document.getElementById("feedbackOverlay").hidden = false;
   });
   document.getElementById("feedbackCloseBtn").addEventListener("click", function () {
     document.getElementById("feedbackOverlay").hidden = true;
