@@ -2500,6 +2500,9 @@
     // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
     // prometeria uma troca que o servidor recusa.
     document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
+    // A aba aberta pelo botão Administração chega com #admin e já entra no
+    // painel; o app continua intacto na aba de origem.
+    if (isAdmin && window.location.hash === "#admin") enterAdminMode();
     Promise.all([
       serverList("transactions"),
       serverList("goals"),
@@ -2803,9 +2806,15 @@
     });
   });
 
-  document.getElementById("adminOpenBtn").addEventListener("click", enterAdminMode);
+  // Nome fixo de janela: clicar de novo reaproveita a aba de administração já
+  // aberta em vez de empilhar abas iguais.
+  document.getElementById("adminOpenBtn").addEventListener("click", function () {
+    var aba = window.open(window.location.pathname + "#admin", "wonner-admin");
+    if (!aba) enterAdminMode(); // pop-up bloqueado: abre aqui mesmo
+  });
   document.getElementById("adminCloseBtn").addEventListener("click", function () {
     document.getElementById("adminPanel").hidden = true;
+    if (window.location.hash === "#admin") history.replaceState(null, "", window.location.pathname);
   });
 
   document.getElementById("logoutBtn").addEventListener("click", function () {
