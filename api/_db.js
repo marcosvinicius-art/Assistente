@@ -92,6 +92,10 @@ function ensureSchema() {
       -- Aviso que o admin manda só para este cliente (uma cobrança, por
       -- exemplo): { texto, tipo }. Some junto com a conta.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS aviso JSONB;
+      -- Cobrança aberta para o cliente: { valorCentavos, vencimento, mensagem,
+      -- pix, link, criadaEm, pagoInformadoEm }. Uma por vez; some quando o
+      -- admin confirma o pagamento ou cancela.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS cobranca JSONB;
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,

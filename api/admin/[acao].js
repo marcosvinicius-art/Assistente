@@ -24,9 +24,9 @@ async function listarClientes(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   // Pendentes primeiro: são as únicas linhas que pedem uma decisão, e no fim de
   // uma lista longa ficariam sem ser vistas.
-  var r = await db.query("SELECT email, created_at, aprovado, aviso FROM users ORDER BY aprovado ASC, created_at DESC");
+  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca FROM users ORDER BY aprovado ASC, created_at DESC");
   return res.status(200).json(r.rows.map(function (u) {
-    return { email: u.email, criadoEm: u.created_at, aprovado: u.aprovado, aviso: u.aviso || null };
+    return { email: u.email, criadoEm: u.created_at, aprovado: u.aprovado, aviso: u.aviso || null, cobranca: u.cobranca || null };
   }));
 }
 
@@ -211,7 +211,48 @@ async function avisoCliente(req, res) {
   return res.status(200).json({ email: email, aviso: aviso });
 }
 
+// Cobrança para um cliente. cobranca null = tirar (pagamento confirmado ou
+// cancelado). O link vira botão na tela do cliente, então só https: aceitar
+// qualquer texto deixaria passar "javascript:", que roda código no app dele.
+async function cobranca(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+  var body = req.body || {};
+  var email = String(body.email || "").trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: "missing_email" });
+
+  var nova = null;
+  if (body.cobranca) {
+    var c = body.cobranca;
+    var centavos = Math.round(Number(c.valorCentavos));
+    if (!Number.isFinite(centavos) || centavos <= 0 || centavos > 100000000) {
+      return res.status(400).json({ error: "valor_invalido", message: "Informe um valor maior que zero." });
+    }
+    var vencimento = String(c.vencimento || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimento) || isNaN(new Date(vencimento + "T12:00:00Z"))) {
+      return res.status(400).json({ error: "vencimento_invalido", message: "Informe a data de vencimento." });
+    }
+    var link = String(c.link || "").trim().slice(0, 500);
+    if (link && !/^https:\/\/[^\s]+$/i.test(link)) {
+      return res.status(400).json({ error: "link_invalido", message: "O link de pagamento precisa começar com https://" });
+    }
+    nova = {
+      valorCentavos: centavos,
+      vencimento: vencimento,
+      mensagem: String(c.mensagem || "").trim().slice(0, 300) || null,
+      pix: String(c.pix || "").trim().slice(0, 140) || null,
+      link: link || null,
+      criadaEm: new Date().toISOString(),
+      pagoInformadoEm: null,
+    };
+  }
+
+  var r = await db.query("UPDATE users SET cobranca = $1 WHERE email = $2 RETURNING id", [nova, email]);
+  if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
+  return res.status(200).json({ email: email, cobranca: nova });
+}
+
 var ACOES = {
+  cobranca: cobranca,
   clients: listarClientes,
   feedback: listarFeedback,
   aprovar: aprovar,

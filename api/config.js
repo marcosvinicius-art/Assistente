@@ -5,18 +5,39 @@ const auth = require("./_auth");
 // sem conta, porque o aviso e o "cadastros fechados" valem já na tela de login.
 // Nada aqui é segredo: são as mesmas informações que o app mostra na tela.
 //
-// O único campo pessoal é "meuAviso": o aviso que o admin mandou só para esta
-// conta. Ele sai do id da sessão (cookie assinado), nunca de algo que o
-// navegador escolha, então ninguém lê o aviso de outro cliente.
+// Os campos pessoais são "meuAviso" e "minhaCobranca": o que o admin mandou só
+// para esta conta. Saem do id da sessão (cookie assinado), nunca de algo que o
+// navegador escolha, então ninguém lê o aviso ou a cobrança de outro cliente.
+//
+// O POST é o "Já paguei" do cliente. Mora aqui, e não num arquivo próprio,
+// porque o plano gratuito da Vercel limita o projeto a 12 funções.
 module.exports = async function handler(req, res) {
-  if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   try {
+    var session = auth.getSession(req);
+
+    if (req.method === "POST") {
+      if (!session || session.isAdmin) return res.status(401).json({ error: "not_authenticated" });
+      // Só marca a data em que o cliente disse que pagou; quem tira a cobrança
+      // é o admin, depois de conferir que o dinheiro entrou.
+      var r = await db.query(
+        "UPDATE users SET cobranca = jsonb_set(cobranca, '{pagoInformadoEm}', to_jsonb(now()::text)) " +
+        "WHERE id = $1 AND cobranca IS NOT NULL RETURNING cobranca",
+        [session.uid]
+      );
+      if (!r.rows.length) return res.status(404).json({ error: "sem_cobranca", message: "Não há cobrança em aberto." });
+      return res.status(200).json({ minhaCobranca: r.rows[0].cobranca });
+    }
+
+    if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
     var cfg = await db.lerConfig();
     cfg.meuAviso = null;
-    var session = auth.getSession(req);
+    cfg.minhaCobranca = null;
     if (session && !session.isAdmin) {
-      var r = await db.query("SELECT aviso FROM users WHERE id = $1", [session.uid]);
-      if (r.rows.length) cfg.meuAviso = r.rows[0].aviso || null;
+      var u = await db.query("SELECT aviso, cobranca FROM users WHERE id = $1", [session.uid]);
+      if (u.rows.length) {
+        cfg.meuAviso = u.rows[0].aviso || null;
+        cfg.minhaCobranca = u.rows[0].cobranca || null;
+      }
     }
     return res.status(200).json(cfg);
   } catch (e) {

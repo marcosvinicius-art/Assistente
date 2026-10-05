@@ -209,6 +209,69 @@
     border-color: var(--warning);
   }
   .selo-aviso { color: var(--expense); border-color: var(--expense); }
+
+  /* ---- Cobrança ---- */
+  /* Tem que chamar atenção sem parecer erro do app: vermelho só na moldura, no
+     ícone e no valor; o resto segue o cartão normal. O pulso para sozinho com
+     "reduzir movimento" (regra global no fim do CSS). */
+  .cobranca-overlay { z-index: 70; background: rgba(10, 12, 20, 0.72); }
+  .cobranca-card { max-width: 380px; border-top: 4px solid var(--expense); padding-top: 28px; }
+  .cobranca-icone {
+    width: 56px; height: 56px; margin: 0 auto 12px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--expense-soft); color: var(--expense);
+    animation: cobranca-pulso 1.6s ease-out infinite;
+  }
+  .cobranca-icone svg { width: 28px; height: 28px; }
+  @keyframes cobranca-pulso {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--expense) 55%, transparent); }
+    100% { box-shadow: 0 0 0 16px transparent; }
+  }
+  .cobranca-valor { font-size: 34px; font-weight: 800; color: var(--expense); letter-spacing: -0.02em; margin: 4px 0 2px; }
+  .cobranca-venc { font-size: 13.5px; color: var(--ink-muted); margin: 0 0 14px; }
+  .cobranca-venc.atrasada { color: var(--expense); font-weight: 600; }
+  .cobranca-msg { font-size: 13.5px; color: var(--ink); line-height: 1.5; margin: 0 0 14px; white-space: pre-line; }
+  .cobranca-pix {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center;
+    text-align: left; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+  }
+  .cobranca-pix-rotulo { grid-column: 1 / -1; font-size: 11px; color: var(--ink-faint); }
+  .cobranca-pix code { font-size: 13px; word-break: break-all; color: var(--ink); }
+  .cobranca-pagar { width: 100%; height: 42px; font-size: 14.5px; text-decoration: none; margin-bottom: 12px; }
+  .cobranca-informado {
+    font-size: 13px; line-height: 1.5; margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
+    background: color-mix(in srgb, var(--warning) 14%, transparent); border: 1px solid var(--warning); color: var(--ink);
+  }
+  .cobranca-acoes { display: flex; gap: 10px; }
+  .cobranca-acoes button { flex: 1; height: 38px; justify-content: center; text-align: center; }
+  .btn-add.cobranca-ja-paguei { background: var(--income); }
+
+  .cobranca-faixa {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    font: inherit; font-size: 14px; font-weight: 600; text-align: left; color: var(--ink);
+    background: var(--expense-soft); border: 1px solid var(--expense); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 18px; cursor: pointer;
+  }
+  .cobranca-faixa[hidden] { display: none; }
+  .cobranca-faixa:hover { filter: brightness(1.1); }
+  .cobranca-pulso {
+    width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--expense);
+    animation: cobranca-pulso 1.6s ease-out infinite;
+  }
+  .cobranca-faixa-texto { flex: 1; }
+  .cobranca-faixa-ver { font-size: 12.5px; color: var(--expense); white-space: nowrap; text-decoration: underline; }
+  .cobranca-faixa.informada { background: color-mix(in srgb, var(--warning) 14%, transparent); border-color: var(--warning); }
+  .cobranca-faixa.informada .cobranca-pulso { background: var(--warning); animation: none; }
+  .cobranca-faixa.informada .cobranca-faixa-ver { color: var(--warning); }
+
+  .admin-cobranca-form { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px 12px; }
+  .admin-cobranca-form .field:nth-child(4) { grid-column: 1 / -1; }
+  .admin-cobranca-largo { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .admin-cobranca-form { grid-template-columns: 1fr 1fr; } .admin-cobranca-form .field:first-child { grid-column: 1 / -1; } }
+  .selo-cobranca { color: var(--expense); border-color: var(--expense); }
+  .selo-informado { color: var(--warning); border-color: var(--warning); }
   .site-aviso.urgente {
     background: var(--expense-soft);
     border-color: var(--expense);
@@ -1782,6 +1845,38 @@
   <div class="site-aviso" id="siteAviso" role="status" hidden></div>
   <div class="site-aviso" id="clienteAviso" role="status" hidden></div>
 
+  <button type="button" class="cobranca-faixa" id="cobrancaFaixa" hidden>
+    <span class="cobranca-pulso" aria-hidden="true"></span>
+    <span class="cobranca-faixa-texto" id="cobrancaFaixaTexto"></span>
+    <span class="cobranca-faixa-ver">Ver cobrança</span>
+  </button>
+
+  <div class="qr-overlay cobranca-overlay" id="cobrancaOverlay" hidden>
+    <div class="qr-card cobranca-card" role="dialog" aria-modal="true" aria-labelledby="cobrancaTitulo">
+      <button type="button" class="qr-close" id="cobrancaFechar" aria-label="Fechar">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="cobranca-icone" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
+      </div>
+      <h2 id="cobrancaTitulo">Pagamento pendente</h2>
+      <div class="cobranca-valor num" id="cobrancaValor"></div>
+      <p class="cobranca-venc" id="cobrancaVenc"></p>
+      <p class="cobranca-msg" id="cobrancaMsg" hidden></p>
+      <div class="cobranca-pix" id="cobrancaPix" hidden>
+        <span class="cobranca-pix-rotulo">Chave Pix</span>
+        <code id="cobrancaPixChave"></code>
+        <button type="button" class="export-btn" id="cobrancaPixCopiar">Copiar</button>
+      </div>
+      <a class="btn-add cobranca-pagar" id="cobrancaLink" target="_blank" rel="noopener noreferrer" hidden>Pagar agora</a>
+      <p class="cobranca-informado" id="cobrancaInformado" hidden></p>
+      <div class="cobranca-acoes">
+        <button type="button" class="btn-add cobranca-ja-paguei" id="cobrancaJaPaguei">Já paguei</button>
+        <button type="button" class="export-btn" id="cobrancaDepois">Depois</button>
+      </div>
+    </div>
+  </div>
+
   <div class="tabs" role="tablist">
     <button class="tab-btn active" data-tab="lancamentos" type="button" role="tab" aria-selected="true">Lançamentos</button>
     <button class="tab-btn" data-tab="parcelas" type="button" role="tab" aria-selected="false">Parcelas</button>
@@ -2249,6 +2344,43 @@
 
     <div class="panel" style="margin-top: 18px;">
       <div class="panel-head">
+        <h2>Cobranças</h2>
+        <span class="hint" id="adminCobrancaStatus"></span>
+      </div>
+      <div class="admin-cobranca-form">
+        <div class="field">
+          <label for="adminCobrancaPara">Cliente</label>
+          <select id="adminCobrancaPara"></select>
+        </div>
+        <div class="field amount-field">
+          <label for="adminCobrancaValor">Valor</label>
+          <input type="text" inputmode="numeric" id="adminCobrancaValor" placeholder="R$ 0,00">
+        </div>
+        <div class="field">
+          <label for="adminCobrancaVenc">Vencimento</label>
+          <input type="date" id="adminCobrancaVenc">
+        </div>
+        <div class="field">
+          <label for="adminCobrancaPix">Chave Pix (opcional)</label>
+          <input type="text" id="adminCobrancaPix" maxlength="140" placeholder="email, telefone, CPF/CNPJ ou aleatória">
+        </div>
+        <div class="field admin-cobranca-largo">
+          <label for="adminCobrancaLink">Link de pagamento (opcional)</label>
+          <input type="url" id="adminCobrancaLink" maxlength="500" placeholder="https://…">
+        </div>
+        <div class="field admin-cobranca-largo">
+          <label for="adminCobrancaMsg">Mensagem (opcional)</label>
+          <textarea id="adminCobrancaMsg" rows="2" maxlength="300" placeholder="Ex: mensalidade de outubro do Wonner Sols"></textarea>
+        </div>
+      </div>
+      <div class="admin-aviso-acoes">
+        <button type="button" class="btn-add" id="adminCobrancaEnviar">Enviar cobrança</button>
+      </div>
+      <div id="adminCobrancaLista" style="margin-top: 14px;"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
         <h2>Recursos do site</h2>
         <span class="hint" id="adminRecursosStatus"></span>
       </div>
@@ -2564,7 +2696,9 @@
 
   function enterServerMode(email, isAdmin) {
     state.sessao = { email: email, isAdmin: !!isAdmin };
-    state.parouNaManutencao = false;
+    // Definido antes do aplicarConfig abaixo: em manutenção, a janela de
+    // cobrança não pode abrir por cima do aviso de manutenção.
+    state.parouNaManutencao = !!(state.config.manutencao && !isAdmin);
     hideAuthGate();
     state.storage = "server";
     state.isAdmin = !!isAdmin;
@@ -2581,8 +2715,7 @@
     aplicarConfig(state.config);
     // Em manutenção o servidor recusa os dados de qualquer cliente; pedir e
     // mostrar erro seria pior que dizer logo o motivo.
-    if (state.config.manutencao && !isAdmin) {
-      state.parouNaManutencao = true;
+    if (state.parouNaManutencao) {
       showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
       return;
     }
@@ -2607,7 +2740,7 @@
   // O padrão é o site como sempre foi: sem /api/config (arquivo local, dentro
   // do Claude) nada muda. A tela só reflete as chaves; quem barra cadastro e
   // manutenção de verdade é o servidor.
-  state.config = { aviso: null, meuAviso: null, cadastrosAbertos: true, manutencao: false, assistente: true };
+  state.config = { aviso: null, meuAviso: null, minhaCobranca: null, cadastrosAbertos: true, manutencao: false, assistente: true };
 
   function aplicarConfig(cfg) {
     if (!cfg) return;
@@ -2624,6 +2757,8 @@
       el.classList.toggle("urgente", aviso.tipo === "urgente");
     });
 
+    aplicarCobranca(cfg.minhaCobranca);
+
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
     authToggleBtn.hidden = !podeCadastrar;
     if (!podeCadastrar && authMode === "signup") setAuthMode("login");
@@ -2635,6 +2770,106 @@
       document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
     }
   }
+
+  // ---------- Cobrança (cliente) ----------
+  function dataBR(iso) { var p = String(iso).slice(0, 10).split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
+
+  function cobrancaAtrasada(c) { return c.vencimento < todayISO(); }
+
+  // A janela abre sozinha uma vez por cobrança a cada vez que o app é aberto
+  // (e na hora em que uma cobrança nova chega). Fechada, fica a faixa pulsando
+  // no topo até o admin confirmar o pagamento ou cancelar.
+  function aplicarCobranca(c) {
+    var faixa = document.getElementById("cobrancaFaixa");
+    var overlay = document.getElementById("cobrancaOverlay");
+    if (!c) {
+      faixa.hidden = true;
+      overlay.hidden = true;
+      state.cobrancaAberta = null;
+      return;
+    }
+    var atrasada = cobrancaAtrasada(c);
+    var informada = !!c.pagoInformadoEm;
+    var valor = fmt(c.valorCentavos / 100);
+
+    document.getElementById("cobrancaTitulo").textContent = informada
+      ? "Pagamento informado" : (atrasada ? "Pagamento atrasado" : "Pagamento pendente");
+    document.getElementById("cobrancaValor").textContent = valor;
+    var venc = document.getElementById("cobrancaVenc");
+    venc.textContent = (atrasada ? "venceu em " : "vence em ") + dataBR(c.vencimento);
+    venc.classList.toggle("atrasada", atrasada);
+
+    var msg = document.getElementById("cobrancaMsg");
+    msg.hidden = !c.mensagem;
+    msg.textContent = c.mensagem || "";
+    document.getElementById("cobrancaPix").hidden = !c.pix;
+    document.getElementById("cobrancaPixChave").textContent = c.pix || "";
+    var link = document.getElementById("cobrancaLink");
+    link.hidden = !c.link;
+    // O servidor só aceita https://; conferir de novo aqui custa uma linha e
+    // garante que nenhum "javascript:" vire href.
+    if (c.link && /^https:\/\//i.test(c.link)) link.href = c.link; else link.hidden = true;
+
+    var info = document.getElementById("cobrancaInformado");
+    info.hidden = !informada;
+    if (informada) info.textContent = "Você avisou que pagou em " + dataBR(c.pagoInformadoEm) +
+      ". Assim que o pagamento for confirmado, esta cobrança some.";
+    var jaPaguei = document.getElementById("cobrancaJaPaguei");
+    jaPaguei.hidden = informada;
+    jaPaguei.disabled = false;
+    document.getElementById("cobrancaDepois").textContent = informada ? "Fechar" : "Depois";
+
+    faixa.hidden = false;
+    faixa.classList.toggle("informada", informada);
+    document.getElementById("cobrancaFaixaTexto").textContent = informada
+      ? "Pagamento de " + valor + " informado — aguardando confirmação"
+      : (atrasada ? "Pagamento atrasado: " + valor + " — venceu em " : "Pagamento pendente: " + valor + " — vence em ") +
+        dataBR(c.vencimento);
+
+    // Só abre sozinha com o app de fato na tela (logado, fora da manutenção).
+    var appNaTela = state.sessao && !state.sessao.isAdmin && !state.parouNaManutencao;
+    if (appNaTela && !informada && state.cobrancaAberta !== c.criadaEm) {
+      state.cobrancaAberta = c.criadaEm;
+      overlay.hidden = false;
+    }
+  }
+
+  function fecharCobranca() { document.getElementById("cobrancaOverlay").hidden = true; }
+  document.getElementById("cobrancaFechar").addEventListener("click", fecharCobranca);
+  document.getElementById("cobrancaDepois").addEventListener("click", fecharCobranca);
+  document.getElementById("cobrancaOverlay").addEventListener("click", function (e) {
+    if (e.target === e.currentTarget) fecharCobranca();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !document.getElementById("cobrancaOverlay").hidden) fecharCobranca();
+  });
+  document.getElementById("cobrancaFaixa").addEventListener("click", function () {
+    document.getElementById("cobrancaOverlay").hidden = false;
+  });
+
+  document.getElementById("cobrancaPixCopiar").addEventListener("click", function () {
+    var btn = this;
+    var chave = document.getElementById("cobrancaPixChave").textContent;
+    var feito = function () { btn.textContent = "Copiado!"; setTimeout(function () { btn.textContent = "Copiar"; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(chave).then(feito, function () { btn.textContent = "Selecione e copie"; });
+    } else {
+      btn.textContent = "Selecione e copie";
+    }
+  });
+
+  document.getElementById("cobrancaJaPaguei").addEventListener("click", function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Enviando…";
+    apiJson("POST", "/api/config", {}).then(function (r) {
+      state.config.minhaCobranca = r.minhaCobranca;
+      aplicarCobranca(r.minhaCobranca);
+    }).catch(function (e) {
+      btn.disabled = false;
+      window.alert("Não consegui avisar agora: " + ((e && e.message) || "tenta de novo") + ".");
+    }).finally(function () { btn.textContent = "Já paguei"; });
+  });
 
   // O que o admin muda no painel chega a quem está com o app aberto sem
   // recarregar. A Vercel (plano gratuito) não mantém conexão aberta com o
@@ -2653,6 +2888,7 @@
       // o devolve sem pedir login de novo — a sessão dele continua valendo.
       if (entrouManutencao) {
         state.parouNaManutencao = true;
+        fecharCobranca(); // a janela (z-index acima) cobriria o aviso de manutenção
         showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
       } else if (!cfg.manutencao && state.parouNaManutencao) {
         enterServerMode(s.email, false);
@@ -2743,16 +2979,73 @@
     var select = document.getElementById("adminAvisoPara");
     var atual = select.value;
     select.innerHTML = '<option value="">Todos os clientes</option>' +
-      // Fora da lista: contas aguardando (não entram no app) e a do próprio admin.
-      state.adminClientes.filter(function (c) {
-        return c.aprovado !== false && !(state.sessao && c.email === state.sessao.email);
-      }).map(function (c) {
+      clientesAtivos().map(function (c) {
         return '<option value="' + escapeHtml(c.email) + '">' + escapeHtml(c.email) +
           (c.aviso ? " · aviso no ar" : "") + '</option>';
       }).join("");
     // Mantém o cliente escolhido depois de recarregar a lista (ex.: logo após publicar).
     if (atual && state.adminClientes.some(function (c) { return c.email === atual; })) select.value = atual;
     mostrarAvisoDoAlvo();
+  }
+
+  // ---------- Cobranças (admin) ----------
+  // Fora das listas de aviso e cobrança: contas aguardando (não entram no app)
+  // e a do próprio admin.
+  function clientesAtivos() {
+    return state.adminClientes.filter(function (c) {
+      return c.aprovado !== false && !(state.sessao && c.email === state.sessao.email);
+    });
+  }
+
+  function preencherCobrancas() {
+    var select = document.getElementById("adminCobrancaPara");
+    var atual = select.value;
+    var ativos = clientesAtivos();
+    select.innerHTML = '<option value="">Escolha o cliente</option>' + ativos.map(function (c) {
+      return '<option value="' + escapeHtml(c.email) + '">' + escapeHtml(c.email) +
+        (c.cobranca ? " · já tem cobrança" : "") + '</option>';
+    }).join("");
+    if (atual && ativos.some(function (c) { return c.email === atual; })) select.value = atual;
+
+    var abertas = state.adminClientes.filter(function (c) { return c.cobranca; });
+    document.getElementById("adminCobrancaStatus").textContent = abertas.length
+      ? abertas.length + " em aberto" : "nenhuma em aberto";
+    // Quem avisou que pagou vem primeiro: é o que pede ação sua.
+    abertas.sort(function (a, b) { return (b.cobranca.pagoInformadoEm ? 1 : 0) - (a.cobranca.pagoInformadoEm ? 1 : 0); });
+    document.getElementById("adminCobrancaLista").innerHTML = abertas.map(function (c) {
+      var cb = c.cobranca;
+      var selo = cb.pagoInformadoEm
+        ? '<span class="selo-pendente selo-informado">cliente diz que pagou</span>'
+        : (cobrancaAtrasada(cb) ? '<span class="selo-pendente selo-cobranca">atrasada</span>'
+          : '<span class="selo-pendente">pendente</span>');
+      return '<div class="admin-row' + (cb.pagoInformadoEm ? " pendente" : "") + '">' +
+        '<span class="admin-email">' + escapeHtml(c.email) + selo + '</span>' +
+        '<span class="admin-date">' + fmt(cb.valorCentavos / 100) + ' · vence ' + dataBR(cb.vencimento) + '</span>' +
+        '<button type="button" class="export-btn admin-cobranca-pago" data-email="' + escapeHtml(c.email) + '">Confirmar pagamento</button>' +
+        '<button type="button" class="export-btn admin-cobranca-cancelar" data-email="' + escapeHtml(c.email) + '">Cancelar</button>' +
+      '</div>';
+    }).join("");
+
+    function tirar(btn, pergunta, ok) {
+      btn.addEventListener("click", function () {
+        var email = btn.getAttribute("data-email");
+        if (!window.confirm(pergunta.replace("{email}", email))) return;
+        btn.disabled = true;
+        apiJson("POST", "/api/admin/cobranca", { email: email, cobranca: null }).then(function () {
+          document.getElementById("adminCobrancaStatus").textContent = ok;
+          enterAdminMode();
+        }).catch(function (e) {
+          btn.disabled = false;
+          window.alert((e && e.message) || "Não consegui agora.");
+        });
+      });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".admin-cobranca-pago"), function (btn) {
+      tirar(btn, "Confirmar que {email} pagou? A cobrança some da tela dele.", "pagamento confirmado");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".admin-cobranca-cancelar"), function (btn) {
+      tirar(btn, "Cancelar a cobrança de {email}?", "cobrança cancelada");
+    });
   }
 
   function salvarAviso(aviso) {
@@ -2796,6 +3089,7 @@
     apiJson("GET", "/api/admin/clients").then(function (clientes) {
       state.adminClientes = clientes;
       preencherDestinatarios();
+      preencherCobrancas();
       if (!clientes.length) {
         contador.textContent = "";
         lista.innerHTML = '<div class="empty-note">Nenhum cliente cadastrado ainda.</div>';
@@ -2811,7 +3105,8 @@
         return '<div class="admin-row' + (pendente ? " pendente" : "") + '">' +
           '<span class="admin-email">' + escapeHtml(c.email) +
             (pendente ? '<span class="selo-pendente">aguardando</span>' : "") +
-            (c.aviso ? '<span class="selo-pendente selo-aviso">aviso</span>' : "") + '</span>' +
+            (c.aviso ? '<span class="selo-pendente selo-aviso">aviso</span>' : "") +
+            (c.cobranca ? '<span class="selo-pendente selo-cobranca">cobrança</span>' : "") + '</span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
             '" data-aprovar="' + (pendente ? "1" : "0") + '">' +
@@ -3112,6 +3407,45 @@
     }).catch(function () {});
   });
   document.getElementById("adminAvisoPara").addEventListener("change", mostrarAvisoDoAlvo);
+
+  // Chave Pix e link costumam ser os mesmos em toda cobrança: ficam lembrados
+  // neste navegador (só do admin) para não precisar digitar de novo.
+  attachAmountMask(document.getElementById("adminCobrancaValor"));
+  try {
+    document.getElementById("adminCobrancaPix").value = localStorage.getItem("wonner-cobranca-pix") || "";
+    document.getElementById("adminCobrancaLink").value = localStorage.getItem("wonner-cobranca-link") || "";
+  } catch (e) { /* sem armazenamento: só não lembra */ }
+
+  document.getElementById("adminCobrancaEnviar").addEventListener("click", function () {
+    var btn = this;
+    var status = document.getElementById("adminCobrancaStatus");
+    var email = document.getElementById("adminCobrancaPara").value;
+    var centavos = Number(document.getElementById("adminCobrancaValor").dataset.raw || 0);
+    var venc = document.getElementById("adminCobrancaVenc").value;
+    var pix = document.getElementById("adminCobrancaPix").value.trim();
+    var link = document.getElementById("adminCobrancaLink").value.trim();
+    if (!email) { status.textContent = "escolha o cliente"; return; }
+    if (!centavos) { status.textContent = "informe o valor"; return; }
+    if (!venc) { status.textContent = "informe o vencimento"; return; }
+    var cliente = state.adminClientes.filter(function (c) { return c.email === email; })[0];
+    if (cliente && cliente.cobranca && !window.confirm(email + " já tem uma cobrança em aberto. Trocar pela nova?")) return;
+
+    btn.disabled = true;
+    status.textContent = "enviando…";
+    apiJson("POST", "/api/admin/cobranca", {
+      email: email,
+      cobranca: { valorCentavos: centavos, vencimento: venc, pix: pix, link: link,
+        mensagem: document.getElementById("adminCobrancaMsg").value },
+    }).then(function () {
+      try { localStorage.setItem("wonner-cobranca-pix", pix); localStorage.setItem("wonner-cobranca-link", link); } catch (e) {}
+      setAmountValue(document.getElementById("adminCobrancaValor"), "");
+      document.getElementById("adminCobrancaMsg").value = "";
+      status.textContent = "cobrança enviada para " + email;
+      enterAdminMode();
+    }).catch(function (e) {
+      status.textContent = "não enviou: " + ((e && e.message) || "erro");
+    }).finally(function () { btn.disabled = false; });
+  });
 
   document.getElementById("logoutBtn").addEventListener("click", function () {
     apiJson("POST", "/api/auth/logout").finally(function () {
