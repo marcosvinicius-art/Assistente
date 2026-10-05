@@ -6,6 +6,10 @@
 # Este script embrulha o mesmo arquivo num documento HTML completo, entao continua
 # existindo uma unica fonte: edite contas-em-dia.html e rode este script de novo.
 #
+# O icone da aba vai aqui no <head>, e nao so no contas-em-dia.html: o conteudo
+# dele cai dentro do <body>, e o navegador ignora icone declarado no corpo — a
+# aba ficava com o globo generico.
+#
 # index.html fica na RAIZ (nao em public/) porque e ali, ao lado de /api, que a
 # Vercel espera os arquivos estaticos quando o projeto tem funcoes serverless.
 #
@@ -22,6 +26,8 @@ $cabecalho = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wonner Sols</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
 '@
