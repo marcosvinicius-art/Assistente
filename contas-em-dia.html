@@ -208,6 +208,10 @@
     background: color-mix(in srgb, var(--warning) 14%, transparent);
     border-color: var(--warning);
   }
+  .site-aviso.urgente {
+    background: var(--expense-soft);
+    border-color: var(--expense);
+  }
   .auth-card .site-aviso { text-align: left; margin: 0 0 14px; }
 
   .admin-aviso-acoes { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
@@ -2228,6 +2232,7 @@
         <select id="adminAvisoTipo" aria-label="Tipo do aviso">
           <option value="info">Informativo (azul)</option>
           <option value="alerta">Atenção (amarelo)</option>
+          <option value="urgente">Urgente (vermelho)</option>
         </select>
         <button type="button" class="btn-add" id="adminAvisoPublicar">Publicar aviso</button>
         <button type="button" class="export-btn" id="adminAvisoTirar">Tirar aviso</button>
@@ -2605,6 +2610,7 @@
       if (!cfg.aviso) return;
       el.textContent = cfg.aviso.texto;
       el.classList.toggle("alerta", cfg.aviso.tipo === "alerta");
+      el.classList.toggle("urgente", cfg.aviso.tipo === "urgente");
     });
 
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;

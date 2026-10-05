@@ -128,7 +128,7 @@ function mensagemDeFalha(e, padrao) {
 // Sem linha gravada vale o padrão: o site como sempre funcionou. Campos novos
 // entram aqui e passam a valer até para quem já tinha salvo uma configuração.
 var CONFIG_PADRAO = {
-  aviso: null, // { texto, tipo: "info" | "alerta" }
+  aviso: null, // { texto, tipo: "info" | "alerta" | "urgente" }
   cadastrosAbertos: true,
   manutencao: false,
   assistente: true,

@@ -187,7 +187,7 @@ async function salvarConfig(req, res) {
   if ("aviso" in body) {
     var texto = body.aviso && String(body.aviso.texto || "").trim().slice(0, 300);
     mudancas.aviso = texto
-      ? { texto: texto, tipo: body.aviso.tipo === "alerta" ? "alerta" : "info" }
+      ? { texto: texto, tipo: ["alerta", "urgente"].indexOf(body.aviso.tipo) >= 0 ? body.aviso.tipo : "info" }
       : null;
   }
   if (!Object.keys(mudancas).length) return res.status(400).json({ error: "nada_para_salvar" });
