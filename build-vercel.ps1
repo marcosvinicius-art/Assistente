@@ -6,9 +6,10 @@
 # Este script embrulha o mesmo arquivo num documento HTML completo, entao continua
 # existindo uma unica fonte: edite contas-em-dia.html e rode este script de novo.
 #
-# O icone da aba vai aqui no <head>, e nao so no contas-em-dia.html: o conteudo
-# dele cai dentro do <body>, e o navegador ignora icone declarado no corpo — a
-# aba ficava com o globo generico.
+# O icone da aba, o manifest e os metas de "instalar como app" vao aqui no
+# <head>, e nao so no contas-em-dia.html: o conteudo dele cai dentro do <body>,
+# e o navegador ignora essas declaracoes no corpo — a aba ficava com o globo
+# generico e "Adicionar a tela inicial" virava so um atalho do navegador.
 #
 # index.html fica na RAIZ (nao em public/) porque e ali, ao lado de /api, que a
 # Vercel espera os arquivos estaticos quando o projeto tem funcoes serverless.
@@ -28,6 +29,13 @@ $cabecalho = @'
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wonner Sols</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#001539">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wonner Sols">
 </head>
 <body>
 '@
