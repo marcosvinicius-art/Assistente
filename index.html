@@ -1204,6 +1204,61 @@
   .tx-comprovante { color: var(--accent-ink); }
   .tx-comprovante:hover { background: var(--accent-soft); color: var(--accent-ink); }
 
+  /* ---- Reportar ---- */
+  .reportar-fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 40;
+    display: inline-flex; align-items: center; gap: 8px;
+    font: inherit; font-size: 14px; font-weight: 700;
+    color: var(--on-accent); background: var(--accent);
+    border: none; border-radius: 999px; padding: 11px 18px 11px 14px; cursor: pointer;
+    box-shadow: 0 8px 24px -8px var(--accent), var(--shadow-raised);
+    transition: transform var(--ease), filter var(--ease);
+  }
+  .reportar-fab:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .reportar-fab[hidden] { display: none; }
+  @media (max-width: 560px) { .reportar-fab { right: 14px; bottom: 14px; padding: 10px 15px 10px 12px; font-size: 13px; } }
+
+  .reportar-card { max-width: 420px; text-align: left; padding: 20px 22px 18px; }
+  .reportar-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .reportar-topo h2 { font-size: 16px; margin: 0; }
+  .reportar-topo .qr-close { position: static; }
+  .reportar-tipos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .reportar-tipo {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-muted);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 6px; cursor: pointer;
+  }
+  .reportar-tipo:hover { border-color: var(--ink-faint); color: var(--ink); }
+  .reportar-tipo.ativo[data-tipo="erro"] { background: var(--expense); border-color: var(--expense); color: #fff; }
+  .reportar-tipo.ativo[data-tipo="melhoria"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .reportar-tipo.ativo[data-tipo="ideia"] { background: var(--warning); border-color: var(--warning); color: #1a1a1a; }
+  .reportar-card textarea { margin-bottom: 10px; }
+  .reportar-zona { margin-bottom: 10px; }
+  .reportar-zona:focus-visible { outline: none; border-color: var(--accent); }
+  .reportar-card .comprovante-anexo { margin-bottom: 10px; }
+  .reportar-rodape { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+  .reportar-local { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-faint); min-width: 0; }
+  .reportar-local svg { color: var(--expense); flex: none; }
+  .reportar-ok { margin: 12px 0 0; font-size: 13px; color: var(--income); font-weight: 600; }
+
+  .tab-contador {
+    display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px;
+    background: var(--expense); color: #fff; font-size: 11px; line-height: 18px; text-align: center; vertical-align: 1px;
+  }
+  .tab-contador[hidden] { display: none; }
+  .reporte-tipo { display: inline-block; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; margin-right: 8px; vertical-align: 1px; }
+  .reporte-tipo.erro { background: var(--expense-soft); color: var(--expense); }
+  .reporte-tipo.melhoria { background: var(--accent-soft); color: var(--accent-ink); }
+  .reporte-tipo.ideia { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning); }
+  .reporte-row { padding: 12px 4px; border-bottom: 1px solid var(--border); }
+  .reporte-row:last-child { border-bottom: none; }
+  .reporte-row.resolvido { opacity: 0.55; }
+  .reporte-cabeca { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; font-size: 13px; }
+  .reporte-cabeca .admin-date { margin-left: auto; }
+  .reporte-texto { font-size: 13.5px; line-height: 1.5; margin: 6px 0; white-space: pre-line; word-break: break-word; }
+  .reporte-meta { font-size: 11.5px; color: var(--ink-faint); margin-bottom: 8px; }
+  .reporte-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
   /* ---- Comprovante ---- */
   .comprovante-campo { grid-column: 1 / -1; }
   form.entry.e-receita .comprovante-campo { display: none; }
@@ -1888,6 +1943,55 @@
   <div class="site-aviso" id="siteAviso" role="status" hidden></div>
   <div class="site-aviso" id="clienteAviso" role="status" hidden></div>
 
+  <button type="button" class="reportar-fab" id="reportarFab" hidden>
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+    <span>Reportar</span>
+  </button>
+
+  <div class="qr-overlay" id="reportarOverlay" hidden>
+    <form class="qr-card reportar-card" id="reportarForm" role="dialog" aria-modal="true" aria-labelledby="reportarTitulo">
+      <div class="reportar-topo">
+        <h2 id="reportarTitulo">Reportar para o time</h2>
+        <button type="button" class="qr-close" id="reportarFechar" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="reportar-tipos" role="radiogroup" aria-label="Tipo">
+        <button type="button" class="reportar-tipo ativo" data-tipo="erro" role="radio" aria-checked="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2M5 7l3 2M19 19l-3-2M5 19l3-2M20 13h-4M4 13h4M10 4l1 2M14 4l-1 2"/></svg>Erro</button>
+        <button type="button" class="reportar-tipo" data-tipo="melhoria" role="radio" aria-checked="false">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Melhoria</button>
+        <button type="button" class="reportar-tipo" data-tipo="ideia" role="radio" aria-checked="false">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg>Ideia</button>
+      </div>
+      <textarea id="reportarTexto" rows="4" maxlength="2000" placeholder="O que aconteceu? O que você esperava?"></textarea>
+      <label class="comprovante-zona reportar-zona" id="reportarZona" tabindex="0">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg>
+        <span id="reportarZonaTexto">Cola o print aqui (Ctrl+V) ou clica para escolher</span>
+        <input type="file" id="reportarArquivo" accept="image/*" hidden>
+      </label>
+      <div class="comprovante-anexo" id="reportarAnexo" hidden>
+        <img id="reportarMini" alt="">
+        <span class="comprovante-nome">Print anexado</span>
+        <button type="button" class="tx-del" id="reportarTirarPrint" title="Tirar print" aria-label="Tirar print">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p class="comprovante-erro" id="reportarErro" hidden></p>
+      <div class="reportar-rodape">
+        <span class="reportar-local">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="reportarLocal"></span>
+        </span>
+        <button type="submit" class="btn-add" id="reportarEnviar" disabled>
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Enviar
+        </button>
+      </div>
+      <p class="reportar-ok" id="reportarOk" hidden>Recebido! Obrigado por avisar — o time vai olhar.</p>
+    </form>
+  </div>
+
   <div class="qr-overlay" id="comprovanteOverlay" hidden>
     <div class="qr-card comprovante-card" role="dialog" aria-modal="true" aria-labelledby="comprovanteTitulo">
       <button type="button" class="qr-close" id="comprovanteFechar" aria-label="Fechar">
@@ -1937,7 +2041,7 @@
     <button class="tab-btn" data-tab="parcelas" type="button" role="tab" aria-selected="false">Parcelas</button>
     <button class="tab-btn" data-tab="investimentos" type="button" role="tab" aria-selected="false">Investimentos &amp; metas</button>
     <button class="tab-btn" data-tab="assistente" type="button" role="tab" aria-selected="false">Assistente</button>
-    <button class="tab-btn" data-tab="admin" type="button" role="tab" aria-selected="false" hidden>Administração</button>
+    <button class="tab-btn" data-tab="admin" type="button" role="tab" aria-selected="false" hidden>Administração<span class="tab-contador" id="adminTabContador" hidden></span></button>
   </div>
 
   <div class="tab-panel" data-panel="lancamentos">
@@ -2496,6 +2600,14 @@
 
     <div class="panel" style="margin-top: 18px;">
       <div class="panel-head">
+        <h2>Reportes dos clientes</h2>
+        <span class="hint" id="adminReportesStatus">carregando…</span>
+      </div>
+      <div id="adminReportesLista"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
+      <div class="panel-head">
         <h2>Feedback dos clientes</h2>
         <span class="hint" id="adminFeedbackCount">carregando…</span>
       </div>
@@ -2782,6 +2894,9 @@
     // que só a conta admin enxerga. Esconder é só interface: quem barra de fato
     // é o servidor, que responde 404 a /api/admin para qualquer outra sessão.
     document.querySelector('.tab-btn[data-tab="admin"]').hidden = !isAdmin;
+    // "Reportar" é dos clientes; o admin lê os reportes no painel dele.
+    document.getElementById("reportarFab").hidden = !!isAdmin || state.parouNaManutencao;
+    if (isAdmin) carregarReportes();
     // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
     // prometeria uma troca que o servidor recusa.
     document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
@@ -2956,12 +3071,16 @@
       var entrouManutencao = cfg.manutencao && !state.config.manutencao;
       aplicarConfig(cfg);
       var s = state.sessao;
+      // Reporte novo aparece para o admin (contador na aba e lista) sem recarregar.
+      if (s && s.isAdmin) carregarReportes();
       if (!s || s.isAdmin) return;
       // Cliente logado: a manutenção ligada o tira do app na hora, e desligada
       // o devolve sem pedir login de novo — a sessão dele continua valendo.
       if (entrouManutencao) {
         state.parouNaManutencao = true;
         fecharCobranca(); // a janela (z-index acima) cobriria o aviso de manutenção
+        document.getElementById("reportarFab").hidden = true;
+        document.getElementById("reportarOverlay").hidden = true;
         showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
       } else if (!cfg.manutencao && state.parouNaManutencao) {
         enterServerMode(s.email, false);
@@ -3154,7 +3273,79 @@
   // O admin nunca toca nos endpoints de dados financeiros: o "id" dele ("admin")
   // não é um UUID válido, e a query no banco quebraria. Por isso a aba dele só
   // chama /api/admin/clients, e recarrega a lista toda vez que é aberta.
+  // ---------- Reportes dos clientes (admin) ----------
+  var ROTULO_REPORTE = { erro: "Erro", melhoria: "Melhoria", ideia: "Ideia" };
+
+  function carregarReportes() {
+    var lista = document.getElementById("adminReportesLista");
+    var status = document.getElementById("adminReportesStatus");
+    apiJson("GET", "/api/admin/reportes").then(function (itens) {
+      var abertos = itens.filter(function (r) { return r.status === "aberto"; }).length;
+      // O número na aba avisa o admin de longe, sem precisar abrir o painel.
+      var contador = document.getElementById("adminTabContador");
+      contador.hidden = !abertos;
+      contador.textContent = abertos;
+      status.textContent = abertos ? abertos + (abertos === 1 ? " aberto" : " abertos") : "nenhum aberto";
+      if (!itens.length) {
+        lista.innerHTML = '<div class="empty-note">Nenhum reporte recebido ainda.</div>';
+        return;
+      }
+      lista.innerHTML = itens.map(function (r) {
+        var quando = new Date(r.criadoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        var resolvido = r.status === "resolvido";
+        return '<div class="reporte-row' + (resolvido ? " resolvido" : "") + '">' +
+          '<div class="reporte-cabeca">' +
+            '<span class="reporte-tipo ' + escapeHtml(r.tipo) + '">' + (ROTULO_REPORTE[r.tipo] || escapeHtml(r.tipo)) + '</span>' +
+            '<span class="admin-email">' + escapeHtml(r.email) + '</span>' +
+            (resolvido ? '<span class="selo-pendente" style="color:var(--income);border-color:var(--income)">resolvido</span>' : "") +
+            '<span class="admin-date">' + quando + '</span>' +
+          '</div>' +
+          '<div class="reporte-texto">' + escapeHtml(r.texto) + '</div>' +
+          '<div class="reporte-meta">' + (r.local ? "Onde: " + escapeHtml(r.local) : "") + '</div>' +
+          '<div class="reporte-acoes">' +
+            (r.temImagem ? '<button type="button" class="export-btn reporte-print" data-id="' + escapeHtml(r.id) + '">Ver print</button>' : "") +
+            '<button type="button" class="export-btn reporte-status" data-id="' + escapeHtml(r.id) + '" data-status="' +
+              (resolvido ? "aberto" : "resolvido") + '">' + (resolvido ? "Reabrir" : "Marcar resolvido") + '</button>' +
+            '<button type="button" class="card-del reporte-excluir" data-id="' + escapeHtml(r.id) + '" title="Excluir reporte">' + ICON_TRASH + '</button>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+
+      var porId = {};
+      itens.forEach(function (r) { porId[r.id] = r; });
+      Array.prototype.forEach.call(lista.querySelectorAll(".reporte-print"), function (b) {
+        b.addEventListener("click", function () {
+          var r = porId[b.getAttribute("data-id")];
+          mostrarArquivo("Print do reporte", r.email + " · " + (ROTULO_REPORTE[r.tipo] || r.tipo),
+            apiJson("GET", "/api/admin/reportes?id=" + encodeURIComponent(r.id)).then(function (x) {
+              return x.imagem ? { dados: x.imagem, tipo: "image/jpeg", nome: "print-reporte.jpg" } : null;
+            }));
+        });
+      });
+      Array.prototype.forEach.call(lista.querySelectorAll(".reporte-status"), function (b) {
+        b.addEventListener("click", function () {
+          b.disabled = true;
+          apiJson("POST", "/api/admin/reportes", { id: b.getAttribute("data-id"), status: b.getAttribute("data-status") })
+            .then(carregarReportes)
+            .catch(function (e) { b.disabled = false; window.alert((e && e.message) || "Não consegui agora."); });
+        });
+      });
+      Array.prototype.forEach.call(lista.querySelectorAll(".reporte-excluir"), function (b) {
+        b.addEventListener("click", function () {
+          if (!window.confirm("Excluir este reporte? Não dá para desfazer.")) return;
+          apiJson("DELETE", "/api/admin/reportes?id=" + encodeURIComponent(b.getAttribute("data-id")))
+            .then(carregarReportes)
+            .catch(function (e) { window.alert((e && e.message) || "Não consegui agora."); });
+        });
+      });
+    }).catch(function (e) {
+      status.textContent = "";
+      lista.innerHTML = '<div class="empty-note">Não consegui carregar os reportes: ' + escapeHtml((e && e.message) || "erro") + '</div>';
+    });
+  }
+
   function enterAdminMode() {
+    carregarReportes();
     carregarNumeros();
     preencherControlesAdmin();
     var lista = document.getElementById("adminClientList");
@@ -4311,23 +4502,22 @@
     anexarComprovante(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
   });
 
-  // Na conta (servidor) a lista vem sem a imagem; ela é buscada só aqui.
-  function abrirComprovante(t) {
+  // Janela de ver arquivo: comprovante de lançamento e print de reporte.
+  // "obter" é uma promise de { dados (data URL), tipo, nome }; na conta a lista
+  // vem sem a imagem, então ela é buscada só quando a janela abre.
+  function mostrarArquivo(titulo, sub, obter) {
     var overlay = document.getElementById("comprovanteOverlay");
     var visor = document.getElementById("comprovanteVisor");
     var baixar = document.getElementById("comprovanteBaixar");
-    document.getElementById("comprovanteSub").textContent = t.desc + " · " + fmt(t.amount) + " · " +
-      new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR");
+    document.getElementById("comprovanteTitulo").textContent = titulo;
+    document.getElementById("comprovanteSub").textContent = sub;
     visor.innerHTML = '<div class="empty-note">Carregando…</div>';
     baixar.hidden = true;
     overlay.hidden = false;
 
-    var obter = t.comprovante
-      ? Promise.resolve(t.comprovante)
-      : apiJson("GET", "/api/data/transactions?id=" + encodeURIComponent(t.id)).then(function (r) { return r.comprovante; });
     obter.then(function (c) {
       if (!c || !/^data:(image\/(jpeg|png|webp|gif)|application\/pdf);base64,/.test(c.dados)) {
-        visor.innerHTML = '<div class="empty-note">Comprovante não encontrado.</div>';
+        visor.innerHTML = '<div class="empty-note">Arquivo não encontrado.</div>';
         return;
       }
       if (c.tipo === "application/pdf") {
@@ -4337,7 +4527,7 @@
       } else {
         var img = document.createElement("img");
         img.src = c.dados;
-        img.alt = "Comprovante de " + t.desc;
+        img.alt = titulo + " — " + sub;
         visor.innerHTML = "";
         visor.appendChild(img);
       }
@@ -4349,6 +4539,14 @@
       visor.innerHTML = '<div class="empty-note">Não consegui abrir: ' + escapeHtml((e && e.message) || "erro") + '</div>';
     });
   }
+
+  function abrirComprovante(t) {
+    mostrarArquivo("Comprovante",
+      t.desc + " · " + fmt(t.amount) + " · " + new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR"),
+      t.comprovante
+        ? Promise.resolve(t.comprovante)
+        : apiJson("GET", "/api/data/transactions?id=" + encodeURIComponent(t.id)).then(function (r) { return r.comprovante; }));
+  }
   function fecharComprovante() { document.getElementById("comprovanteOverlay").hidden = true; }
   document.getElementById("comprovanteFechar").addEventListener("click", fecharComprovante);
   document.getElementById("comprovanteOverlay").addEventListener("click", function (e) {
@@ -4356,6 +4554,126 @@
   });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !document.getElementById("comprovanteOverlay").hidden) fecharComprovante();
+  });
+
+  // ---------- Reportar para o time (cliente) ----------
+  // Vai para o painel do admin e só ele lê. O print passa pela mesma redução
+  // do comprovante, e "onde" é a aba e o mês abertos no momento — o que o
+  // admin precisa para achar a tela de que a pessoa está falando.
+  state.reporte = { tipo: "erro", imagem: null };
+  var reportarOverlay = document.getElementById("reportarOverlay");
+  var reportarTexto = document.getElementById("reportarTexto");
+  var reportarEnviar = document.getElementById("reportarEnviar");
+
+  function localAtual() {
+    var aba = document.querySelector(".tab-btn.active");
+    return (aba ? aba.firstChild.textContent.trim() : "App") + " · " + document.getElementById("monthLabel").textContent;
+  }
+
+  function mostrarPrint() {
+    var tem = !!state.reporte.imagem;
+    document.getElementById("reportarZona").hidden = tem;
+    document.getElementById("reportarAnexo").hidden = !tem;
+    if (tem) document.getElementById("reportarMini").src = state.reporte.imagem;
+  }
+
+  function erroReporte(msg) {
+    var el = document.getElementById("reportarErro");
+    el.hidden = !msg;
+    el.textContent = msg || "";
+  }
+
+  function escolherTipo(tipo) {
+    state.reporte.tipo = tipo;
+    Array.prototype.forEach.call(document.querySelectorAll(".reportar-tipo"), function (b) {
+      var sim = b.getAttribute("data-tipo") === tipo;
+      b.classList.toggle("ativo", sim);
+      b.setAttribute("aria-checked", sim ? "true" : "false");
+    });
+    reportarTexto.placeholder = tipo === "erro" ? "O que aconteceu? O que você esperava?"
+      : tipo === "melhoria" ? "O que poderia funcionar melhor?" : "Qual é a sua ideia?";
+  }
+
+  function limparReporte() {
+    state.reporte.imagem = null;
+    reportarTexto.value = "";
+    document.getElementById("reportarArquivo").value = "";
+    document.getElementById("reportarOk").hidden = true;
+    reportarEnviar.disabled = true;
+    erroReporte(null);
+    escolherTipo("erro");
+    mostrarPrint();
+  }
+
+  function anexarPrint(file) {
+    if (!file || !/^image\//.test(file.type)) { erroReporte("Use uma imagem (print ou foto)."); return; }
+    erroReporte(null);
+    var aviso = document.getElementById("reportarZonaTexto");
+    aviso.textContent = "Preparando o print…";
+    reduzirFoto(file, function (dados) {
+      aviso.textContent = "Cola o print aqui (Ctrl+V) ou clica para escolher";
+      if (!dados) { erroReporte("Não consegui usar essa imagem — tenta outra."); return; }
+      state.reporte.imagem = dados;
+      mostrarPrint();
+    });
+  }
+
+  document.getElementById("reportarFab").addEventListener("click", function () {
+    document.getElementById("reportarLocal").textContent = localAtual();
+    reportarOverlay.hidden = false;
+    reportarTexto.focus();
+  });
+  function fecharReportar() { reportarOverlay.hidden = true; }
+  document.getElementById("reportarFechar").addEventListener("click", fecharReportar);
+  reportarOverlay.addEventListener("click", function (e) { if (e.target === e.currentTarget) fecharReportar(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !reportarOverlay.hidden) fecharReportar();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".reportar-tipo"), function (b) {
+    b.addEventListener("click", function () { escolherTipo(b.getAttribute("data-tipo")); });
+  });
+  reportarTexto.addEventListener("input", function () {
+    reportarEnviar.disabled = reportarTexto.value.trim().length < 3;
+  });
+  document.getElementById("reportarArquivo").addEventListener("change", function () {
+    anexarPrint(this.files && this.files[0]);
+  });
+  document.getElementById("reportarTirarPrint").addEventListener("click", function () {
+    state.reporte.imagem = null;
+    document.getElementById("reportarArquivo").value = "";
+    mostrarPrint();
+  });
+  // Ctrl+V com a janela aberta anexa o print, esteja o cursor onde estiver.
+  document.addEventListener("paste", function (e) {
+    if (reportarOverlay.hidden || !e.clipboardData) return;
+    var item = Array.prototype.filter.call(e.clipboardData.items || [], function (i) {
+      return i.kind === "file" && /^image\//.test(i.type);
+    })[0];
+    if (!item) return; // texto colado segue para o campo normalmente
+    e.preventDefault();
+    anexarPrint(item.getAsFile());
+  });
+
+  document.getElementById("reportarForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var texto = reportarTexto.value.trim();
+    if (texto.length < 3) return;
+    reportarEnviar.disabled = true;
+    erroReporte(null);
+    apiJson("POST", "/api/feedback", {
+      reporte: true,
+      tipo: state.reporte.tipo,
+      texto: texto,
+      imagem: state.reporte.imagem,
+      local: document.getElementById("reportarLocal").textContent,
+      navegador: navigator.userAgent,
+    }).then(function () {
+      document.getElementById("reportarOk").hidden = false;
+      setTimeout(function () { fecharReportar(); limparReporte(); }, 1800);
+    }).catch(function (err) {
+      reportarEnviar.disabled = false;
+      erroReporte((err && err.message) || "Não consegui enviar agora. Tenta de novo.");
+    });
   });
 
   // ---------- Form submit ----------

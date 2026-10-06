@@ -251,7 +251,44 @@ async function cobranca(req, res) {
   return res.status(200).json({ email: email, cobranca: nova });
 }
 
+// Reportes dos clientes. GET lista (abertos primeiro, sem o print, que vem só
+// por GET ?id= quando o admin pede para ver); POST muda o status; DELETE apaga.
+async function reportes(req, res) {
+  if (req.method === "GET" && req.query.id) {
+    if (!/^[0-9a-f-]{36}$/i.test(String(req.query.id))) return res.status(400).json({ error: "missing_id" });
+    var um = await db.query("SELECT imagem FROM reportes WHERE id = $1", [String(req.query.id)]);
+    if (!um.rows.length) return res.status(404).json({ error: "not_found" });
+    return res.status(200).json({ imagem: um.rows[0].imagem });
+  }
+  if (req.method === "GET") {
+    var r = await db.query(
+      "SELECT id, email, tipo, texto, local, navegador, status, created_at, (imagem IS NOT NULL) AS tem_imagem " +
+      "FROM reportes ORDER BY (status = 'aberto') DESC, created_at DESC LIMIT 300"
+    );
+    return res.status(200).json(r.rows.map(function (x) {
+      return {
+        id: x.id, email: x.email, tipo: x.tipo, texto: x.texto, local: x.local, navegador: x.navegador,
+        status: x.status, criadoEm: x.created_at, temImagem: x.tem_imagem,
+      };
+    }));
+  }
+  var id = String((req.body && req.body.id) || req.query.id || "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: "missing_id" });
+  if (req.method === "POST") {
+    var status = req.body.status === "resolvido" ? "resolvido" : "aberto";
+    var u = await db.query("UPDATE reportes SET status = $1 WHERE id = $2 RETURNING id", [status, id]);
+    if (!u.rows.length) return res.status(404).json({ error: "not_found" });
+    return res.status(200).json({ id: id, status: status });
+  }
+  if (req.method === "DELETE") {
+    await db.query("DELETE FROM reportes WHERE id = $1", [id]);
+    return res.status(200).json({ ok: true });
+  }
+  return res.status(405).json({ error: "method_not_allowed" });
+}
+
 var ACOES = {
+  reportes: reportes,
   cobranca: cobranca,
   clients: listarClientes,
   feedback: listarFeedback,

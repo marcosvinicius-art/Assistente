@@ -106,6 +106,20 @@ function ensureSchema() {
       -- Chaves que o admin liga e desliga pelo painel (aviso, cadastros,
       -- manutenção, assistente). Uma linha só, chave "site": são poucos campos,
       -- sempre lidos juntos.
+      -- Reportes que os clientes abrem pelo botão "Reportar" (erro, melhoria,
+      -- ideia), com print opcional. Só o admin lê. Guarda o email direto pelo
+      -- mesmo motivo do feedback: o admin não tem linha própria em users.
+      CREATE TABLE IF NOT EXISTS reportes (
+        id UUID PRIMARY KEY,
+        email TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        texto TEXT NOT NULL,
+        imagem TEXT,
+        local TEXT,
+        navegador TEXT,
+        status TEXT NOT NULL DEFAULT 'aberto',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
       CREATE TABLE IF NOT EXISTS config (
         chave TEXT PRIMARY KEY,
         valor JSONB NOT NULL,
