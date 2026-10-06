@@ -24,9 +24,12 @@ async function listarClientes(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   // Pendentes primeiro: são as únicas linhas que pedem uma decisão, e no fim de
   // uma lista longa ficariam sem ser vistas.
-  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca FROM users ORDER BY aprovado ASC, created_at DESC");
+  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao FROM users ORDER BY aprovado ASC, created_at DESC");
   return res.status(200).json(r.rows.map(function (u) {
-    return { email: u.email, criadoEm: u.created_at, aprovado: u.aprovado, aviso: u.aviso || null, cobranca: u.cobranca || null };
+    return {
+      email: u.email, criadoEm: u.created_at, aprovado: u.aprovado,
+      aviso: u.aviso || null, cobranca: u.cobranca || null, manutencao: !!u.manutencao,
+    };
   }));
 }
 
@@ -287,7 +290,23 @@ async function reportes(req, res) {
   return res.status(405).json({ error: "method_not_allowed" });
 }
 
+// Coloca ou tira um cliente da manutenção, sem afetar os demais.
+async function manutencaoCliente(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+  var body = req.body || {};
+  var email = String(body.email || "").trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: "missing_email" });
+  if (auth.isAdminEmail(email)) {
+    return res.status(400).json({ error: "admin_sem_manutencao", message: "A conta de admin não entra em manutenção." });
+  }
+  var ligar = body.manutencao === true;
+  var r = await db.query("UPDATE users SET manutencao = $1 WHERE email = $2 RETURNING id", [ligar, email]);
+  if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
+  return res.status(200).json({ email: email, manutencao: ligar });
+}
+
 var ACOES = {
+  "manutencao-cliente": manutencaoCliente,
   reportes: reportes,
   cobranca: cobranca,
   clients: listarClientes,

@@ -51,7 +51,7 @@ module.exports = async function handler(req, res) {
     }
 
     var result = await db.query(
-      "SELECT id, password_hash, falhas, travado_ate, aprovado FROM users WHERE email = $1",
+      "SELECT id, password_hash, falhas, travado_ate, aprovado, manutencao FROM users WHERE email = $1",
       [email]
     );
     // Mesma mensagem pra email inexistente e senha errada — dizer qual dos dois
@@ -98,6 +98,12 @@ module.exports = async function handler(req, res) {
         error: "aguardando_aprovacao",
         message: "Sua conta ainda não foi liberada. Você recebe um aviso assim que for.",
       });
+    }
+
+    // Manutenção só desta conta. Conferida depois da senha pelo mesmo motivo
+    // da aprovação: antes, revelaria que o email existe.
+    if (user.manutencao) {
+      return res.status(503).json({ error: "manutencao", message: MSG_MANUTENCAO });
     }
 
     auth.setSessionCookie(res, auth.createSessionToken(user.id));

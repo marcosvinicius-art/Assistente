@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
   try {
     // Quem já estava logado também para: a sessão dura 30 dias, e barrar só o
     // login deixaria essas pessoas gravando no meio da manutenção.
-    if (!session.isAdmin && (await db.lerConfig()).manutencao) {
+    if (!session.isAdmin && (await db.clienteEmManutencao(userId))) {
       return res.status(503).json({
         error: "manutencao",
         message: "O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.",

@@ -280,6 +280,11 @@
   .admin-cobranca-largo { grid-column: 1 / -1; }
   @media (max-width: 560px) { .admin-cobranca-form { grid-template-columns: 1fr 1fr; } .admin-cobranca-form .field:first-child { grid-column: 1 / -1; } }
   .selo-cobranca { color: var(--expense); border-color: var(--expense); }
+  .selo-manut { color: var(--warning); border-color: var(--warning); }
+  .admin-manut-cliente { padding: 14px 4px 4px; border-top: 1px solid var(--border); }
+  .admin-manut-cliente > strong { display: block; font-size: 14px; }
+  .admin-manut-cliente > small { display: block; font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
+  #adminManutLista .admin-row { grid-template-columns: minmax(0, 1fr) auto; }
   .selo-informado { color: var(--warning); border-color: var(--warning); }
   .site-aviso.urgente {
     background: var(--expense-soft);
@@ -2572,9 +2577,18 @@
       </label>
       <label class="admin-chave">
         <input type="checkbox" id="adminChaveManutencao">
-        <span><strong>Modo manutenção</strong>
+        <span><strong>Modo manutenção (todos)</strong>
           <small>Ligado, só o admin entra. Os clientes veem uma mensagem de manutenção e ninguém grava nada.</small></span>
       </label>
+      <div class="admin-manut-cliente">
+        <strong>Manutenção de um cliente só</strong>
+        <small>O cliente escolhido fica fora do app; os outros continuam usando normalmente.</small>
+        <div class="admin-aviso-acoes">
+          <select id="adminManutPara" aria-label="Cliente"></select>
+          <button type="button" class="btn-add" id="adminManutLigar">Colocar em manutenção</button>
+        </div>
+        <div id="adminManutLista"></div>
+      </div>
     </div>
 
     <div class="panel" style="margin-top: 18px;">
@@ -2883,7 +2897,7 @@
     state.sessao = { email: email, isAdmin: !!isAdmin };
     // Definido antes do aplicarConfig abaixo: em manutenção, a janela de
     // cobrança não pode abrir por cima do aviso de manutenção.
-    state.parouNaManutencao = !!(state.config.manutencao && !isAdmin);
+    state.parouNaManutencao = foraPorManutencao(state.config) && !isAdmin;
     hideAuthGate();
     state.storage = "server";
     state.isAdmin = !!isAdmin;
@@ -2928,7 +2942,10 @@
   // O padrão é o site como sempre foi: sem /api/config (arquivo local, dentro
   // do Claude) nada muda. A tela só reflete as chaves; quem barra cadastro e
   // manutenção de verdade é o servidor.
-  state.config = { aviso: null, meuAviso: null, minhaCobranca: null, cadastrosAbertos: true, manutencao: false, assistente: true };
+  state.config = { aviso: null, meuAviso: null, minhaCobranca: null, cadastrosAbertos: true, manutencao: false, minhaManutencao: false, assistente: true };
+
+  // Geral (todos os clientes) ou só desta conta: o efeito na tela é o mesmo.
+  function foraPorManutencao(cfg) { return !!(cfg && (cfg.manutencao || cfg.minhaManutencao)); }
 
   function aplicarConfig(cfg) {
     if (!cfg) return;
@@ -3068,21 +3085,24 @@
   function conferirConfig() {
     if (document.hidden) return;
     apiJson("GET", "/api/config").then(function (cfg) {
-      var entrouManutencao = cfg.manutencao && !state.config.manutencao;
-      aplicarConfig(cfg);
       var s = state.sessao;
+      var cliente = s && !s.isAdmin;
+      // Vale para a manutenção geral e para a só deste cliente. Marcada antes
+      // do aplicarConfig, para a janela de cobrança não abrir por cima.
+      var entrouManutencao = cliente && foraPorManutencao(cfg) && !state.parouNaManutencao;
+      if (entrouManutencao) state.parouNaManutencao = true;
+      aplicarConfig(cfg);
       // Reporte novo aparece para o admin (contador na aba e lista) sem recarregar.
       if (s && s.isAdmin) carregarReportes();
-      if (!s || s.isAdmin) return;
+      if (!cliente) return;
       // Cliente logado: a manutenção ligada o tira do app na hora, e desligada
       // o devolve sem pedir login de novo — a sessão dele continua valendo.
       if (entrouManutencao) {
-        state.parouNaManutencao = true;
         fecharCobranca(); // a janela (z-index acima) cobriria o aviso de manutenção
         document.getElementById("reportarFab").hidden = true;
         document.getElementById("reportarOverlay").hidden = true;
         showAuthGate("O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.");
-      } else if (!cfg.manutencao && state.parouNaManutencao) {
+      } else if (!foraPorManutencao(cfg) && state.parouNaManutencao) {
         enterServerMode(s.email, false);
       }
     }).catch(function () {});
@@ -3240,6 +3260,51 @@
     });
   }
 
+  // ---------- Manutenção de um cliente (admin) ----------
+  function preencherManutencao() {
+    var select = document.getElementById("adminManutPara");
+    var livres = clientesAtivos().filter(function (c) { return !c.manutencao; });
+    select.innerHTML = '<option value="">Escolha o cliente</option>' + livres.map(function (c) {
+      return '<option value="' + escapeHtml(c.email) + '">' + escapeHtml(c.email) + '</option>';
+    }).join("");
+
+    var parados = state.adminClientes.filter(function (c) { return c.manutencao; });
+    var lista = document.getElementById("adminManutLista");
+    lista.innerHTML = parados.map(function (c) {
+      return '<div class="admin-row">' +
+        '<span class="admin-email">' + escapeHtml(c.email) + '<span class="selo-pendente selo-manut">em manutenção</span></span>' +
+        '<button type="button" class="export-btn admin-manut-liberar" data-email="' + escapeHtml(c.email) + '">Liberar</button>' +
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(lista.querySelectorAll(".admin-manut-liberar"), function (b) {
+      b.addEventListener("click", function () {
+        b.disabled = true;
+        mudarManutencao(b.getAttribute("data-email"), false).catch(function () { b.disabled = false; });
+      });
+    });
+  }
+
+  function mudarManutencao(email, ligar) {
+    var status = document.getElementById("adminRecursosStatus");
+    status.textContent = "salvando…";
+    return apiJson("POST", "/api/admin/manutencao-cliente", { email: email, manutencao: ligar }).then(function () {
+      status.textContent = email + (ligar ? " em manutenção" : " liberado");
+      enterAdminMode();
+    }).catch(function (e) {
+      status.textContent = "não salvou: " + ((e && e.message) || "erro");
+      throw e;
+    });
+  }
+
+  document.getElementById("adminManutLigar").addEventListener("click", function () {
+    var email = document.getElementById("adminManutPara").value;
+    if (!email) { document.getElementById("adminRecursosStatus").textContent = "escolha o cliente"; return; }
+    if (!window.confirm("Colocar " + email + " em manutenção? Ele sai do app até você liberar.")) return;
+    var btn = this;
+    btn.disabled = true;
+    mudarManutencao(email, true).catch(function () {}).finally(function () { btn.disabled = false; });
+  });
+
   function salvarAviso(aviso) {
     var email = avisoAlvo();
     var status = document.getElementById("adminAvisoStatus");
@@ -3354,6 +3419,7 @@
       state.adminClientes = clientes;
       preencherDestinatarios();
       preencherCobrancas();
+      preencherManutencao();
       if (!clientes.length) {
         contador.textContent = "";
         lista.innerHTML = '<div class="empty-note">Nenhum cliente cadastrado ainda.</div>';
@@ -3370,7 +3436,8 @@
           '<span class="admin-email">' + escapeHtml(c.email) +
             (pendente ? '<span class="selo-pendente">aguardando</span>' : "") +
             (c.aviso ? '<span class="selo-pendente selo-aviso">aviso</span>' : "") +
-            (c.cobranca ? '<span class="selo-pendente selo-cobranca">cobrança</span>' : "") + '</span>' +
+            (c.cobranca ? '<span class="selo-pendente selo-cobranca">cobrança</span>' : "") +
+            (c.manutencao ? '<span class="selo-pendente selo-manut">manutenção</span>' : "") + '</span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
             '" data-aprovar="' + (pendente ? "1" : "0") + '">' +

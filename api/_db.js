@@ -96,6 +96,8 @@ function ensureSchema() {
       -- pix, link, criadaEm, pagoInformadoEm }. Uma por vez; some quando o
       -- admin confirma o pagamento ou cancela.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS cobranca JSONB;
+      -- Manutenção só deste cliente: fica fora do app enquanto os demais usam.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS manutencao BOOLEAN NOT NULL DEFAULT false;
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,
@@ -170,4 +172,15 @@ async function gravarConfig(mudancas) {
   return nova;
 }
 
-module.exports = { query, mensagemDeFalha, stringDeConexao, lerConfig, gravarConfig };
+// Cliente fora do app: manutenção geral ligada ou manutenção só dele. Uma
+// consulta só, para não somar duas idas ao banco em cada leitura de dados.
+async function clienteEmManutencao(userId) {
+  var r = await query(
+    "SELECT COALESCE((SELECT (valor->>'manutencao')::boolean FROM config WHERE chave = 'site'), false) AS geral, " +
+    "COALESCE((SELECT manutencao FROM users WHERE id = $1), false) AS dele",
+    [userId]
+  );
+  return r.rows[0].geral || r.rows[0].dele;
+}
+
+module.exports = { query, mensagemDeFalha, stringDeConexao, lerConfig, gravarConfig, clienteEmManutencao };

@@ -32,11 +32,13 @@ module.exports = async function handler(req, res) {
     var cfg = await db.lerConfig();
     cfg.meuAviso = null;
     cfg.minhaCobranca = null;
+    cfg.minhaManutencao = false;
     if (session && !session.isAdmin) {
-      var u = await db.query("SELECT aviso, cobranca FROM users WHERE id = $1", [session.uid]);
+      var u = await db.query("SELECT aviso, cobranca, manutencao FROM users WHERE id = $1", [session.uid]);
       if (u.rows.length) {
         cfg.meuAviso = u.rows[0].aviso || null;
         cfg.minhaCobranca = u.rows[0].cobranca || null;
+        cfg.minhaManutencao = !!u.rows[0].manutencao;
       }
     }
     return res.status(200).json(cfg);
