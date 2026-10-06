@@ -773,6 +773,10 @@
     gap: 18px;
     align-items: start;
   }
+  /* Coluna de grade não encolhe abaixo do conteúdo por padrão: a fila de
+     gastos rápidos, que não quebra linha no celular, esticava a página para
+     quase 1000px. Com isto ela rola dentro da coluna. */
+  .grid > * { min-width: 0; }
 
   /* Sem sombra. A mesma sombra macia sob cada bloco é o que faz tudo parecer o
      mesmo cartão repetido; a hierarquia aqui vem do filete superior mais forte,
@@ -912,6 +916,29 @@
   .acao.saida:hover { border-color: var(--expense); background: var(--expense-soft); }
   .acao.entrada:hover { border-color: var(--income); background: var(--income-soft); }
   .acao:active { transform: scale(0.99); }
+
+  /* Atalhos de gasto do dia a dia: um toque abre a saída já com descrição e
+     categoria (e o último valor, nos que vêm do histórico). Rolam na
+     horizontal no celular em vez de quebrar em várias linhas. */
+  .gastos-rapidos { margin: -6px 0 18px; }
+  .gastos-rapidos[hidden] { display: none; }
+  .gastos-rapidos-rotulo { display: block; font-size: 11.5px; color: var(--ink-faint); margin-bottom: 6px; }
+  .gastos-rapidos-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+  .gasto-rapido {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 12px 6px 10px; cursor: pointer; white-space: nowrap;
+    transition: border-color var(--ease), background var(--ease);
+  }
+  .gasto-rapido:hover { border-color: var(--expense); background: var(--expense-soft); }
+  .gasto-rapido:active { transform: scale(0.97); }
+  .gasto-rapido .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .gasto-rapido-valor { font-weight: 500; color: var(--ink-muted); }
+  @media (max-width: 560px) {
+    .gastos-rapidos-lista { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .gastos-rapidos-lista::-webkit-scrollbar { display: none; }
+  }
 
   .entry-cabecalho {
     grid-column: 1 / -1;
@@ -1772,6 +1799,9 @@
   @media (max-width: 560px) {
     .qr-btn-label { display: none; }
     .qr-btn { padding: 8px; border-radius: 50%; }
+    /* Mês + seis botões não cabem em 390px: sem quebrar linha, o "Sair"
+       ficava para fora da tela. */
+    .topbar-actions { flex-wrap: wrap; row-gap: 8px; }
 
     /* Abaixo de 16px, o Safari do iPhone dá zoom sozinho ao tocar no campo —
        a página "pula" de tamanho a cada campo tocado. */
@@ -2195,6 +2225,11 @@
             <button type="button" class="acao entrada" data-tipo="receita">
               <span class="acao-sinal">+</span><span class="acao-verbo">Registrar </span>entrada
             </button>
+          </div>
+
+          <div class="gastos-rapidos" id="gastosRapidos">
+            <span class="gastos-rapidos-rotulo">Gastos rápidos</span>
+            <div class="gastos-rapidos-lista" id="gastosRapidosLista"></div>
           </div>
 
           <form class="entry" id="txForm" hidden>
@@ -4232,18 +4267,89 @@
     atualizarRotuloPago();
     txForm.hidden = false;
     acoesLancamento.hidden = true;
+    document.getElementById("gastosRapidos").hidden = true;
     document.getElementById("txDesc").focus();
   }
 
   function fecharLancamento() {
     txForm.hidden = true;
     acoesLancamento.hidden = false;
+    document.getElementById("gastosRapidos").hidden = false;
     document.getElementById("txDesc").value = "";
     setAmountValue(document.getElementById("txAmount"), null);
     document.getElementById("txParcelas").value = "1";
     atualizarHintParcelas();
     limparComprovanteDoForm();
   }
+
+  // ---------- Gastos rápidos ----------
+  // Primeiro o que a própria pessoa mais lança (últimos 90 dias, 2+ vezes), com
+  // o último valor usado — o café de todo dia vira dois toques. Depois, para
+  // completar, gastos comuns do dia a dia, sem valor.
+  var GASTOS_PADRAO = [
+    { desc: "Café", category: "alimentacao" },
+    { desc: "Almoço", category: "alimentacao" },
+    { desc: "Lanche", category: "alimentacao" },
+    { desc: "Mercado", category: "alimentacao" },
+    { desc: "Padaria", category: "alimentacao" },
+    { desc: "iFood", category: "alimentacao" },
+    { desc: "Uber", category: "transporte" },
+    { desc: "Gasolina", category: "transporte" },
+    { desc: "Farmácia", category: "saude" }
+  ];
+  var MAX_GASTOS_RAPIDOS = 9;
+
+  function gastosRapidos() {
+    var limite = addMonthsISO(todayISO(), -3);
+    var porDesc = {};
+    state.transactions.forEach(function (t) {
+      if (t.type !== "despesa" || t.parcela || !t.desc || t.date < limite) return;
+      var k = t.desc.trim().toLowerCase();
+      var g = porDesc[k] || (porDesc[k] = { n: 0, ultimo: null });
+      g.n += 1;
+      if (!g.ultimo || t.date >= g.ultimo.date) g.ultimo = t;
+    });
+    var meus = Object.keys(porDesc).filter(function (k) { return porDesc[k].n >= 2; })
+      .sort(function (a, b) { return porDesc[b].n - porDesc[a].n; })
+      .map(function (k) {
+        var u = porDesc[k].ultimo;
+        var desc = u.desc.trim();
+        // "café" e "Café" são o mesmo gasto; o botão mostra com maiúscula.
+        return { desc: desc.charAt(0).toUpperCase() + desc.slice(1), category: u.category, amount: Number(u.amount) };
+      });
+    var ja = {};
+    meus.forEach(function (g) { ja[g.desc.trim().toLowerCase()] = true; });
+    return meus.concat(GASTOS_PADRAO.filter(function (g) { return !ja[g.desc.toLowerCase()]; }))
+      .slice(0, MAX_GASTOS_RAPIDOS);
+  }
+
+  function renderGastosRapidos() {
+    var itens = gastosRapidos();
+    var lista = document.getElementById("gastosRapidosLista");
+    lista.innerHTML = itens.map(function (g, i) {
+      return '<button type="button" class="gasto-rapido" data-i="' + i + '">' +
+        '<span class="dot" style="background:' + catMeta(g.category).color + '"></span>' + escapeHtml(g.desc) +
+        (g.amount ? ' <span class="gasto-rapido-valor">' + fmt(g.amount) + '</span>' : "") +
+      '</button>';
+    }).join("");
+    lista._itens = itens;
+  }
+
+  document.getElementById("gastosRapidosLista").addEventListener("click", function (e) {
+    var btn = e.target.closest(".gasto-rapido");
+    if (!btn) return;
+    var g = this._itens[Number(btn.getAttribute("data-i"))];
+    abrirLancamento("despesa");
+    document.getElementById("txDesc").value = g.desc;
+    txCategory.value = g.category;
+    var valor = document.getElementById("txAmount");
+    setAmountValue(valor, g.amount || null);
+    atualizarHintParcelas();
+    // O cursor vai para o valor: é a única coisa que costuma mudar de um dia
+    // para o outro. Com valor já preenchido, ele fica selecionado para trocar.
+    valor.focus();
+    valor.select();
+  });
 
   acoesLancamento.addEventListener("click", function (e) {
     var btn = e.target.closest("button");
@@ -5874,6 +5980,8 @@
         avgSubEl.innerHTML = 'Este mês: <strong class="num" style="color:var(--income)">' + fmt(expenseDoMes) + '</strong> — dentro da sua média (' + avgData.months + (avgData.months === 1 ? ' mês anterior' : ' meses anteriores') + ')';
       }
     }
+
+    renderGastosRapidos();
 
     // transaction list
     var list = document.getElementById("txList");
