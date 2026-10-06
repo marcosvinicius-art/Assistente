@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const db = require("../_db");
 const auth = require("../_auth");
+const wa = require("../_whatsapp");
+const agente = require("../_agente");
 
 // As rotas de administração num arquivo só. O plano gratuito da Vercel
 // permite 12 funções por implantação, e cada arquivo aqui dentro contava como
@@ -24,11 +26,11 @@ async function listarClientes(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   // Pendentes primeiro: são as únicas linhas que pedem uma decisão, e no fim de
   // uma lista longa ficariam sem ser vistas.
-  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao FROM users ORDER BY aprovado ASC, created_at DESC");
+  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao, (whatsapp IS NOT NULL) AS tem_whatsapp FROM users ORDER BY aprovado ASC, created_at DESC");
   return res.status(200).json(r.rows.map(function (u) {
     return {
       email: u.email, criadoEm: u.created_at, aprovado: u.aprovado,
-      aviso: u.aviso || null, cobranca: u.cobranca || null, manutencao: !!u.manutencao,
+      aviso: u.aviso || null, cobranca: u.cobranca || null, manutencao: !!u.manutencao, whatsapp: !!u.tem_whatsapp,
     };
   }));
 }
@@ -209,9 +211,28 @@ async function avisoCliente(req, res) {
   if (!email) return res.status(400).json({ error: "missing_email" });
 
   var aviso = normalizarAviso(body.aviso);
-  var r = await db.query("UPDATE users SET aviso = $1 WHERE email = $2 RETURNING id", [aviso, email]);
+  var r = await db.query("UPDATE users SET aviso = $1 WHERE email = $2 RETURNING id, whatsapp", [aviso, email]);
   if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
-  return res.status(200).json({ email: email, aviso: aviso });
+  var envio = aviso ? await avisarNoWhatsapp(r.rows[0].whatsapp, "📢 *Aviso do Wonner Sols*\n\n" + aviso.texto,
+    process.env.WHATSAPP_TEMPLATE_AVISO, [aviso.texto]) : null;
+  return res.status(200).json({ email: email, aviso: aviso, whatsapp: envio });
+}
+
+// Manda também no WhatsApp do cliente, se ele conectou o dele. Falhar aqui não
+// desfaz o aviso/cobrança — o app continua mostrando —, só volta o motivo para
+// o painel dizer ao admin.
+async function avisarNoWhatsapp(numero, texto, modelo, parametros) {
+  if (!numero) return "cliente sem WhatsApp conectado";
+  if (!wa.configurado()) return "agente do WhatsApp não configurado";
+  try {
+    await wa.enviarParaCliente(numero, texto, modelo, parametros);
+    return "enviado no WhatsApp";
+  } catch (e) {
+    // 131047: passou de 24h desde a última mensagem do cliente; sem modelo
+    // aprovado a Meta não entrega mensagem puxada pela empresa.
+    if (e && e.codigo === 131047) return "não enviado no WhatsApp: cliente fora da janela de 24h (configure o modelo aprovado)";
+    return "não enviado no WhatsApp: " + ((e && e.message) || "erro");
+  }
 }
 
 // Cobrança para um cliente. cobranca null = tirar (pagamento confirmado ou
@@ -249,9 +270,20 @@ async function cobranca(req, res) {
     };
   }
 
-  var r = await db.query("UPDATE users SET cobranca = $1 WHERE email = $2 RETURNING id", [nova, email]);
+  var r = await db.query("UPDATE users SET cobranca = $1 WHERE email = $2 RETURNING id, whatsapp", [nova, email]);
   if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
-  return res.status(200).json({ email: email, cobranca: nova });
+  var envio = null;
+  if (nova) {
+    var valor = agente.brl(nova.valorCentavos / 100);
+    var venc = nova.vencimento.split("-").reverse().join("/");
+    var texto = "💳 *Cobrança do Wonner Sols*\n\nValor: *" + valor + "*\nVencimento: " + venc +
+      (nova.mensagem ? "\n\n" + nova.mensagem : "") +
+      (nova.pix ? "\n\nChave Pix: " + nova.pix : "") +
+      (nova.link ? "\nPagar: " + nova.link : "") +
+      "\n\nDepois de pagar, toque em *Já paguei* no app.";
+    envio = await avisarNoWhatsapp(r.rows[0].whatsapp, texto, process.env.WHATSAPP_TEMPLATE_COBRANCA, [valor, venc]);
+  }
+  return res.status(200).json({ email: email, cobranca: nova, whatsapp: envio });
 }
 
 // Reportes dos clientes. GET lista (abertos primeiro, sem o print, que vem só

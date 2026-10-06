@@ -281,6 +281,8 @@
   @media (max-width: 560px) { .admin-cobranca-form { grid-template-columns: 1fr 1fr; } .admin-cobranca-form .field:first-child { grid-column: 1 / -1; } }
   .selo-cobranca { color: var(--expense); border-color: var(--expense); }
   .selo-manut { color: var(--warning); border-color: var(--warning); }
+  .selo-whats { color: #1FAF54; border-color: #1FAF54; }
+  .admin-whats-envio { margin: 8px 0 0; font-size: 12.5px; color: var(--ink-muted); }
   .admin-manut-cliente { padding: 14px 4px 4px; border-top: 1px solid var(--border); }
   .admin-manut-cliente > strong { display: block; font-size: 14px; }
   .admin-manut-cliente > small { display: block; font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
@@ -1209,6 +1211,18 @@
   .tx-comprovante { color: var(--accent-ink); }
   .tx-comprovante:hover { background: var(--accent-soft); color: var(--accent-ink); }
 
+  /* ---- WhatsApp ---- */
+  .whats-card { max-width: 380px; }
+  .whats-passos, .whats-exemplos { text-align: left; font-size: 13.5px; line-height: 1.6; margin: 0 0 14px; padding-left: 20px; color: var(--ink); }
+  .whats-exemplos li { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+  .whats-codigo {
+    font-family: ui-monospace, Consolas, monospace; font-size: 30px; font-weight: 800; letter-spacing: 0.18em;
+    background: var(--surface-2); border: 1px dashed var(--accent); border-radius: 10px; padding: 12px; margin-bottom: 12px;
+  }
+  .whats-acao { width: 100%; height: 40px; margin-bottom: 8px; text-decoration: none; }
+  .whats-abrir { background: #1FAF54; }
+  .whats-ok { font-size: 14px; margin: 0 0 12px; }
+
   /* ---- Reportar ---- */
   .reportar-fab {
     position: fixed; right: 20px; bottom: 20px; z-index: 40;
@@ -1859,6 +1873,10 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
         <span class="qr-btn-label">No celular</span>
       </button>
+      <button type="button" class="qr-btn" id="whatsOpenBtn" title="Usar pelo WhatsApp" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
+        <span class="qr-btn-label">WhatsApp</span>
+      </button>
       <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
         <span class="qr-btn-label">Avaliar</span>
@@ -1947,6 +1965,39 @@
 
   <div class="site-aviso" id="siteAviso" role="status" hidden></div>
   <div class="site-aviso" id="clienteAviso" role="status" hidden></div>
+
+  <div class="qr-overlay" id="whatsOverlay" hidden>
+    <div class="qr-card whats-card" role="dialog" aria-modal="true" aria-labelledby="whatsTitulo">
+      <button type="button" class="qr-close" id="whatsFechar" aria-label="Fechar">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h2 id="whatsTitulo">Wonner Sols no WhatsApp</h2>
+      <div id="whatsDesconectado">
+        <p class="qr-hint">Lance gastos e consulte suas contas conversando pelo WhatsApp. Conecte o seu número em dois passos:</p>
+        <ol class="whats-passos">
+          <li>Gere um código (vale 15 minutos).</li>
+          <li>Mande o código para o nosso WhatsApp — o botão já abre a conversa com ele escrito.</li>
+        </ol>
+        <div class="whats-codigo" id="whatsCodigo" hidden></div>
+        <button type="button" class="btn-add whats-acao" id="whatsGerar">Gerar código</button>
+        <a class="btn-add whats-acao whats-abrir" id="whatsAbrir" target="_blank" rel="noopener noreferrer" hidden>Abrir no WhatsApp</a>
+        <p class="comprovante-erro" id="whatsErro" hidden></p>
+      </div>
+      <div id="whatsConectado" hidden>
+        <p class="whats-ok">✅ Conectado ao WhatsApp <strong id="whatsNumero"></strong></p>
+        <p class="qr-hint">Mande mensagens como:</p>
+        <ul class="whats-exemplos">
+          <li>gastei 45 no mercado</li>
+          <li>comprei 600 em 3x no nubank</li>
+          <li>recebi 3000 de salário</li>
+          <li>resumo · parcelas · últimos · desfazer</li>
+        </ul>
+        <p class="qr-hint">Também dá para mandar a foto da nota: ela vira o comprovante do lançamento.</p>
+        <a class="btn-add whats-acao whats-abrir" id="whatsConversar" target="_blank" rel="noopener noreferrer">Abrir conversa</a>
+        <button type="button" class="auth-toggle" id="whatsDesconectar">Desconectar este WhatsApp</button>
+      </div>
+    </div>
+  </div>
 
   <button type="button" class="reportar-fab" id="reportarFab" hidden>
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
@@ -2521,6 +2572,7 @@
         <button type="button" class="btn-add" id="adminAvisoPublicar">Publicar aviso</button>
         <button type="button" class="export-btn" id="adminAvisoTirar">Tirar aviso</button>
       </div>
+      <p class="hint admin-whats-envio" id="adminAvisoWhats" hidden></p>
     </div>
 
     <div class="panel" style="margin-top: 18px;">
@@ -2557,6 +2609,7 @@
       <div class="admin-aviso-acoes">
         <button type="button" class="btn-add" id="adminCobrancaEnviar">Enviar cobrança</button>
       </div>
+      <p class="hint admin-whats-envio" id="adminCobrancaWhats" hidden></p>
       <div id="adminCobrancaLista" style="margin-top: 14px;"></div>
     </div>
 
@@ -2963,6 +3016,7 @@
     });
 
     aplicarCobranca(cfg.minhaCobranca);
+    aplicarWhatsapp(cfg);
 
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
     authToggleBtn.hidden = !podeCadastrar;
@@ -2975,6 +3029,70 @@
       document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
     }
   }
+
+  // ---------- WhatsApp (cliente) ----------
+  // O botão só existe com o agente configurado no servidor e para clientes
+  // logados. A janela troca sozinha para "conectado" quando o código chega ao
+  // agente — a conferência de 15 s traz o número novo.
+  function aplicarWhatsapp(cfg) {
+    var s = state.sessao;
+    document.getElementById("whatsOpenBtn").hidden = !(cfg.agenteWhatsapp && s && !s.isAdmin);
+    var conectado = !!cfg.meuWhatsapp;
+    document.getElementById("whatsDesconectado").hidden = conectado;
+    document.getElementById("whatsConectado").hidden = !conectado;
+    if (conectado) {
+      document.getElementById("whatsNumero").textContent = cfg.meuWhatsapp;
+      document.getElementById("whatsCodigo").hidden = true;
+      document.getElementById("whatsAbrir").hidden = true;
+      document.getElementById("whatsGerar").hidden = false;
+    }
+    if (cfg.agenteWhatsapp) {
+      document.getElementById("whatsConversar").href = "https://wa.me/" + cfg.agenteWhatsapp + "?text=" + encodeURIComponent("ajuda");
+    }
+    // Lançou (ou desfez) pelo WhatsApp com o app aberto: traz a lista de novo.
+    if (s && !s.isAdmin && state.storage === "server" && !state.parouNaManutencao &&
+        state.marcaWhats !== undefined && cfg.marcaWhatsapp !== state.marcaWhats) {
+      serverList("transactions").then(function (lista) { state.transactions = lista; render(); }).catch(function () {});
+    }
+    if (s) state.marcaWhats = cfg.marcaWhatsapp;
+  }
+
+  document.getElementById("whatsOpenBtn").addEventListener("click", function () {
+    document.getElementById("whatsOverlay").hidden = false;
+  });
+  function fecharWhats() { document.getElementById("whatsOverlay").hidden = true; }
+  document.getElementById("whatsFechar").addEventListener("click", fecharWhats);
+  document.getElementById("whatsOverlay").addEventListener("click", function (e) { if (e.target === e.currentTarget) fecharWhats(); });
+
+  document.getElementById("whatsGerar").addEventListener("click", function () {
+    var btn = this;
+    var erro = document.getElementById("whatsErro");
+    btn.disabled = true;
+    erro.hidden = true;
+    apiJson("POST", "/api/config", { acao: "whatsapp-codigo" }).then(function (r) {
+      var cod = document.getElementById("whatsCodigo");
+      cod.textContent = r.codigo;
+      cod.hidden = false;
+      var abrir = document.getElementById("whatsAbrir");
+      abrir.href = "https://wa.me/" + String(r.numero || state.config.agenteWhatsapp || "").replace(/\D/g, "") +
+        "?text=" + encodeURIComponent(r.codigo);
+      abrir.hidden = false;
+      btn.hidden = true;
+      // Volta a oferecer o botão quando o código vencer.
+      setTimeout(function () { btn.hidden = false; btn.textContent = "Gerar outro código"; }, 15 * 60 * 1000);
+    }).catch(function (e) {
+      erro.textContent = (e && e.message) || "Não consegui gerar o código agora.";
+      erro.hidden = false;
+    }).finally(function () { btn.disabled = false; });
+  });
+
+  document.getElementById("whatsDesconectar").addEventListener("click", function () {
+    if (!window.confirm("Desconectar este WhatsApp? O agente para de responder a ele até você conectar de novo.")) return;
+    apiJson("POST", "/api/config", { acao: "whatsapp-desconectar" }).then(function () {
+      state.config.meuWhatsapp = null;
+      aplicarWhatsapp(state.config);
+    }).catch(function (e) { window.alert((e && e.message) || "Não consegui agora."); });
+  });
 
   // ---------- Cobrança (cliente) ----------
   function dataBR(iso) { var p = String(iso).slice(0, 10).split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
@@ -3200,6 +3318,16 @@
     mostrarAvisoDoAlvo();
   }
 
+  // O servidor diz o que aconteceu com a cópia no WhatsApp ("enviado", "cliente
+  // sem WhatsApp conectado", "fora da janela de 24h"...). Some sozinho depois.
+  function mostrarEnvioWhats(id, resultado) {
+    var el = document.getElementById(id);
+    el.hidden = !resultado;
+    el.textContent = resultado ? "📱 " + resultado.charAt(0).toUpperCase() + resultado.slice(1) : "";
+    clearTimeout(el._timer);
+    el._timer = setTimeout(function () { el.hidden = true; }, 12000);
+  }
+
   // ---------- Cobranças (admin) ----------
   // Fora das listas de aviso e cobrança: contas aguardando (não entram no app)
   // e a do próprio admin.
@@ -3313,6 +3441,7 @@
     }
     status.textContent = "salvando…";
     return apiJson("POST", "/api/admin/aviso-cliente", { email: email, aviso: aviso }).then(function (r) {
+      mostrarEnvioWhats("adminAvisoWhats", r.whatsapp);
       state.adminClientes.forEach(function (c) { if (c.email === email) c.aviso = r.aviso; });
       preencherDestinatarios();
       enterAdminMode(); // atualiza o selo "aviso" na lista de clientes
@@ -3437,7 +3566,8 @@
             (pendente ? '<span class="selo-pendente">aguardando</span>' : "") +
             (c.aviso ? '<span class="selo-pendente selo-aviso">aviso</span>' : "") +
             (c.cobranca ? '<span class="selo-pendente selo-cobranca">cobrança</span>' : "") +
-            (c.manutencao ? '<span class="selo-pendente selo-manut">manutenção</span>' : "") + '</span>' +
+            (c.manutencao ? '<span class="selo-pendente selo-manut">manutenção</span>' : "") +
+            (c.whatsapp ? '<span class="selo-pendente selo-whats">WhatsApp</span>' : "") + '</span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
             '" data-aprovar="' + (pendente ? "1" : "0") + '">' +
@@ -3767,7 +3897,8 @@
       email: email,
       cobranca: { valorCentavos: centavos, vencimento: venc, pix: pix, link: link,
         mensagem: document.getElementById("adminCobrancaMsg").value },
-    }).then(function () {
+    }).then(function (r) {
+      mostrarEnvioWhats("adminCobrancaWhats", r && r.whatsapp);
       try { localStorage.setItem("wonner-cobranca-pix", pix); localStorage.setItem("wonner-cobranca-link", link); } catch (e) {}
       setAmountValue(document.getElementById("adminCobrancaValor"), "");
       document.getElementById("adminCobrancaMsg").value = "";
@@ -6422,7 +6553,7 @@
   // ---------- Local fallback parser — works even without the "sample" (AI) capability, ----------
   // ---------- so every gasto falado ou digitado sempre é registrado, com ou sem IA. ----------
   var EXPENSE_KEYWORDS = {
-    moradia: ["aluguel", "condomínio", "condominio", "iptu", "conta de luz", "energia", "água", "agua", "internet", "gás", "gas"],
+    moradia: ["aluguel", "condomínio", "condominio", "iptu", "conta de luz", "luz", "energia", "água", "agua", "internet", "gás", "gas"],
     alimentacao: ["mercado", "supermercado", "feira", "padaria", "restaurante", "lanche", "ifood", "almoço", "almoco", "jantar"],
     transporte: ["uber", "99", "gasolina", "combustível", "combustivel", "ônibus", "onibus", "metrô", "metro", "estacionamento", "pedágio", "pedagio"],
     saude: ["farmácia", "farmacia", "remédio", "remedio", "médico", "medico", "consulta", "plano de saúde", "academia", "dentista"],
@@ -6436,10 +6567,21 @@
     freelance: ["freela", "freelance", "pj", "bico", "projeto"]
   };
 
+  // Palavra inteira: com indexOf, o "gas" de Moradia casava dentro de "GASTEI"
+  // e quase todo gasto ia parar em Moradia. (Igual em api/_agente.js.)
+  function temPalavra(lower, palavra) {
+    var i = lower.indexOf(palavra);
+    while (i !== -1) {
+      var antes = lower.charAt(i - 1), depois = lower.charAt(i + palavra.length);
+      if (!/[a-z0-9à-ÿ]/.test(antes) && !/[a-z0-9à-ÿ]/.test(depois)) return true;
+      i = lower.indexOf(palavra, i + 1);
+    }
+    return false;
+  }
   function guessCategory(lower, dict, fallback) {
     for (var key in dict) {
       var words = dict[key];
-      for (var i = 0; i < words.length; i++) if (lower.indexOf(words[i]) !== -1) return key;
+      for (var i = 0; i < words.length; i++) if (temPalavra(lower, words[i])) return key;
     }
     return fallback;
   }

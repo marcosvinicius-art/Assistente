@@ -98,6 +98,21 @@ function ensureSchema() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS cobranca JSONB;
       -- Manutenção só deste cliente: fica fora do app enquanto os demais usam.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS manutencao BOOLEAN NOT NULL DEFAULT false;
+      -- Agente do WhatsApp: o número ligado à conta (wa_id da Meta, só dígitos),
+      -- o código de conexão de uso único, o comprovante que aguarda o valor e os
+      -- ids do último lançamento feito por lá (para o "desfazer").
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_codigo TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_codigo_ate TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_pendente JSONB;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_ultimos JSONB;
+      CREATE UNIQUE INDEX IF NOT EXISTS users_whatsapp_idx ON users(whatsapp) WHERE whatsapp IS NOT NULL;
+      -- A Meta reenvia o aviso quando a resposta demora; o id da mensagem
+      -- gravado aqui impede lançar o mesmo gasto duas vezes.
+      CREATE TABLE IF NOT EXISTS wa_mensagens (
+        id TEXT PRIMARY KEY,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
       CREATE TABLE IF NOT EXISTS feedback (
         id UUID PRIMARY KEY,
         email TEXT NOT NULL,

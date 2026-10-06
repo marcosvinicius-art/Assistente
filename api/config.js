@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const db = require("./_db");
 const auth = require("./_auth");
 
@@ -14,6 +15,26 @@ const auth = require("./_auth");
 module.exports = async function handler(req, res) {
   try {
     var session = auth.getSession(req);
+
+    var acao = req.method === "POST" && req.body ? req.body.acao : null;
+
+    // Conectar o WhatsApp: código de 6 caracteres, vale 15 minutos, uso único.
+    // Quem o manda para o número do agente liga aquele WhatsApp a esta conta.
+    if (acao === "whatsapp-codigo" || acao === "whatsapp-desconectar") {
+      if (!session || session.isAdmin) return res.status(401).json({ error: "not_authenticated" });
+      if (acao === "whatsapp-desconectar") {
+        await db.query("UPDATE users SET whatsapp = NULL, wa_pendente = NULL, wa_ultimos = NULL WHERE id = $1", [session.uid]);
+        return res.status(200).json({ ok: true });
+      }
+      var alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sem 0/O e 1/I, que se confundem
+      var bytes = crypto.randomBytes(6), codigo = "";
+      for (var i = 0; i < 6; i++) codigo += alfabeto[bytes[i] % alfabeto.length];
+      await db.query(
+        "UPDATE users SET wa_codigo = $1, wa_codigo_ate = now() + interval '15 minutes' WHERE id = $2",
+        [codigo, session.uid]
+      );
+      return res.status(200).json({ codigo: codigo, numero: process.env.WHATSAPP_NUMERO || null });
+    }
 
     if (req.method === "POST") {
       if (!session || session.isAdmin) return res.status(401).json({ error: "not_authenticated" });
@@ -33,12 +54,24 @@ module.exports = async function handler(req, res) {
     cfg.meuAviso = null;
     cfg.minhaCobranca = null;
     cfg.minhaManutencao = false;
+    // O botão "WhatsApp" só aparece no app quando o agente está configurado.
+    // O número é o público do agente (o mesmo que o cliente salva nos contatos).
+    cfg.agenteWhatsapp = process.env.WHATSAPP_NUMERO && process.env.WHATSAPP_TOKEN
+      ? String(process.env.WHATSAPP_NUMERO).replace(/\D/g, "") : null;
+    cfg.meuWhatsapp = null;
     if (session && !session.isAdmin) {
-      var u = await db.query("SELECT aviso, cobranca, manutencao FROM users WHERE id = $1", [session.uid]);
+      var u = await db.query("SELECT aviso, cobranca, manutencao, whatsapp, wa_ultimos FROM users WHERE id = $1", [session.uid]);
       if (u.rows.length) {
         cfg.meuAviso = u.rows[0].aviso || null;
         cfg.minhaCobranca = u.rows[0].cobranca || null;
         cfg.minhaManutencao = !!u.rows[0].manutencao;
+        // Só o final do número: basta para a pessoa reconhecer o dela.
+        var w = u.rows[0].whatsapp;
+        cfg.meuWhatsapp = w ? "•••• " + w.slice(-4) : null;
+        // Muda a cada lançamento (ou "desfazer") feito pelo WhatsApp: o app
+        // aberto percebe e recarrega a lista sem a pessoa atualizar a página.
+        var ult = u.rows[0].wa_ultimos;
+        cfg.marcaWhatsapp = Array.isArray(ult) && ult.length ? ult[0] : null;
       }
     }
     return res.status(200).json(cfg);
