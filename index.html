@@ -1049,6 +1049,10 @@
     align-items: end;
   }
   .card-form-nome { grid-column: 1 / -1; }
+  /* O limite ocupa a linha toda; no débito ele some e o final fica sozinho. */
+  .card-form .so-credito:has(#cardLimit) { grid-column: 1 / -1; }
+  #cardFinal:not(:placeholder-shown), #editFinal:not(:placeholder-shown) { letter-spacing: 0.2em; }
+  .card-final { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); letter-spacing: 0.06em; margin-left: 4px; }
   .card-form .btn-add { grid-column: 1 / -1; height: 38px; }
   .card-form.debito .so-credito { display: none; }
   @media (max-width: 880px) {
@@ -2454,6 +2458,10 @@
               <option value="credito">Crédito</option>
               <option value="debito">Débito</option>
             </select>
+          </div>
+          <div class="field">
+            <label for="cardFinal">Final do cartão (opcional)</label>
+            <input id="cardFinal" type="text" inputmode="numeric" placeholder="4 últimos números" autocomplete="off">
           </div>
           <div class="field so-credito">
             <label for="cardDue">Vence dia</label>
@@ -5693,8 +5701,14 @@
 
   var ICON_SEM_CONTATO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8.5 7.5a6 6 0 0 1 0 9"/><path d="M12 5a9.5 9.5 0 0 1 0 14"/><path d="M15.5 2.5a13 13 0 0 1 0 19"/></svg>';
 
-  // O número do cartão é sempre de enfeite (pontinhos): o app nunca pede nem
-  // guarda número de cartão de ninguém.
+  // Só os 4 últimos números, e só se forem exatamente 4 dígitos: o resto do
+  // número é sempre pontinho — o app nunca pede nem guarda o número inteiro.
+  function finalDoCartao(c) { return /^\d{4}$/.test(String(c && c.final || "")) ? c.final : ""; }
+
+  function finalNaLista(c) {
+    return finalDoCartao(c) ? ' <span class="card-final">•••• ' + finalDoCartao(c) + '</span>' : "";
+  }
+
   function cartao3DHtml(c, mini) {
     var b = bancoDoCartao(c);
     var temFoto = /^data:image\//.test(c.logo || "");
@@ -5710,7 +5724,7 @@
         '</div>' +
         (mini ? "" :
           '<div class="cartao3d-meio"><span class="cartao3d-chip"></span><span class="cartao3d-nfc">' + ICON_SEM_CONTATO + '</span></div>' +
-          '<div class="cartao3d-numero">•••• •••• •••• ••••</div>') +
+          '<div class="cartao3d-numero">•••• •••• •••• ' + (finalDoCartao(c) || "••••") + '</div>') +
         '<div class="cartao3d-base">' +
           '<span class="cartao3d-apelido">' + escapeHtml(c.nome || "Apelido do cartão") + '</span>' +
           (mini ? "" : '<span class="cartao3d-linha">' + escapeHtml(linha) + '</span>') +
@@ -5762,10 +5776,12 @@
     var dia = parseInt(document.getElementById("cardDue").value, 10);
     var limite = parseAmount(document.getElementById("cardLimit").value);
     var debito = cardTipoSel.value === "debito";
+    var final = document.getElementById("cardFinal").value.replace(/\D/g, "");
     return {
       nome: document.getElementById("cardName").value.trim(),
       banco: cardBancoSel.value,
       tipo: debito ? "debito" : "credito",
+      final: final.length === 4 ? final : null,
       vencimento: !debito && dia >= 1 && dia <= 31 ? dia : null,
       limite: !debito && typeof limite === "number" && !isNaN(limite) && limite > 0 ? limite : null
     };
@@ -5783,6 +5799,16 @@
   cardBancoSel.addEventListener("change", function () { bancoEscolhidoAMao = true; atualizarPreviaCartao(); });
   cardTipoSel.addEventListener("change", atualizarPreviaCartao);
   document.getElementById("cardDue").addEventListener("input", atualizarPreviaCartao);
+  // Só dígitos, no máximo 4: colar "1234 5678 9012 3456" fica com os 4 últimos.
+  function soQuatroDigitos(el) {
+    var d = el.value.replace(/\D/g, "");
+    if (d.length > 4) d = d.slice(-4);
+    if (el.value !== d) el.value = d;
+  }
+  document.getElementById("cardFinal").addEventListener("input", function () {
+    soQuatroDigitos(this);
+    atualizarPreviaCartao();
+  });
   document.getElementById("cardLimit").addEventListener("input", atualizarPreviaCartao);
   ligarInclinacao(cardPreview);
   atualizarPreviaCartao();
@@ -5802,7 +5828,7 @@
     var atual = sel.value;
     sel.innerHTML = '<option value="">à vista / débito</option>' +
       state.cards.map(function (c) {
-        return '<option value="' + c.id + '">' + escapeHtml(c.nome) + (ehDebito(c) ? " · débito" : "") + "</option>";
+        return '<option value="' + c.id + '">' + escapeHtml(c.nome) + (finalDoCartao(c) ? " ••" + finalDoCartao(c) : "") + (ehDebito(c) ? " · débito" : "") + "</option>";
       }).join("") +
       '<option value="' + NOVO_CARTAO + '">+ cadastrar cartão…</option>';
     if (atual && atual !== NOVO_CARTAO) sel.value = atual;
@@ -5886,6 +5912,10 @@
               '<option value="debito"' + (ehDebito(c) ? " selected" : "") + '>Débito</option></select>' +
           '</div>' +
           '<div class="field">' +
+            '<label for="editFinal">Final</label>' +
+            '<input id="editFinal" type="text" inputmode="numeric" placeholder="1234" autocomplete="off" value="' + finalDoCartao(c) + '">' +
+          '</div>' +
+          '<div class="field">' +
             '<label for="editDia">Vence dia</label>' +
             '<input id="editDia" type="number" min="1" max="31" step="1" value="' + (c.vencimento || "") + '">' +
           '</div>' +
@@ -5917,7 +5947,7 @@
         }, 0);
         return '<div class="card-item">' + chip +
           '<div class="card-info">' +
-            '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
+            '<div class="card-nome">' + escapeHtml(c.nome) + finalNaLista(c) + '</div>' +
             '<div class="card-sub">Cartão de débito' + (bancoDoCartao(c).nome ? " " + escapeHtml(bancoDoCartao(c).nome) : "") + '</div>' +
           '</div>' +
           '<div class="card-uso"><div class="card-uso-valor">' + fmt(gastoMes) + '</div>' +
@@ -5942,7 +5972,7 @@
       if (c.vencimento) detalhe += ", vence dia " + c.vencimento;
       return '<div class="card-item">' + chip +
         '<div class="card-info">' +
-          '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
+          '<div class="card-nome">' + escapeHtml(c.nome) + finalNaLista(c) + '</div>' +
           '<div class="card-sub">' + escapeHtml(detalhe) + '</div>' +
           (temLimite ? '<div class="card-limite-bar"><span class="card-limite-fill ' + faixa +
             '" style="width:' + pct + '%"></span></div>' : "") +
@@ -5988,6 +6018,7 @@
       // Máscara e preenchimento ficam aqui, não no clique: qualquer render() —
       // uma sincronização chegando, um lançamento novo — redesenha este
       // formulário, e no clique a máscara se perderia junto com o valor.
+      document.getElementById("editFinal").addEventListener("input", function () { soQuatroDigitos(this); });
       var limiteEl = document.getElementById("editLimite");
       attachAmountMask(limiteEl);
       var emEdicao = cardMeta(formEdicao.getAttribute("data-id"));
@@ -6000,14 +6031,19 @@
         var dia = parseInt(document.getElementById("editDia").value, 10);
         var limite = parseAmount(document.getElementById("editLimite").value);
         var id = formEdicao.getAttribute("data-id");
+        // Tudo lido ANTES do renderCards abaixo: ele apaga este formulário, e
+        // ler um campo depois disso dava erro e a edição não salvava.
+        var debito = document.getElementById("editTipo").value === "debito";
+        var banco = document.getElementById("editBanco").value;
+        var final = document.getElementById("editFinal").value.replace(/\D/g, "").slice(-4);
         editandoCartaoId = null;
         // Fecha na hora. No modo servidor updateCard só redesenha quando a
         // resposta chega, e até lá o formulário pareceria travado.
         renderCards();
-        var debito = document.getElementById("editTipo").value === "debito";
         updateCard(id, {
           nome: nome,
-          banco: document.getElementById("editBanco").value,
+          banco: banco,
+          final: final.length === 4 ? final : null,
           tipo: debito ? "debito" : "credito",
           // Débito não tem vencimento nem limite; ficaria um limite fantasma.
           vencimento: !debito && (dia >= 1 && dia <= 31) ? dia : null,
@@ -6041,6 +6077,7 @@
       zerado = true;
       document.getElementById("cardName").value = "";
       document.getElementById("cardDue").value = "";
+      document.getElementById("cardFinal").value = "";
       setAmountValue(document.getElementById("cardLimit"), null);
       cardTipoSel.value = "credito";
       cardBancoSel.value = "outro";
