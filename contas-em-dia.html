@@ -988,7 +988,7 @@
 
   .tx-row {
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
     align-items: center;
     gap: 12px;
     padding: 10px 4px;
@@ -1313,7 +1313,7 @@
 
   /* O clipe divide o formato com a lixeira, mas não a classe: a lista liga
      "excluir" a todo .tx-del, e o clipe apagava o lançamento ao ser tocado. */
-  .tx-del, .tx-comprovante {
+  .tx-del, .tx-comprovante, .tx-edit {
     border: none;
     background: transparent;
     color: var(--ink-faint);
@@ -1399,6 +1399,20 @@
   .whats-acao { width: 100%; height: 40px; margin-bottom: 8px; text-decoration: none; }
   .whats-abrir { background: #1FAF54; }
   .whats-ok { font-size: 14px; margin: 0 0 12px; }
+
+  /* ---- Busca de lançamentos ---- */
+  .busca-tx { display: grid; grid-template-columns: minmax(0, 1fr) 170px 170px; gap: 8px; margin-bottom: 10px; }
+  .busca-campo { position: relative; }
+  .busca-campo svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-faint); pointer-events: none; }
+  .busca-campo input { padding-left: 32px; }
+  .busca-resumo { font-size: 12.5px; color: var(--ink-muted); margin: 0 0 8px; }
+  .busca-resumo button { font: inherit; font-size: 12.5px; color: var(--accent-ink); background: none; border: none; text-decoration: underline; cursor: pointer; padding: 0; margin-left: 6px; }
+  @media (max-width: 560px) { .busca-tx { grid-template-columns: 1fr 1fr; } .busca-campo { grid-column: 1 / -1; } }
+  .tx-edit { color: var(--ink-faint); }
+  .tx-edit:hover { background: var(--accent-soft); color: var(--accent-ink); }
+  .tx-row.editando { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tx-mes { font-size: 11px; color: var(--ink-faint); }
+  .comprovante-campo.so-na-criacao { display: none; }
 
   /* ---- Reportar ---- */
   .reportar-fab {
@@ -2686,9 +2700,19 @@
                 </label>
               </div>
               <span class="parcelas-hint" id="txParcelasHint" hidden></span>
-              <button type="submit" class="btn-add">Adicionar</button>
+              <button type="submit" class="btn-add" id="txSubmitBtn">Adicionar</button>
             </div>
           </form>
+
+          <div class="busca-tx" id="buscaTx">
+            <div class="busca-campo">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+              <input type="search" id="buscaTexto" placeholder="Buscar em todos os meses" autocomplete="off" aria-label="Buscar lançamento">
+            </div>
+            <select id="buscaCategoria" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option></select>
+            <select id="buscaCartao" aria-label="Filtrar por cartão"><option value="">Qualquer pagamento</option></select>
+          </div>
+          <p class="busca-resumo" id="buscaResumo" hidden></p>
 
           <div class="tx-list" id="txList"></div>
         </div>
@@ -4787,6 +4811,20 @@
     }
   }
 
+  // Edição geral de um lançamento (descrição, valor, data, categoria, cartão…).
+  function updateTransaction(id, patch, oque) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.doc(userCol("transactions") + "/" + id).update(patch), oque || "a edição");
+    } else if (state.storage === "server") {
+      serverWrite(serverUpdate("transactions", id, patch).then(function (saved) {
+        var t = state.transactions.find(function (t) { return t.id === id; });
+        if (t) Object.assign(t, saved); render();
+      }), oque || "a edição");
+    } else {
+      var t = state.transactions.find(function (t) { return t.id === id; });
+      if (t) { Object.assign(t, patch); saveLocal(); render(); }
+    }
+  }
   function setTransactionPaid(id, paid) {
     if (state.storage === "cloud" && state.db) {
       cloudWrite(state.db.doc(userCol("transactions") + "/" + id).update({ paid: paid }), "o status do lançamento");
@@ -4969,7 +5007,83 @@
     document.getElementById("txParcelas").value = "1";
     atualizarHintParcelas();
     limparComprovanteDoForm();
+    // Sai do modo edição: volta título, botão e os campos que a edição esconde.
+    state.editandoTxId = null;
+    document.getElementById("txSubmitBtn").textContent = "Adicionar";
+    document.getElementById("txParcelas").closest(".field").hidden = false;
+    document.querySelector(".comprovante-campo").classList.remove("so-na-criacao");
+    renderMarcaEdicao();
   }
+
+  // ---------- Editar um lançamento ----------
+  // O mesmo formulário de criar, preenchido. Parcelas e comprovante ficam de
+  // fora: mudar o número de parcelas de uma compra já feita reescreveria as
+  // outras, e o comprovante se troca apagando e lançando de novo.
+  state.editandoTxId = null;
+  function renderMarcaEdicao() {
+    Array.prototype.forEach.call(document.querySelectorAll(".tx-row"), function (r) {
+      r.classList.toggle("editando", !!state.editandoTxId && r.getAttribute("data-id") === state.editandoTxId);
+    });
+  }
+  function editarLancamento(t) {
+    abrirLancamento(t.type);
+    if (state.bloqueado) return;
+    state.editandoTxId = t.id;
+    document.getElementById("entryTitulo").textContent = t.type === "receita" ? "Editar entrada" : "Editar saída";
+    document.getElementById("txSubmitBtn").textContent = "Salvar";
+    document.getElementById("txDesc").value = t.desc || "";
+    setAmountValue(document.getElementById("txAmount"), t.amount);
+    txCategory.value = t.category;
+    document.getElementById("txDate").value = t.date;
+    var sel = document.getElementById("txCard");
+    sel.value = t.cartaoId && cardMeta(t.cartaoId) ? t.cartaoId : "";
+    document.getElementById("txPaid").checked = isPaid(t);
+    atualizarRotuloPago();
+    document.getElementById("txParcelas").closest(".field").hidden = true;
+    document.getElementById("txParcelasHint").hidden = true;
+    document.querySelector(".comprovante-campo").classList.add("so-na-criacao");
+    renderMarcaEdicao();
+    document.getElementById("txForm").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  // ---------- Busca ----------
+  function semAcentoTexto(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+
+  function preencherFiltrosBusca() {
+    var cat = document.getElementById("buscaCategoria"), cart = document.getElementById("buscaCartao");
+    var vc = cat.value, vk = cart.value;
+    cat.innerHTML = '<option value="">Todas as categorias</option>' + ALL_CATEGORIES.map(function (c) {
+      return '<option value="' + c.key + '">' + c.label + (INCOME_CATEGORIES.indexOf(c) >= 0 ? " (entrada)" : "") + "</option>";
+    }).join("");
+    cart.innerHTML = '<option value="">Qualquer pagamento</option><option value="__avista">À vista / sem cartão</option>' +
+      state.cards.map(function (c) { return '<option value="' + c.id + '">' + escapeHtml(c.nome) + "</option>"; }).join("");
+    cat.value = vc; cart.value = vk;
+  }
+
+  // Com algum filtro, a lista mostra todos os meses; sem, o recorte normal.
+  function filtroDeBusca() {
+    var termo = semAcentoTexto(document.getElementById("buscaTexto").value.trim());
+    var cat = document.getElementById("buscaCategoria").value;
+    var cart = document.getElementById("buscaCartao").value;
+    if (!termo && !cat && !cart) return null;
+    return function (t) {
+      if (termo && semAcentoTexto(t.desc).indexOf(termo) === -1) return false;
+      if (cat && t.category !== cat) return false;
+      if (cart === "__avista" && t.cartaoId) return false;
+      if (cart && cart !== "__avista" && t.cartaoId !== cart) return false;
+      return true;
+    };
+  }
+  ["buscaTexto", "buscaCategoria", "buscaCartao"].forEach(function (id) {
+    document.getElementById(id).addEventListener(id === "buscaTexto" ? "input" : "change", function () { render(); });
+  });
+  document.getElementById("buscaResumo").addEventListener("click", function (e) {
+    if (!e.target.closest("button")) return;
+    document.getElementById("buscaTexto").value = "";
+    document.getElementById("buscaCategoria").value = "";
+    document.getElementById("buscaCartao").value = "";
+    render();
+  });
 
   // ---------- Primeiros passos ----------
   // Cada passo se marca sozinho pelos próprios dados (tem cartão? já lançou?),
@@ -5809,6 +5923,18 @@
     var category = txCategory.value;
     var paid = document.getElementById("txPaid").checked;
     if (!desc || !amount || amount <= 0) return;
+
+    // Editando: troca só os campos do formulário; parcela, comprovante e
+    // origem do lançamento ficam como estavam.
+    if (state.editandoTxId) {
+      var selCartao = document.getElementById("txCard").value;
+      updateTransaction(state.editandoTxId, {
+        desc: desc, amount: amount, category: category, date: date, paid: paid,
+        cartaoId: selCartao && selCartao !== NOVO_CARTAO ? selCartao : null
+      }, "a edição do lançamento");
+      fecharLancamento();
+      return;
+    }
 
     var parcelas = Math.max(1, Math.min(60, parseInt(document.getElementById("txParcelas").value, 10) || 1));
     var cardSel = document.getElementById("txCard");
@@ -7014,16 +7140,31 @@
 
     // transaction list
     var list = document.getElementById("txList");
-    var sorted = viewTx.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    // Busca ativa: a lista passa a mostrar todos os meses, com o total achado.
+    preencherFiltrosBusca();
+    var filtro = filtroDeBusca();
+    var resumoBusca = document.getElementById("buscaResumo");
+    var listaBase = filtro ? real.filter(filtro) : viewTx;
+    resumoBusca.hidden = !filtro;
+    if (filtro) {
+      var totSaida = 0, totEntrada = 0;
+      listaBase.forEach(function (t) { if (t.type === "receita") totEntrada += Number(t.amount); else totSaida += Number(t.amount); });
+      resumoBusca.innerHTML = listaBase.length + (listaBase.length === 1 ? " lançamento encontrado" : " lançamentos encontrados") +
+        " em todos os meses" + (totSaida ? " · saídas " + fmt(totSaida) : "") + (totEntrada ? " · entradas " + fmt(totEntrada) : "") +
+        '<button type="button">Limpar busca</button>';
+    }
+    var sorted = listaBase.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
     if (sorted.length === 0) {
-      list.innerHTML = '<div class="empty-note">Nenhum lançamento ' + qf.vazio + ' ainda.</div>';
+      list.innerHTML = '<div class="empty-note">' + (filtro ? "Nada encontrado com essa busca." : "Nenhum lançamento " + qf.vazio + " ainda.") + '</div>';
     } else {
       list.innerHTML = sorted.map(function (t) {
         var meta = catMeta(t.category);
-        var dateLabel = new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        // Na busca os resultados vêm de vários meses: a data ganha o ano.
+        var dateLabel = new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR", filtro
+          ? { day: "2-digit", month: "2-digit", year: "2-digit" } : { day: "2-digit", month: "2-digit" });
         var paid = isPaid(t);
         var statusLabel = t.type === "receita" ? (paid ? "Recebido" : "A receber") : (paid ? "Pago" : "Pendente");
-        return '<div class="tx-row">' +
+        return '<div class="tx-row" data-id="' + t.id + '">' +
           '<div>' +
             '<div class="tx-desc">' + escapeHtml(t.desc) +
               (t.parcela ? '<span class="parcela-badge">' + t.parcela.n + "/" + t.parcela.de + "</span>" : "") +
@@ -7033,6 +7174,7 @@
             '</div>' +
           '</div>' +
           '<div class="tx-amount ' + (t.type === "receita" ? "income" : "expense") + ' num">' + (t.type === "receita" ? "+ " : "− ") + fmt(t.amount) + '</div>' +
+          '<button type="button" class="tx-edit" data-id="' + t.id + '" title="Editar" aria-label="Editar lançamento">' + ICON_EDIT + '</button>' +
           '<button class="tx-del" data-id="' + t.id + '" title="Excluir">' + ICON_TRASH + '</button>' +
           ((t.comprovante || t.temComprovante)
             ? '<button type="button" class="tx-comprovante" data-id="' + t.id + '" title="Ver comprovante" aria-label="Ver comprovante">' + ICON_CLIPE + '</button>'
@@ -7049,6 +7191,13 @@
       Array.prototype.forEach.call(list.querySelectorAll(".tx-del"), function (btn) {
         btn.addEventListener("click", function () { deleteTransaction(btn.getAttribute("data-id")); });
       });
+      Array.prototype.forEach.call(list.querySelectorAll(".tx-edit"), function (btn) {
+        btn.addEventListener("click", function () {
+          var t = state.transactions.find(function (x) { return x.id === btn.getAttribute("data-id"); });
+          if (t) editarLancamento(t);
+        });
+      });
+      renderMarcaEdicao();
       Array.prototype.forEach.call(list.querySelectorAll(".tx-status"), function (btn) {
         btn.addEventListener("click", function () {
           setTransactionPaid(btn.getAttribute("data-id"), btn.getAttribute("data-paid") !== "true");
