@@ -1416,6 +1416,61 @@
   .whats-abrir { background: #1FAF54; }
   .whats-ok { font-size: 14px; margin: 0 0 12px; }
 
+  /* ---- Orçamento ---- */
+  .orc-linha { padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .orc-linha:last-child { border-bottom: none; }
+  .orc-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .orc-nome { font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .orc-nome .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .orc-valores { color: var(--ink-muted); font-size: 12px; white-space: nowrap; }
+  .orc-barra { height: 7px; border-radius: 999px; background: var(--surface-2); margin: 6px 0 4px; overflow: hidden; }
+  .orc-barra span { display: block; height: 100%; border-radius: 999px; background: var(--income); transition: width 0.4s var(--ease); }
+  .orc-linha.atencao .orc-barra span { background: var(--warning); }
+  .orc-linha.estourou .orc-barra span { background: var(--expense); }
+  .orc-resta { font-size: 11.5px; color: var(--ink-faint); }
+  .orc-linha.atencao .orc-resta { color: var(--warning); }
+  .orc-linha.estourou .orc-resta { color: var(--expense); font-weight: 600; }
+  .orc-total { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-muted); background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
+  .orc-total strong { color: var(--ink); }
+  .orc-dica { font-size: 12.5px; color: var(--ink-muted); margin: 0 0 10px; line-height: 1.5; }
+  .orc-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .orc-acoes { display: flex; gap: 8px; margin-top: 12px; }
+  .col-side > .panel + .panel { margin-top: 18px; }
+
+  /* ---- Contas fixas ---- */
+  .fixas-panel { margin-bottom: 18px; }
+  .fixas-form { display: grid; grid-template-columns: 2fr 1fr 90px 110px 1.2fr 1.2fr; gap: 8px; align-items: end; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px dashed var(--border); }
+  .fixas-ja { grid-column: 1 / 4; }
+  .fixas-form .btn-add { grid-column: 4 / -1; height: 38px; }
+  @media (max-width: 760px) { .fixas-form { grid-template-columns: 1fr 1fr; } .fixas-desc, .fixas-ja, .fixas-form .btn-add { grid-column: 1 / -1; } }
+  .fixa-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--border); }
+  .fixa-row:last-child { border-bottom: none; }
+  .fixa-row.pausada { opacity: 0.5; }
+  .fixa-nome { font-size: 13.5px; font-weight: 600; }
+  .fixa-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+  .fixa-sub .atrasada { color: var(--expense); font-weight: 600; }
+  .fixa-sub .em-breve { color: var(--warning); font-weight: 600; }
+  .fixa-sub .paga { color: var(--income); font-weight: 600; }
+  .fixa-valor { font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+  .fixas-alerta { margin-bottom: 18px; background: color-mix(in srgb, var(--warning) 12%, transparent); border: 1px solid var(--warning); border-radius: 12px; padding: 12px 14px; }
+  .fixas-alerta[hidden] { display: none; }
+  .fixas-alerta h3 { font-size: 14px; margin: 0 0 6px; }
+  .fixa-alerta-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13.5px; border-top: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); }
+  .fixa-alerta-item:first-of-type { border-top: none; }
+  .fixa-alerta-item .quando { font-size: 12px; color: var(--ink-muted); }
+  .fixa-alerta-item .quando.atrasada { color: var(--expense); font-weight: 600; }
+
+  /* Aviso rápido no rodapé (orçamento passando do limite, conta fixa lançada…). */
+  .toast-area { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 80; display: flex; flex-direction: column; gap: 8px; width: min(92vw, 440px); pointer-events: none; }
+  .toast {
+    pointer-events: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent); border-radius: 10px; padding: 11px 14px; font-size: 13.5px; line-height: 1.45;
+    box-shadow: var(--shadow-raised); animation: card-in 0.22s var(--ease);
+  }
+  .toast.atencao { border-left-color: var(--warning); }
+  .toast.estourou { border-left-color: var(--expense); }
+
   /* ---- Busca de lançamentos ---- */
   .busca-tx { display: grid; grid-template-columns: minmax(0, 1fr) 170px 170px; gap: 8px; margin-bottom: 10px; }
   .busca-campo { position: relative; }
@@ -2553,6 +2608,8 @@
   </div>
 
   <div class="tab-panel" data-panel="lancamentos">
+    <section class="fixas-alerta" id="fixasAlerta" hidden></section>
+
     <section class="panel passos" id="passos" hidden>
       <div class="passos-topo">
         <div>
@@ -2735,6 +2792,22 @@
       </div>
 
       <div class="col-side">
+        <div class="panel orc-panel" id="orcPanel">
+          <div class="panel-head">
+            <h2>Orçamento do mês</h2>
+            <button type="button" class="export-btn" id="orcEditarBtn">Definir</button>
+          </div>
+          <div id="orcLista"></div>
+          <form class="orc-editor" id="orcEditor" hidden>
+            <p class="orc-dica">Quanto você quer gastar, no máximo, por mês em cada categoria. Deixe em branco a que não quiser controlar.</p>
+            <div class="orc-campos" id="orcCampos"></div>
+            <div class="orc-acoes">
+              <button type="submit" class="btn-add">Salvar orçamento</button>
+              <button type="button" class="export-btn" id="orcCancelar">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
         <div class="panel">
           <div class="panel-head">
             <h2>Contas parceladas</h2>
@@ -2770,6 +2843,25 @@
   </div>
 
   <div class="tab-panel" data-panel="parcelas" hidden>
+    <div class="panel fixas-panel" id="fixasPanel">
+      <div class="panel-head">
+        <h2>Contas fixas</h2>
+        <span class="hint" id="fixasHint"></span>
+      </div>
+      <p class="orc-dica">Aluguel, internet, academia, salário… Cadastre uma vez e elas entram sozinhas todo mês, como pendentes, até você marcar como pagas.</p>
+      <form class="fixas-form" id="fixasForm">
+        <div class="field fixas-desc"><label for="fixaDesc">Descrição</label><input id="fixaDesc" type="text" maxlength="60" placeholder="Ex: Aluguel" required></div>
+        <div class="field amount-field"><label for="fixaValor">Valor</label><input id="fixaValor" type="text" inputmode="numeric" placeholder="0,00" required></div>
+        <div class="field"><label for="fixaDia">Vence dia</label><input id="fixaDia" type="number" min="1" max="31" step="1" placeholder="10" required></div>
+        <div class="field"><label for="fixaTipo">Tipo</label><select id="fixaTipo"><option value="despesa">Saída</option><option value="receita">Entrada</option></select></div>
+        <div class="field"><label for="fixaCategoria">Categoria</label><select id="fixaCategoria"></select></div>
+        <div class="field"><label for="fixaCartao">Pagamento</label><select id="fixaCartao"></select></div>
+        <label class="paid-toggle fixas-ja"><input type="checkbox" id="fixaJaEsteMes" checked><span>Lançar já neste mês</span></label>
+        <button type="submit" class="btn-add">Adicionar</button>
+      </form>
+      <div id="fixasLista"></div>
+    </div>
+
     <div class="panel spend-panel two-col">
       <div>
         <div class="label">Ainda falta pagar</div>
@@ -3304,6 +3396,8 @@
     goals: [],
     investments: [],
     cards: [],
+    budgets: [],   // orçamento: { category, limite }
+    recurring: [], // contas fixas: { desc, amount, type, category, dia, cartaoId, ativa, desde }
     db: null,
     downloads: null,
     sample: null,
@@ -3322,6 +3416,10 @@
   var LS_GOALS = "contas_em_dia_goals";
   var LS_INVEST = "contas_em_dia_investments";
   var LS_CARDS = "contas_em_dia_cards";
+  // Coleções criadas depois (orçamento, contas fixas): um caminho só para os três
+  // modos de armazenamento — conta no servidor, Claude e só neste navegador.
+  var COLECOES_NOVAS = ["budgets", "recurring"];
+  var LS_PREFIXO = "contas_em_dia_";
 
   // Coleções simples, de propósito. O caminho privado por usuário ("data/users/me/...")
   // só funciona quando a capacidade "user" é declarada junto com "db" — e ela não está
@@ -3352,6 +3450,7 @@
       state.goals = JSON.parse(localStorage.getItem(LS_GOALS) || "[]");
       state.investments = JSON.parse(localStorage.getItem(LS_INVEST) || "[]");
       state.cards = JSON.parse(localStorage.getItem(LS_CARDS) || "[]");
+      COLECOES_NOVAS.forEach(function (c) { state[c] = JSON.parse(localStorage.getItem(LS_PREFIXO + c) || "[]"); });
     } catch (e) {
       state.transactions = [];
       state.goals = [];
@@ -3362,6 +3461,7 @@
     if (!storageFunciona()) {
       setStorageAlert(true, "Este navegador não está deixando salvar nada: o que você lançar vai sumir ao recarregar a página. Costuma ser navegação privada (aba anônima) ou armazenamento bloqueado nas configurações do site.");
     }
+    gerarContasFixas();
     render();
   }
   // Se gravar falha, o lançamento continua na tela (está na memória) e some ao recarregar.
@@ -3391,6 +3491,7 @@
       localStorage.setItem(LS_GOALS, JSON.stringify(state.goals));
       localStorage.setItem(LS_INVEST, JSON.stringify(state.investments));
       localStorage.setItem(LS_CARDS, JSON.stringify(state.cards));
+      COLECOES_NOVAS.forEach(function (c) { localStorage.setItem(LS_PREFIXO + c, JSON.stringify(state[c])); });
       setStorageAlert(false);
     } catch (e) {
       setStorageAlert(true, "Não consegui salvar neste navegador: o que você lançar vai sumir ao fechar ou recarregar a página. Costuma ser navegação privada (aba anônima) ou armazenamento bloqueado nas configurações do site.");
@@ -3499,11 +3600,13 @@
       serverList("goals"),
       serverList("investments"),
       serverList("cards"),
-    ]).then(function (res) {
+    ].concat(COLECOES_NOVAS.map(function (c) { return serverList(c); }))).then(function (res) {
       state.transactions = res[0];
       state.goals = res[1];
       state.investments = res[2];
       state.cards = res[3];
+      COLECOES_NOVAS.forEach(function (c, i) { state[c] = res[4 + i]; });
+      gerarContasFixas();
       render();
     }).catch(function (e) {
       setStorageAlert(true, "Entrei na conta, mas não consegui carregar seus dados: " +
@@ -4767,6 +4870,7 @@
       setSyncStatus("cloud");
       state.db.collection(userCol("transactions")).onSnapshot(function (snap) {
         state.transactions = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        nuvemCarregou("transactions");
         render();
       }, function () { state.storage = "local"; loadLocal(); setSyncStatus("local"); });
       state.db.collection(userCol("goals")).onSnapshot(function (snap) {
@@ -4780,6 +4884,13 @@
       state.db.collection(userCol("cards")).onSnapshot(function (snap) {
         state.cards = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
         render();
+      });
+      COLECOES_NOVAS.forEach(function (c) {
+        state.db.collection(userCol(c)).onSnapshot(function (snap) {
+          state[c] = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+          nuvemCarregou(c);
+          render();
+        });
       });
     });
   }
@@ -4824,6 +4935,47 @@
       var t = state.transactions.find(function (t) { return t.id === id; });
       if (t) { t.amount = amount; saveLocal(); render(); }
       if (onSettle) onSettle();
+    }
+  }
+
+  // ---------- Coleções novas (orçamento, contas fixas) ----------
+  // Mesmo padrão de addCard/updateCard/deleteCard, sem repetir por coleção.
+  function colAdd(nome, item, oque) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.collection(userCol(nome)).add(item), oque);
+    } else if (state.storage === "server") {
+      serverWrite(serverAdd(nome, item).then(function (saved) { state[nome].push(saved); render(); }), oque);
+    } else {
+      item.id = nome.charAt(0) + Date.now() + Math.random().toString(36).slice(2, 7);
+      state[nome].push(item);
+      saveLocal();
+      render();
+    }
+  }
+  function colUpdate(nome, id, patch, oque) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.doc(userCol(nome) + "/" + id).update(patch), oque);
+    } else if (state.storage === "server") {
+      serverWrite(serverUpdate(nome, id, patch).then(function (saved) {
+        var x = state[nome].find(function (i) { return i.id === id; });
+        if (x) Object.assign(x, saved); render();
+      }), oque);
+    } else {
+      var x = state[nome].find(function (i) { return i.id === id; });
+      if (x) { Object.assign(x, patch); saveLocal(); render(); }
+    }
+  }
+  function colDelete(nome, id, oque) {
+    if (state.storage === "cloud" && state.db) {
+      cloudWrite(state.db.doc(userCol(nome) + "/" + id).delete(), oque);
+    } else if (state.storage === "server") {
+      serverWrite(serverDelete(nome, id).then(function () {
+        state[nome] = state[nome].filter(function (i) { return i.id !== id; }); render();
+      }), oque);
+    } else {
+      state[nome] = state[nome].filter(function (i) { return i.id !== id; });
+      saveLocal();
+      render();
     }
   }
 
@@ -5030,6 +5182,277 @@
     document.querySelector(".comprovante-campo").classList.remove("so-na-criacao");
     renderMarcaEdicao();
   }
+
+  // ---------- Avisos rápidos ----------
+  function avisar(texto, tipo) {
+    var area = document.querySelector(".toast-area");
+    if (!area) { area = document.createElement("div"); area.className = "toast-area"; area.setAttribute("role", "status"); document.body.appendChild(area); }
+    var t = document.createElement("div");
+    t.className = "toast" + (tipo ? " " + tipo : "");
+    t.textContent = texto;
+    area.appendChild(t);
+    setTimeout(function () { t.remove(); }, 6000);
+  }
+
+  // ---------- Orçamento por categoria ----------
+  // Limite mensal por categoria de despesa, comparado com o mês escolhido no topo.
+  // Faixas: até 80% ok, 80–100% atenção, acima de 100% estourou.
+  state.orcFaixaAnterior = null; // { categoria: faixa } da última vez que desenhou
+
+  function orcamentoDoMes(mk) {
+    var gasto = {};
+    state.transactions.forEach(function (t) {
+      if (t.type === "despesa" && monthKey(t.date) === mk) gasto[t.category] = (gasto[t.category] || 0) + Number(t.amount);
+    });
+    return state.budgets.filter(function (b) { return b.limite > 0; }).map(function (b) {
+      var g = gasto[b.category] || 0;
+      var pct = g / b.limite * 100;
+      return { id: b.id, category: b.category, limite: b.limite, gasto: g, pct: pct, faixa: pct >= 100 ? "estourou" : pct >= 80 ? "atencao" : "ok" };
+    }).sort(function (a, b) { return b.pct - a.pct; });
+  }
+
+  function renderOrcamento(mk) {
+    var lista = document.getElementById("orcLista");
+    var linhas = orcamentoDoMes(mk);
+    document.getElementById("orcEditarBtn").textContent = linhas.length ? "Editar" : "Definir";
+
+    // Avisa quando uma categoria SOBE de faixa no mês atual (lançamento novo,
+    // de qualquer origem). Na primeira vez que desenha, só memoriza.
+    if (mk === todayISO().slice(0, 7)) {
+      var agora = {};
+      linhas.forEach(function (l) { agora[l.category] = l.faixa; });
+      if (state.orcFaixaAnterior) {
+        linhas.forEach(function (l) {
+          var antes = state.orcFaixaAnterior[l.category] || "ok";
+          var ordem = { ok: 0, atencao: 1, estourou: 2 };
+          if (ordem[l.faixa] > ordem[antes]) {
+            avisar(l.faixa === "estourou"
+              ? "Orçamento de " + catMeta(l.category).label + " estourado: " + fmt(l.gasto) + " de " + fmt(l.limite) + "."
+              : "Atenção: você já usou " + Math.round(l.pct) + "% do orçamento de " + catMeta(l.category).label + ".", l.faixa);
+          }
+        });
+      }
+      state.orcFaixaAnterior = agora;
+    }
+
+    if (!linhas.length) {
+      lista.innerHTML = '<div class="empty-note">Defina quanto quer gastar por categoria e acompanhe aqui, com aviso aos 80% e aos 100%.</div>';
+      return;
+    }
+    var totLimite = 0, totGasto = 0;
+    linhas.forEach(function (l) { totLimite += l.limite; totGasto += l.gasto; });
+    lista.innerHTML = '<div class="orc-total"><span>Total</span><span><strong>' + fmt(totGasto) + '</strong> de ' + fmt(totLimite) + '</span></div>' +
+      linhas.map(function (l) {
+        var meta = catMeta(l.category);
+        var resta = l.limite - l.gasto;
+        return '<div class="orc-linha ' + l.faixa + '">' +
+          '<div class="orc-topo"><span class="orc-nome"><span class="dot" style="background:' + meta.color + '"></span>' + meta.label + '</span>' +
+          '<span class="orc-valores num">' + fmt(l.gasto) + ' de ' + fmt(l.limite) + '</span></div>' +
+          '<div class="orc-barra"><span style="width:' + Math.min(100, l.pct).toFixed(1) + '%"></span></div>' +
+          '<div class="orc-resta">' + (resta >= 0 ? "Restam " + fmt(resta) + " (" + Math.round(l.pct) + "% usado)" : "Passou " + fmt(-resta) + " do limite") + '</div>' +
+        '</div>';
+      }).join("");
+  }
+
+  function abrirEditorOrcamento() {
+    var campos = document.getElementById("orcCampos");
+    campos.innerHTML = EXPENSE_CATEGORIES.map(function (c) {
+      return '<div class="field amount-field"><label for="orc-' + c.key + '">' + c.label + '</label>' +
+        '<input id="orc-' + c.key + '" type="text" inputmode="numeric" placeholder="sem limite" data-cat="' + c.key + '"></div>';
+    }).join("");
+    Array.prototype.forEach.call(campos.querySelectorAll("input"), function (inp) {
+      attachAmountMask(inp);
+      var b = state.budgets.filter(function (x) { return x.category === inp.getAttribute("data-cat"); })[0];
+      if (b && b.limite > 0) setAmountValue(inp, b.limite);
+    });
+    document.getElementById("orcEditor").hidden = false;
+    document.getElementById("orcLista").hidden = true;
+    document.getElementById("orcEditarBtn").hidden = true;
+    campos.querySelector("input").focus();
+  }
+  function fecharEditorOrcamento() {
+    document.getElementById("orcEditor").hidden = true;
+    document.getElementById("orcLista").hidden = false;
+    document.getElementById("orcEditarBtn").hidden = false;
+  }
+  document.getElementById("orcEditarBtn").addEventListener("click", abrirEditorOrcamento);
+  document.getElementById("orcCancelar").addEventListener("click", fecharEditorOrcamento);
+  // Um registro por categoria: cria, muda ou apaga só o que mudou.
+  document.getElementById("orcEditor").addEventListener("submit", function (e) {
+    e.preventDefault();
+    Array.prototype.forEach.call(document.querySelectorAll("#orcCampos input"), function (inp) {
+      var cat = inp.getAttribute("data-cat");
+      var valor = Number(inp.dataset.raw || 0) / 100;
+      var atual = state.budgets.filter(function (x) { return x.category === cat; })[0];
+      if (valor > 0 && !atual) colAdd("budgets", { category: cat, limite: valor }, "o orçamento");
+      else if (valor > 0 && atual && atual.limite !== valor) colUpdate("budgets", atual.id, { limite: valor }, "o orçamento");
+      else if (!(valor > 0) && atual) colDelete("budgets", atual.id, "o orçamento");
+    });
+    fecharEditorOrcamento();
+  });
+
+  // ---------- Contas fixas ----------
+  // Cada conta fixa vira um lançamento pendente no mês corrente, uma vez por
+  // mês. "Já existe?" é decidido olhando os próprios lançamentos (recorrenteId +
+  // mês), então abrir o app várias vezes ou em dois aparelhos não duplica — e o
+  // conjunto "pedidas" cobre o intervalo até o lançamento voltar do servidor.
+  state.fixasPedidas = {};
+  function diaNoMes(mk, dia) {
+    var p = mk.split("-");
+    var ultimo = new Date(Number(p[0]), Number(p[1]), 0).getDate();
+    return mk + "-" + String(Math.min(dia, ultimo)).padStart(2, "0");
+  }
+  function lancamentoDaFixa(r, mk) {
+    return state.transactions.find(function (t) { return t.recorrenteId === r.id && monthKey(t.date) === mk; });
+  }
+  function gerarContasFixas() {
+    if (!state.storage || state.storage === "pending") return;
+    var mk = todayISO().slice(0, 7);
+    state.recurring.forEach(function (r) {
+      if (r.ativa === false || (r.desde && r.desde > mk)) return;
+      var chave = r.id + "|" + mk;
+      if (state.fixasPedidas[chave] || lancamentoDaFixa(r, mk)) return;
+      state.fixasPedidas[chave] = true;
+      addTransaction({
+        desc: r.desc, amount: r.amount, type: r.type || "despesa", category: r.category,
+        date: diaNoMes(mk, r.dia), paid: false, cartaoId: r.cartaoId || null,
+        recorrenteId: r.id, createdAt: new Date().toISOString()
+      });
+    });
+  }
+
+  // No modo Claude os dados chegam aos poucos: só gera quando lançamentos e
+  // contas fixas já vieram, senão lançaria de novo o que já existe.
+  state.nuvemPronta = {};
+  function nuvemCarregou(nome) {
+    state.nuvemPronta[nome] = true;
+    if (state.nuvemPronta.transactions && state.nuvemPronta.recurring) gerarContasFixas();
+  }
+
+  function preencherFormFixas() {
+    var tipo = document.getElementById("fixaTipo").value;
+    var cat = document.getElementById("fixaCategoria"), vc = cat.value;
+    cat.innerHTML = (tipo === "receita" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(function (c) {
+      return '<option value="' + c.key + '">' + c.label + "</option>";
+    }).join("");
+    if (vc) cat.value = vc;
+    if (!cat.value) cat.selectedIndex = 0;
+    var cart = document.getElementById("fixaCartao"), vk = cart.value;
+    cart.innerHTML = '<option value="">À vista / débito em conta</option>' + state.cards.map(function (c) {
+      return '<option value="' + c.id + '">' + escapeHtml(c.nome) + "</option>";
+    }).join("");
+    cart.value = vk;
+  }
+  document.getElementById("fixaTipo").addEventListener("change", preencherFormFixas);
+  attachAmountMask(document.getElementById("fixaValor"));
+  // Descrição com cara de categoria já escolhe a categoria (aluguel → Moradia).
+  document.getElementById("fixaDesc").addEventListener("input", function () {
+    var tipo = document.getElementById("fixaTipo").value;
+    var palpite = guessCategory(this.value.toLowerCase(), tipo === "receita" ? INCOME_KEYWORDS : EXPENSE_KEYWORDS, null);
+    if (palpite) document.getElementById("fixaCategoria").value = palpite;
+  });
+
+  document.getElementById("fixasForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (state.bloqueado) { abrirAssinatura(); return; }
+    var desc = document.getElementById("fixaDesc").value.trim();
+    var valor = Number(document.getElementById("fixaValor").dataset.raw || 0) / 100;
+    var dia = parseInt(document.getElementById("fixaDia").value, 10);
+    if (!desc || !(valor > 0) || !(dia >= 1 && dia <= 31)) return;
+    var mk = todayISO().slice(0, 7);
+    colAdd("recurring", {
+      desc: desc, amount: valor, dia: dia,
+      type: document.getElementById("fixaTipo").value,
+      category: document.getElementById("fixaCategoria").value,
+      cartaoId: document.getElementById("fixaCartao").value || null,
+      ativa: true,
+      // Sem "lançar já", começa no mês que vem (a deste mês talvez já tenha sido lançada à mão).
+      desde: document.getElementById("fixaJaEsteMes").checked ? mk : addMonthsISO(mk + "-01", 1).slice(0, 7),
+      createdAt: new Date().toISOString()
+    }, "a conta fixa");
+    document.getElementById("fixaDesc").value = "";
+    setAmountValue(document.getElementById("fixaValor"), null);
+    document.getElementById("fixaDia").value = "";
+    document.getElementById("fixaJaEsteMes").checked = true;
+    avisar("Conta fixa salva: " + desc + ". Ela entra sozinha todo mês.");
+  });
+
+  function quandoVence(t) {
+    var hoje = todayISO();
+    var dias = Math.round((new Date(t.date + "T00:00:00") - new Date(hoje + "T00:00:00")) / 86400000);
+    var dia = Number(t.date.slice(8));
+    // Entrada (salário) "cai"; saída "vence".
+    var entrada = t.type === "receita";
+    if (dias < 0) return { texto: (entrada ? "era para cair dia " : "venceu dia ") + dia, classe: "atrasada", dias: dias };
+    if (dias === 0) return { texto: entrada ? "cai hoje" : "vence hoje", classe: "em-breve", dias: 0 };
+    if (dias === 1) return { texto: entrada ? "cai amanhã" : "vence amanhã", classe: "em-breve", dias: 1 };
+    return { texto: (entrada ? "cai dia " : "vence dia ") + dia + " (em " + dias + " dias)", classe: dias <= 3 ? "em-breve" : "", dias: dias };
+  }
+
+  function renderContasFixas() {
+    preencherFormFixas();
+    var mk = todayISO().slice(0, 7);
+    var lista = document.getElementById("fixasLista");
+    var fixas = state.recurring.slice().sort(function (a, b) { return a.dia - b.dia; });
+    var totalMes = 0;
+    fixas.forEach(function (r) { if (r.ativa !== false && (r.type || "despesa") === "despesa") totalMes += Number(r.amount); });
+    document.getElementById("fixasHint").textContent = fixas.length ? fmt(totalMes) + " em saídas fixas por mês" : "";
+    lista.innerHTML = !fixas.length ? '<div class="empty-note">Nenhuma conta fixa ainda.</div>' : fixas.map(function (r) {
+      var t = lancamentoDaFixa(r, mk);
+      var situacao = r.ativa === false ? "pausada"
+        : !t ? (r.desde && r.desde > mk ? "começa no mês que vem" : "entra neste mês")
+        : isPaid(t) ? '<span class="paga">' + (r.type === "receita" ? "recebida" : "paga") + " este mês</span>"
+        : (function (q) { return '<span class="' + q.classe + '">' + q.texto + "</span>"; })(quandoVence(t));
+      var cartao = r.cartaoId ? cardMeta(r.cartaoId) : null;
+      return '<div class="fixa-row' + (r.ativa === false ? " pausada" : "") + '">' +
+        '<div><div class="fixa-nome">' + escapeHtml(r.desc) + '</div>' +
+          '<div class="fixa-sub">Todo dia ' + r.dia + " · " + catMeta(r.category).label + (cartao ? " · " + escapeHtml(cartao.nome) : "") + " · " + situacao + '</div></div>' +
+        '<div class="fixa-valor ' + (r.type === "receita" ? "income" : "expense") + ' num">' + fmt(r.amount) + '</div>' +
+        '<button type="button" class="export-btn fixa-pausar" data-id="' + r.id + '">' + (r.ativa === false ? "Retomar" : "Pausar") + '</button>' +
+        '<button type="button" class="card-del fixa-del" data-id="' + r.id + '" title="Excluir conta fixa">' + ICON_TRASH + '</button>' +
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(lista.querySelectorAll(".fixa-pausar"), function (b) {
+      b.addEventListener("click", function () {
+        var r = state.recurring.find(function (x) { return x.id === b.getAttribute("data-id"); });
+        if (r) colUpdate("recurring", r.id, { ativa: r.ativa === false }, "a conta fixa");
+      });
+    });
+    Array.prototype.forEach.call(lista.querySelectorAll(".fixa-del"), function (b) {
+      b.addEventListener("click", function () {
+        var r = state.recurring.find(function (x) { return x.id === b.getAttribute("data-id"); });
+        if (!r || !window.confirm('Excluir a conta fixa "' + r.desc + '"?\n\nOs lançamentos dos meses que já passaram continuam no app.')) return;
+        colDelete("recurring", r.id, "a exclusão da conta fixa");
+      });
+    });
+  }
+
+  // Aviso no topo de Lançamentos: contas fixas pendentes vencidas ou que vencem em até 3 dias.
+  function renderAlertaFixas() {
+    var caixa = document.getElementById("fixasAlerta");
+    var mk = todayISO().slice(0, 7);
+    var itens = [];
+    state.recurring.forEach(function (r) {
+      if (r.ativa === false) return;
+      var t = lancamentoDaFixa(r, mk);
+      if (!t || isPaid(t)) return;
+      var q = quandoVence(t);
+      if (q.dias <= 3) itens.push({ t: t, q: q });
+    });
+    caixa.hidden = !itens.length;
+    if (!itens.length) return;
+    itens.sort(function (a, b) { return a.q.dias - b.q.dias; });
+    caixa.innerHTML = '<h3>🔔 ' + (itens.length === 1 ? "Uma conta fixa precisa de atenção" : itens.length + " contas fixas precisam de atenção") + '</h3>' +
+      itens.map(function (i) {
+        return '<div class="fixa-alerta-item"><div><strong>' + escapeHtml(i.t.desc) + '</strong> — ' + fmt(i.t.amount) +
+          ' <span class="quando ' + i.q.classe + '">' + i.q.texto + '</span></div>' +
+          '<button type="button" class="export-btn" data-pagar="' + i.t.id + '">' + (i.t.type === "receita" ? "Marcar recebida" : "Marcar paga") + '</button></div>';
+      }).join("");
+  }
+  document.getElementById("fixasAlerta").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-pagar]");
+    if (b) setTransactionPaid(b.getAttribute("data-pagar"), true);
+  });
 
   // ---------- Editar um lançamento ----------
   // O mesmo formulário de criar, preenchido. Parcelas e comprovante ficam de
@@ -7152,6 +7575,9 @@
     }
 
     renderGastosRapidos();
+    renderOrcamento(mk);
+    renderContasFixas();
+    renderAlertaFixas();
     renderPassos();
 
     // transaction list

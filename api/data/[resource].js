@@ -10,6 +10,8 @@ var KIND_BY_RESOURCE = {
   goals: "goal",
   investments: "investment",
   cards: "card",
+  budgets: "budget",     // orçamento por categoria
+  recurring: "recurring", // contas fixas que se repetem todo mês
 };
 
 // O conteúdo de cada registro é decidido pelo front-end, então este arquivo não
