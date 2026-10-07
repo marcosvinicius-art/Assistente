@@ -1,6 +1,7 @@
 const db = require("./_db");
 const auth = require("./_auth");
 const mp = require("./_mercadopago");
+const emails = require("./_email");
 
 // Assinatura pelo Mercado Pago.
 //   POST ?acao=assinar   { plano: "mensal"|"anual", metodo: "cartao"|"pix" }  → { url } do checkout
@@ -136,7 +137,37 @@ async function webhook(req, res) {
   return res.status(200).json({ ok: true });
 }
 
+// Uma vez por dia (cron da Vercel, ver vercel.json): avisa por e-mail quem tem
+// o teste grátis acabando nas próximas ~24h e ainda não assinou. Uma vez só.
+async function lembretes(req, res) {
+  var segredo = process.env.CRON_SECRET;
+  if (!segredo || req.headers.authorization !== "Bearer " + segredo) return res.status(401).json({ error: "nao_autorizado" });
+  if (!emails.configurado()) return res.status(200).json({ ok: true, enviados: 0, motivo: "email nao configurado" });
+  var r = await db.query(
+    "SELECT id, email, teste_ate FROM users WHERE aprovado AND NOT cortesia AND lembrete_teste_em IS NULL " +
+    "AND teste_ate BETWEEN now() + interval '12 hours' AND now() + interval '36 hours' " +
+    "AND (assinatura IS NULL OR assinatura->>'ate' IS NULL OR (assinatura->>'ate')::timestamptz < now()) LIMIT 200"
+  );
+  var enviados = 0;
+  for (var i = 0; i < r.rows.length; i++) {
+    var u = r.rows[i];
+    var ok = await emails.enviar(u.email, "Seu teste grátis acaba amanhã", [
+      "Seu período grátis no Wonner Sols termina amanhã. Para continuar lançando seus gastos, escolha um plano — leva um minuto, no cartão ou no Pix.",
+      "Seus dados continuam guardados de qualquer jeito.",
+    ], { texto: "Escolher meu plano", url: emails.siteUrl(req) });
+    if (ok.enviado) {
+      enviados++;
+      await db.query("UPDATE users SET lembrete_teste_em = now() WHERE id = $1", [u.id]);
+    }
+  }
+  return res.status(200).json({ ok: true, enviados: enviados });
+}
+
 module.exports = async function handler(req, res) {
+  if ((req.query || {}).acao === "lembretes") {
+    try { return await lembretes(req, res); }
+    catch (e) { console.error("pagamentos/lembretes falhou:", e && e.message); return res.status(500).json({ error: "server_error" }); }
+  }
   if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
   if (!mp.configurado()) return res.status(503).json({ error: "pagamento_nao_configurado", message: "Pagamentos ainda não estão ligados." });
   var acao = (req.query || {}).acao;

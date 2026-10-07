@@ -4,7 +4,11 @@
 //
 // A rota dinâmica mantém os endereços de sempre (/api/auth/login continua
 // /api/auth/login), então o app não precisou mudar nada.
+var esqueci = require("./_esqueci");
+
 var ACOES = {
+  esqueci: esqueci.pedir,
+  redefinir: esqueci.redefinir,
   login: require("./_login"),
   logout: require("./_logout"),
   me: require("./_me"),

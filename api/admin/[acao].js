@@ -3,6 +3,7 @@ const db = require("../_db");
 const auth = require("../_auth");
 const wa = require("../_whatsapp");
 const agente = require("../_agente");
+const emails = require("../_email");
 
 // As rotas de administração num arquivo só. O plano gratuito da Vercel
 // permite 12 funções por implantação, e cada arquivo aqui dentro contava como
@@ -67,6 +68,13 @@ async function aprovar(req, res) {
     [aprovado, email, String(dias)]
   );
   if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
+  // Conta liberada: avisa por e-mail (se o e-mail estiver ligado).
+  if (aprovado) {
+    await emails.enviar(email, "Sua conta no Wonner Sols foi liberada", [
+      "Pronto! Sua conta já pode ser usada. É só entrar com o e-mail e a senha que você cadastrou.",
+      "Seu período grátis começa agora.",
+    ], { texto: "Entrar no Wonner Sols", url: emails.siteUrl(req) });
+  }
   return res.status(200).json({ email: email, aprovado: aprovado });
 }
 
@@ -301,7 +309,15 @@ async function cobranca(req, res) {
       "\n\nDepois de pagar, toque em *Já paguei* no app.";
     envio = await avisarNoWhatsapp(r.rows[0].whatsapp, texto, process.env.WHATSAPP_TEMPLATE_COBRANCA, [valor, venc]);
   }
-  return res.status(200).json({ email: email, cobranca: nova, whatsapp: envio });
+  var porEmail = null;
+  if (nova) {
+    var ok = await emails.enviar(email, "Você tem uma cobrança do Wonner Sols", [
+      "Valor: " + agente.brl(nova.valorCentavos / 100) + " — vencimento em " + nova.vencimento.split("-").reverse().join("/") + ".",
+    ].concat(nova.mensagem ? [nova.mensagem] : [], nova.pix ? ["Chave Pix: " + nova.pix] : []),
+      { texto: "Ver e pagar no app", url: nova.link || emails.siteUrl(req) });
+    porEmail = ok.enviado ? "enviado por e-mail" : null;
+  }
+  return res.status(200).json({ email: email, cobranca: nova, whatsapp: [envio, porEmail].filter(Boolean).join(" · ") || null });
 }
 
 // Reportes dos clientes. GET lista (abertos primeiro, sem o print, que vem só

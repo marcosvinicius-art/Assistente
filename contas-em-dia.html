@@ -1610,6 +1610,8 @@
     margin-bottom: 14px;
     line-height: 1.4;
   }
+  /* Mesma caixa, em verde, para avisos de sucesso (link enviado, senha salva). */
+  .auth-error.ok { background: var(--income-soft); border-color: var(--income); color: var(--income); }
   .auth-submit { width: 100%; height: 40px; margin-top: 4px; }
   .auth-toggle {
     border: none;
@@ -4320,18 +4322,37 @@
   var authSubmitBtn = document.getElementById("authSubmitBtn");
   var authToggleBtn = document.getElementById("authToggleBtn");
 
+  // Quatro modos no mesmo cartão: entrar, criar conta, pedir link de senha
+  // nova ("esqueci") e definir a senha nova pelo link ("redefinir").
+  var ROTULO_ENVIAR = { login: "Entrar", signup: "Criar conta", esqueci: "Enviar link", redefinir: "Salvar senha nova" };
+  var ROTULO_ENVIANDO = { login: "Entrando…", signup: "Criando conta…", esqueci: "Enviando…", redefinir: "Salvando…" };
+  var tokenRedefinir = null;
+
   function setAuthMode(mode) {
     authMode = mode;
     var entrar = mode === "login";
-    authSubmitBtn.textContent = entrar ? "Entrar" : "Criar conta";
-    authToggleBtn.textContent = entrar ? "Não tem conta? Criar uma" : "Já tem conta? Entrar";
-    document.getElementById("authPassword").autocomplete = entrar ? "current-password" : "new-password";
+    authSubmitBtn.textContent = ROTULO_ENVIAR[mode];
+    authToggleBtn.textContent = mode === "signup" ? "Já tem conta? Entrar" : mode === "login" ? "Não tem conta? Criar uma" : "Voltar para entrar";
+    var senha = document.getElementById("authPassword");
+    senha.autocomplete = entrar ? "current-password" : "new-password";
+    // "esqueci" só pede o e-mail; "redefinir" só pede a senha nova.
+    senha.closest(".field").hidden = mode === "esqueci";
+    senha.required = mode !== "esqueci";
+    var campoEmail = document.getElementById("authEmail");
+    campoEmail.closest(".field").hidden = mode === "redefinir";
+    campoEmail.required = mode !== "redefinir";
+    document.querySelector('label[for="authPassword"]').textContent = mode === "redefinir" ? "Senha nova" : "Senha";
+    document.getElementById("authEsqueciBtn").hidden = mode !== "login";
+    if (mode === "esqueci") document.getElementById("authSub").textContent = "Digite seu e-mail e enviamos um link para criar uma senha nova.";
+    if (mode === "redefinir") document.getElementById("authSub").textContent = "Escolha sua senha nova.";
+    if (mode === "login" || mode === "signup") document.getElementById("authSub").textContent = "Entre com seu email e senha.";
     authError.hidden = true;
+    authError.classList.remove("ok");
   }
-  // Sem provedor de email não há link de recuperação. Dizer isso e apontar o
-  // caminho real é melhor que esconder: quem esqueceu a senha fica olhando uma
-  // tela que não tem saída e conclui que perdeu os dados.
+  // Com e-mail ligado, "esqueci" manda link. Sem, mostra o caminho real (pedir
+  // ao operador): quem esqueceu a senha não pode ficar numa tela sem saída.
   document.getElementById("authEsqueciBtn").addEventListener("click", function () {
+    if (state.config.emailLigado) { setAuthMode("esqueci"); document.getElementById("authEmail").focus(); return; }
     authError.innerHTML = "A senha é guardada com hash e nem o operador consegue lê-la. " +
       'Escreva para <a href="mailto:mv410719@gmail.com">mv410719@gmail.com</a> pedindo uma senha nova — ' +
       "ela é gerada na hora e você troca por uma sua depois de entrar.";
@@ -4342,6 +4363,22 @@
     setAuthMode(authMode === "login" ? "signup" : "login");
   });
 
+  // Chegou pelo link do e-mail: o token sai do endereço na hora (não fica no
+  // histórico nem vaza em print) e o cartão abre no modo "senha nova".
+  (function () {
+    var m = window.location.search.match(/[?&]redefinir=([0-9a-f]{64})/);
+    if (!m) return;
+    tokenRedefinir = m[1];
+    history.replaceState(null, "", window.location.pathname);
+  })();
+  function abrirRedefinicao() {
+    if (!tokenRedefinir) return false;
+    showAuthGate("Escolha sua senha nova.");
+    setAuthMode("redefinir");
+    document.getElementById("authPassword").focus();
+    return true;
+  }
+
   authForm.addEventListener("submit", function (e) {
     e.preventDefault();
     var email = document.getElementById("authEmail").value.trim();
@@ -4351,7 +4388,36 @@
     var password = document.getElementById("authPassword").value.trim();
     authError.hidden = true;
     authSubmitBtn.disabled = true;
-    authSubmitBtn.textContent = authMode === "login" ? "Entrando…" : "Criando conta…";
+    authSubmitBtn.textContent = ROTULO_ENVIANDO[authMode];
+
+    if (authMode === "esqueci" || authMode === "redefinir") {
+      var pedido = authMode === "esqueci"
+        ? apiJson("POST", "/api/auth/esqueci", { email: email })
+        : apiJson("POST", "/api/auth/redefinir", { token: tokenRedefinir, senha: password });
+      var modoAntes = authMode;
+      pedido.then(function (r) {
+        document.getElementById("authPassword").value = "";
+        if (modoAntes === "redefinir") {
+          tokenRedefinir = null;
+          setAuthMode("login");
+          document.getElementById("authGate").classList.remove("simples");
+          document.getElementById("authEmail").value = r.email || "";
+          authError.textContent = "Senha nova salva! Agora é só entrar.";
+        } else {
+          authError.textContent = r.message;
+        }
+        authError.classList.add("ok");
+        authError.hidden = false;
+      }).catch(function (err) {
+        authError.classList.remove("ok");
+        authError.textContent = (err && err.message) || "Não consegui agora — tenta de novo.";
+        authError.hidden = false;
+      }).finally(function () {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = ROTULO_ENVIAR[authMode];
+      });
+      return;
+    }
 
     apiJson("POST", authMode === "login" ? "/api/auth/login" : "/api/auth/signup", { email: email, password: password })
       .then(function (data) {
@@ -4384,7 +4450,7 @@
         // Só o rótulo do botão volta ao normal. Antes isto chamava setAuthMode,
         // que limpa o erro — e, rodando depois do catch, apagava a mensagem no
         // mesmo instante em que ela aparecia: a falha ficava sem explicação.
-        authSubmitBtn.textContent = authMode === "login" ? "Entrar" : "Criar conta";
+        authSubmitBtn.textContent = ROTULO_ENVIAR[authMode];
       });
   });
 
@@ -4587,7 +4653,7 @@
     apiJson("GET", "/api/health")
       .then(function (h) {
         var cfg = (h && h.config) || {};
-        if (cfg.banco && cfg.sessionSecret) { showAuthGate(); return; }
+        if (cfg.banco && cfg.sessionSecret) { if (!abrirRedefinicao()) showAuthGate(); return; }
         var falta = [];
         if (!cfg.banco) falta.push("o banco de dados");
         if (!cfg.sessionSecret) falta.push("a chave de sessão");

@@ -114,6 +114,13 @@ function ensureSchema() {
       -- { status, plano, metodo, mpId, ate, pixPendente } — "ate" é até quando
       -- está pago; é ele que decide o acesso, não o status.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS assinatura JSONB;
+      -- Redefinir senha por e-mail: só o hash do token (quem lê o banco não
+      -- consegue usar o link), validade curta e uso único.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_hash TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_ate TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_pedido_em TIMESTAMPTZ;
+      -- Lembrete "seu teste acaba amanhã": uma vez por conta.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS lembrete_teste_em TIMESTAMPTZ;
       -- Pagamentos do Mercado Pago já processados: o mesmo aviso chegando duas
       -- vezes não estende o acesso duas vezes.
       CREATE TABLE IF NOT EXISTS pagamentos_mp (

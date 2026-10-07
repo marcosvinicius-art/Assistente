@@ -62,6 +62,8 @@ module.exports = async function handler(req, res) {
     cfg.minhaAssinatura = null;
     // Sem a credencial do Mercado Pago, a tela não oferece botão de pagar.
     cfg.pagamentosLigados = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
+    // Com e-mail ligado, "esqueci a senha" manda link; sem, mostra o contato.
+    cfg.emailLigado = !!(process.env.RESEND_API_KEY && process.env.EMAIL_REMETENTE);
     if (session && !session.isAdmin) {
       var u = await db.query(
         "SELECT aviso, cobranca, manutencao, whatsapp, wa_ultimos, cortesia, teste_ate, assinatura FROM users WHERE id = $1",
