@@ -184,6 +184,11 @@ async function inserir(userId, tx) {
 }
 
 async function lancar(user, l, comprovante) {
+  // Mesma regra do app: sem assinatura dá para consultar, não para lançar.
+  if (!(await db.situacaoDoUsuario(user.id)).liberado) {
+    return "Seu período grátis acabou 😕 Para continuar lançando, assine pelo app: botão *Assinar*, no topo. " +
+      "Resumo, parcelas e últimos continuam funcionando por aqui.";
+  }
   var agora = new Date().toISOString();
   var ids = [];
   if (l.parcelas > 1) {

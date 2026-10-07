@@ -62,6 +62,16 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Sem assinatura (teste acabou, pagamento não feito), o cliente continua
+    // VENDO tudo o que já lançou — só não grava. Bloquear a leitura faria os
+    // dados parecerem perdidos, e quem vê o que tem é quem volta a assinar.
+    if (req.method !== "GET" && !session.isAdmin && !(await db.situacaoDoUsuario(userId)).liberado) {
+      return res.status(402).json({
+        error: "assinatura",
+        message: "Seu período grátis acabou. Assine para continuar lançando — seus dados estão todos aqui.",
+      });
+    }
+
     if (req.method === "GET" && req.query.id) {
       var um = await db.query(
         "SELECT id, data FROM records WHERE id = $1 AND user_id = $2 AND kind = $3",

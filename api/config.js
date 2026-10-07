@@ -59,8 +59,14 @@ module.exports = async function handler(req, res) {
     cfg.agenteWhatsapp = process.env.WHATSAPP_NUMERO && process.env.WHATSAPP_TOKEN
       ? String(process.env.WHATSAPP_NUMERO).replace(/\D/g, "") : null;
     cfg.meuWhatsapp = null;
+    cfg.minhaAssinatura = null;
+    // Sem a credencial do Mercado Pago, a tela não oferece botão de pagar.
+    cfg.pagamentosLigados = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (session && !session.isAdmin) {
-      var u = await db.query("SELECT aviso, cobranca, manutencao, whatsapp, wa_ultimos FROM users WHERE id = $1", [session.uid]);
+      var u = await db.query(
+        "SELECT aviso, cobranca, manutencao, whatsapp, wa_ultimos, cortesia, teste_ate, assinatura FROM users WHERE id = $1",
+        [session.uid]
+      );
       if (u.rows.length) {
         cfg.meuAviso = u.rows[0].aviso || null;
         cfg.minhaCobranca = u.rows[0].cobranca || null;
@@ -70,6 +76,7 @@ module.exports = async function handler(req, res) {
         cfg.meuWhatsapp = w ? "•••• " + w.slice(-4) : null;
         // Muda a cada lançamento (ou "desfazer") feito pelo WhatsApp: o app
         // aberto percebe e recarrega a lista sem a pessoa atualizar a página.
+        cfg.minhaAssinatura = db.situacaoAssinatura(u.rows[0]);
         var ult = u.rows[0].wa_ultimos;
         cfg.marcaWhatsapp = Array.isArray(ult) && ult.length ? ult[0] : null;
       }

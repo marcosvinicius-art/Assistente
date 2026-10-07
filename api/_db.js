@@ -106,6 +106,21 @@ function ensureSchema() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_codigo_ate TIMESTAMPTZ;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_pendente JSONB;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS wa_ultimos JSONB;
+      -- Assinatura. "cortesia" nasce true para as contas que já existiam (o
+      -- DEFAULT vale para elas): ninguém que já usava o app é bloqueado de
+      -- surpresa. Cadastro novo grava false e ganha teste_ate.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS cortesia BOOLEAN NOT NULL DEFAULT true;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS teste_ate TIMESTAMPTZ;
+      -- { status, plano, metodo, mpId, ate, pixPendente } — "ate" é até quando
+      -- está pago; é ele que decide o acesso, não o status.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS assinatura JSONB;
+      -- Pagamentos do Mercado Pago já processados: o mesmo aviso chegando duas
+      -- vezes não estende o acesso duas vezes.
+      CREATE TABLE IF NOT EXISTS pagamentos_mp (
+        id TEXT PRIMARY KEY,
+        user_id UUID,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
       CREATE UNIQUE INDEX IF NOT EXISTS users_whatsapp_idx ON users(whatsapp) WHERE whatsapp IS NOT NULL;
       -- A Meta reenvia o aviso quando a resposta demora; o id da mensagem
       -- gravado aqui impede lançar o mesmo gasto duas vezes.
@@ -174,6 +189,8 @@ var CONFIG_PADRAO = {
   precoMensal: 19.9,
   precoAnual: 199,
   diasTeste: 7,
+  // Conta nova precisa ser liberada pelo admin? (era o único jeito antes.)
+  aprovarCadastros: true,
 };
 
 async function lerConfig() {
@@ -202,4 +219,32 @@ async function clienteEmManutencao(userId) {
   return r.rows[0].geral || r.rows[0].dele;
 }
 
-module.exports = { query, mensagemDeFalha, stringDeConexao, lerConfig, gravarConfig, clienteEmManutencao };
+// Situação de acesso de uma conta (linha de users com cortesia, teste_ate,
+// assinatura). Ler o app nunca é bloqueado; "liberado" decide se pode gravar.
+function situacaoAssinatura(u) {
+  var agora = Date.now();
+  var a = u.assinatura || null;
+  var ate = a && a.ate ? new Date(a.ate).getTime() : 0;
+  var teste = u.teste_ate ? new Date(u.teste_ate).getTime() : 0;
+  var motivo = u.cortesia ? "cortesia" : ate > agora ? "assinatura" : teste > agora ? "teste" : "bloqueado";
+  return {
+    liberado: motivo !== "bloqueado",
+    motivo: motivo,
+    testeAte: u.teste_ate || null,
+    diasTeste: teste > agora ? Math.ceil((teste - agora) / 86400000) : 0,
+    status: a ? a.status : null,
+    plano: a ? a.plano : null,
+    metodo: a ? a.metodo : null,
+    ate: a && a.ate ? a.ate : null,
+  };
+}
+
+async function situacaoDoUsuario(userId) {
+  var r = await query("SELECT cortesia, teste_ate, assinatura FROM users WHERE id = $1", [userId]);
+  return r.rows.length ? situacaoAssinatura(r.rows[0]) : { liberado: false, motivo: "bloqueado" };
+}
+
+module.exports = {
+  query, mensagemDeFalha, stringDeConexao, lerConfig, gravarConfig, clienteEmManutencao,
+  situacaoAssinatura, situacaoDoUsuario,
+};

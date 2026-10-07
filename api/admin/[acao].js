@@ -26,11 +26,12 @@ async function listarClientes(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   // Pendentes primeiro: são as únicas linhas que pedem uma decisão, e no fim de
   // uma lista longa ficariam sem ser vistas.
-  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao, (whatsapp IS NOT NULL) AS tem_whatsapp FROM users ORDER BY aprovado ASC, created_at DESC");
+  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao, (whatsapp IS NOT NULL) AS tem_whatsapp, cortesia, teste_ate, assinatura FROM users ORDER BY aprovado ASC, created_at DESC");
   return res.status(200).json(r.rows.map(function (u) {
     return {
       email: u.email, criadoEm: u.created_at, aprovado: u.aprovado,
       aviso: u.aviso || null, cobranca: u.cobranca || null, manutencao: !!u.manutencao, whatsapp: !!u.tem_whatsapp,
+      plano: db.situacaoAssinatura(u),
     };
   }));
 }
@@ -56,7 +57,15 @@ async function aprovar(req, res) {
     return res.status(400).json({ error: "admin_sempre_liberado", message: "A conta de admin não depende de aprovação." });
   }
 
-  var r = await db.query("UPDATE users SET aprovado = $1 WHERE email = $2 RETURNING id", [aprovado, email]);
+  // Ao liberar, o teste grátis recomeça a contar de agora: os dias esperando a
+  // aprovação não podem sair do teste do cliente.
+  var dias = Math.max(0, Math.min(90, Number((await db.lerConfig()).diasTeste) || 0));
+  var r = await db.query(
+    "UPDATE users SET aprovado = $1, teste_ate = CASE WHEN $1 AND NOT cortesia " +
+    "THEN GREATEST(COALESCE(teste_ate, now()), now() + ($3 || ' days')::interval) ELSE teste_ate END " +
+    "WHERE email = $2 RETURNING id",
+    [aprovado, email, String(dias)]
+  );
   if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
   return res.status(200).json({ email: email, aprovado: aprovado });
 }
@@ -186,9 +195,18 @@ async function salvarConfig(req, res) {
   var body = req.body || {};
   var mudancas = {};
 
-  ["cadastrosAbertos", "manutencao", "assistente"].forEach(function (k) {
+  ["cadastrosAbertos", "manutencao", "assistente", "aprovarCadastros"].forEach(function (k) {
     if (typeof body[k] === "boolean") mudancas[k] = body[k];
   });
+  // Preços em reais (com centavos) e dias de teste; fora da faixa é ignorado.
+  ["precoMensal", "precoAnual"].forEach(function (k) {
+    var v = Math.round(Number(body[k]) * 100) / 100;
+    if (k in body && v > 0 && v <= 10000) mudancas[k] = v;
+  });
+  if ("diasTeste" in body) {
+    var d = Math.round(Number(body.diasTeste));
+    if (d >= 0 && d <= 90) mudancas.diasTeste = d;
+  }
   if ("aviso" in body) mudancas.aviso = normalizarAviso(body.aviso);
   if (!Object.keys(mudancas).length) return res.status(400).json({ error: "nada_para_salvar" });
 
@@ -337,7 +355,31 @@ async function manutencaoCliente(req, res) {
   return res.status(200).json({ email: email, manutencao: ligar });
 }
 
+// Acesso de um cliente pelo admin: cortesia (usa sem pagar) ou mais dias de teste.
+async function planoCliente(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "method_not_allowed" });
+  var body = req.body || {};
+  var email = String(body.email || "").trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: "missing_email" });
+  var r;
+  if (typeof body.cortesia === "boolean") {
+    r = await db.query("UPDATE users SET cortesia = $1 WHERE email = $2 RETURNING cortesia, teste_ate, assinatura", [body.cortesia, email]);
+  } else {
+    var dias = Math.round(Number(body.diasExtras));
+    if (!(dias >= 1 && dias <= 365)) return res.status(400).json({ error: "dias_invalidos", message: "Informe de 1 a 365 dias." });
+    // Soma a partir do fim do teste atual, ou de hoje se ele já acabou.
+    r = await db.query(
+      "UPDATE users SET teste_ate = GREATEST(COALESCE(teste_ate, now()), now()) + ($1 || ' days')::interval " +
+      "WHERE email = $2 RETURNING cortesia, teste_ate, assinatura",
+      [String(dias), email]
+    );
+  }
+  if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
+  return res.status(200).json({ email: email, plano: db.situacaoAssinatura(r.rows[0]) });
+}
+
 var ACOES = {
+  "plano-cliente": planoCliente,
   "manutencao-cliente": manutencaoCliente,
   reportes: reportes,
   cobranca: cobranca,

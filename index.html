@@ -205,6 +205,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* Na lista de clientes os selos e o "Acesso…" quebram linha embaixo do email. */
+  #adminClientList .admin-email { white-space: normal; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; }
+  .admin-plano-acao { width: auto; max-width: 130px; font-size: 11.5px; padding: 2px 6px; margin-left: 8px; height: 24px; }
   .admin-date { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
 
   /* Aviso que o admin publica para todos. Informativo usa a cor da marca;
@@ -289,6 +292,12 @@
   .selo-cobranca { color: var(--expense); border-color: var(--expense); }
   .selo-manut { color: var(--warning); border-color: var(--warning); }
   .selo-whats { color: #1FAF54; border-color: #1FAF54; }
+  .selo-plano-assinatura { color: var(--income); border-color: var(--income); }
+  .selo-plano-teste { color: var(--warning); border-color: var(--warning); }
+  .selo-plano-bloqueado { color: var(--expense); border-color: var(--expense); }
+  .selo-plano-cortesia { color: var(--accent-ink); border-color: var(--accent); }
+  .admin-precos { display: grid; grid-template-columns: 1fr 1fr 100px auto; gap: 8px; align-items: end; margin-top: 10px; }
+  @media (max-width: 560px) { .admin-precos { grid-template-columns: 1fr 1fr; } }
   .admin-whats-envio { margin: 8px 0 0; font-size: 12.5px; color: var(--ink-muted); }
   .admin-manut-cliente { padding: 14px 4px 4px; border-top: 1px solid var(--border); }
   .admin-manut-cliente > strong { display: block; font-size: 14px; }
@@ -1337,6 +1346,35 @@
   .tx-comprovante { color: var(--accent-ink); }
   .tx-comprovante:hover { background: var(--accent-soft); color: var(--accent-ink); }
 
+  /* ---- Assinatura ---- */
+  .topbar .plano-btn.teste { border-color: var(--warning); }
+  .topbar .plano-btn.bloqueado { background: var(--expense); border-color: var(--expense); color: #fff; }
+  .assin-faixa {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    font: inherit; font-size: 14px; text-align: left; color: var(--ink); cursor: pointer;
+    background: var(--expense-soft); border: 1px solid var(--expense); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 18px;
+  }
+  .assin-faixa[hidden] { display: none; }
+  .assin-faixa-cta { flex: none; font-weight: 800; color: #fff; background: var(--expense); border-radius: 8px; padding: 7px 14px; }
+  .assin-card { max-width: 440px; }
+  .assin-planos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 16px; }
+  .assin-plano {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font: inherit; color: var(--ink); background: var(--surface-2); cursor: pointer;
+    border: 2px solid var(--border); border-radius: 12px; padding: 16px 10px 12px;
+  }
+  .assin-plano.ativo { border-color: var(--accent); background: var(--accent-soft); }
+  .assin-plano-nome { font-size: 13px; font-weight: 700; color: var(--ink-muted); }
+  .assin-plano-preco { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+  .assin-plano-nota { font-size: 11.5px; color: var(--ink-muted); }
+  .assin-selo { position: absolute; top: -10px; background: var(--income); color: #04210F; font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 2px 8px; }
+  .assin-selo[hidden] { display: none; }
+  .assin-pagar { width: 100%; height: 46px; margin-bottom: 8px; font-size: 14.5px; flex-direction: column; gap: 0; line-height: 1.15; }
+  .assin-pagar small { font-size: 11px; font-weight: 500; opacity: 0.85; }
+  .assin-pix { background: #32BCAD; }
+  .assin-rodape { font-size: 11.5px; color: var(--ink-faint); margin: 6px 0 0; }
+
   /* ---- Primeiros passos ---- */
   .passos { margin-bottom: 20px; border-top-color: var(--accent); }
   .passos-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -2229,6 +2267,10 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
         <span class="qr-btn-label">No celular</span>
       </button>
+      <button type="button" class="qr-btn plano-btn" id="planoBtn" title="Minha assinatura" hidden>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6.5 7 .9-5.1 4.8 1.3 7-6.2-3.4-6.2 3.4 1.3-7L2 9.4l7-.9z"/></svg>
+        <span class="qr-btn-label" id="planoBtnTexto">Assinar</span>
+      </button>
       <button type="button" class="qr-btn" id="whatsOpenBtn" title="Usar pelo WhatsApp" hidden>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
         <span class="qr-btn-label">WhatsApp</span>
@@ -2321,6 +2363,44 @@
 
   <div class="site-aviso" id="siteAviso" role="status" hidden></div>
   <div class="site-aviso" id="clienteAviso" role="status" hidden></div>
+
+  <button type="button" class="assin-faixa" id="assinFaixa" hidden>
+    <span>⏳ <strong>Seu período grátis acabou.</strong> Seus dados continuam aqui — assine para voltar a lançar.</span>
+    <span class="assin-faixa-cta">Assinar</span>
+  </button>
+
+  <div class="qr-overlay" id="assinOverlay" hidden>
+    <div class="qr-card assin-card" role="dialog" aria-modal="true" aria-labelledby="assinTitulo">
+      <button type="button" class="qr-close" id="assinFechar" aria-label="Fechar">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h2 id="assinTitulo">Assine o Wonner Sols</h2>
+      <p class="qr-hint" id="assinSituacao"></p>
+      <div id="assinEscolha">
+        <div class="assin-planos">
+          <button type="button" class="assin-plano" data-plano="mensal">
+            <span class="assin-plano-nome">Mensal</span>
+            <span class="assin-plano-preco" id="assinPrecoMensal">R$ 19,90</span>
+            <span class="assin-plano-nota">por mês</span>
+          </button>
+          <button type="button" class="assin-plano ativo" data-plano="anual">
+            <span class="assin-selo" id="assinEconomia">2 meses grátis</span>
+            <span class="assin-plano-nome">Anual</span>
+            <span class="assin-plano-preco" id="assinPrecoAnual">R$ 199,00</span>
+            <span class="assin-plano-nota" id="assinAnualMes">R$ 16,58 por mês</span>
+          </button>
+        </div>
+        <button type="button" class="btn-add assin-pagar" data-metodo="cartao">Assinar no cartão <small>renova sozinho</small></button>
+        <button type="button" class="btn-add assin-pagar assin-pix" data-metodo="pix">Pagar com Pix <small>um período, sem renovação</small></button>
+        <p class="assin-rodape">Pagamento seguro pelo Mercado Pago. Você pode cancelar quando quiser.</p>
+      </div>
+      <div id="assinIndisponivel" hidden>
+        <p class="qr-hint">Os pagamentos ainda estão sendo ligados. Fale com o suporte pelo botão Reportar ou tente mais tarde.</p>
+      </div>
+      <button type="button" class="auth-toggle" id="assinCancelar" hidden>Cancelar a renovação automática</button>
+      <p class="comprovante-erro" id="assinErro" hidden></p>
+    </div>
+  </div>
 
   <div class="qr-overlay" id="whatsOverlay" hidden>
     <div class="qr-card whats-card" role="dialog" aria-modal="true" aria-labelledby="whatsTitulo">
@@ -3026,6 +3106,21 @@
         <span><strong>Modo manutenção (todos)</strong>
           <small>Ligado, só o admin entra. Os clientes veem uma mensagem de manutenção e ninguém grava nada.</small></span>
       </label>
+      <label class="admin-chave">
+        <input type="checkbox" id="adminChaveAprovar">
+        <span><strong>Aprovar cada cadastro manualmente</strong>
+          <small>Ligado, conta nova espera você liberar (o teste grátis começa ao liberar). Desligado, o cliente já entra e começa o teste.</small></span>
+      </label>
+      <div class="admin-manut-cliente">
+        <strong>Assinatura</strong>
+        <small>Valores cobrados pelo Mercado Pago e mostrados na página de vendas. Valem para novas assinaturas.</small>
+        <div class="admin-precos">
+          <div class="field amount-field"><label for="adminPrecoMensal">Mensal</label><input id="adminPrecoMensal" type="text" inputmode="numeric"></div>
+          <div class="field amount-field"><label for="adminPrecoAnual">Anual</label><input id="adminPrecoAnual" type="text" inputmode="numeric"></div>
+          <div class="field"><label for="adminDiasTeste">Dias grátis</label><input id="adminDiasTeste" type="number" min="0" max="90" step="1"></div>
+          <button type="button" class="btn-add" id="adminPrecosSalvar">Salvar</button>
+        </div>
+      </div>
       <div class="admin-manut-cliente">
         <strong>Manutenção de um cliente só</strong>
         <small>O cliente escolhido fica fora do app; os outros continuam usando normalmente.</small>
@@ -3327,6 +3422,9 @@
     promise.then(function () {
       setStorageAlert(false);
     }).catch(function (e) {
+      // Sem assinatura o servidor recusa com 402: em vez de "erro ao salvar",
+      // mostra o caminho para assinar.
+      if (e && e.status === 402) { abrirAssinatura(); return; }
       setStorageAlert(true, "Não consegui salvar " + oque + " na sua conta: " +
         ((e && e.message) ? e.message : "erro desconhecido") + ". Tenta de novo.");
     }).finally(function () { if (onSettle) onSettle(); });
@@ -3413,6 +3511,7 @@
 
     aplicarCobranca(cfg.minhaCobranca);
     aplicarWhatsapp(cfg);
+    aplicarAssinatura(cfg);
     renderPassos();
 
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
@@ -3426,6 +3525,107 @@
     if (abaAssistente.hidden && abaAssistente.classList.contains("active")) {
       document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
     }
+  }
+
+  // ---------- Assinatura (cliente) ----------
+  // A tela só reflete; quem bloqueia de verdade é o servidor (402 ao gravar).
+  // Bloqueado, o cliente continua vendo tudo — só lançar abre a assinatura.
+  state.bloqueado = false;
+  state.planoEscolhido = "anual";
+
+  function dataCurtaBR(iso) { return iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) : ""; }
+
+  function aplicarAssinatura(cfg) {
+    var s = state.sessao, a = cfg.minhaAssinatura;
+    var btn = document.getElementById("planoBtn");
+    if (!s || s.isAdmin || !a) {
+      btn.hidden = true;
+      document.getElementById("assinFaixa").hidden = true;
+      state.bloqueado = false;
+      return;
+    }
+    state.bloqueado = !a.liberado;
+    btn.hidden = a.motivo === "cortesia";
+    btn.classList.toggle("teste", a.motivo === "teste");
+    btn.classList.toggle("bloqueado", a.motivo === "bloqueado");
+    document.getElementById("planoBtnTexto").textContent =
+      a.motivo === "teste" ? "Teste: " + a.diasTeste + (a.diasTeste === 1 ? " dia" : " dias")
+      : a.motivo === "assinatura" ? "Plano " + (a.plano || "")
+      : "Assinar";
+    document.getElementById("assinFaixa").hidden = a.motivo !== "bloqueado";
+
+    // Janela: preços, situação e o que dá para fazer.
+    var mensal = Number(cfg.precoMensal) || 19.9, anual = Number(cfg.precoAnual) || 199;
+    document.getElementById("assinPrecoMensal").textContent = fmt(mensal);
+    document.getElementById("assinPrecoAnual").textContent = fmt(anual);
+    document.getElementById("assinAnualMes").textContent = fmt(anual / 12) + " por mês";
+    var meses = Math.round((mensal * 12 - anual) / mensal);
+    var selo = document.getElementById("assinEconomia");
+    selo.hidden = meses < 1;
+    selo.textContent = meses === 1 ? "1 mês grátis" : meses + " meses grátis";
+    var situacao =
+      a.motivo === "teste" ? "Você está no período grátis: faltam " + a.diasTeste + (a.diasTeste === 1 ? " dia" : " dias") +
+        ". Assinando agora no cartão, a primeira cobrança só acontece quando o teste acabar."
+      : a.motivo === "assinatura"
+        ? (a.status === "cancelada" ? "Renovação cancelada. Seu acesso vai até " + dataCurtaBR(a.ate) + "."
+          : a.metodo === "pix" ? "Plano " + a.plano + " pago no Pix, válido até " + dataCurtaBR(a.ate) + ". Para continuar depois disso, pague de novo ou assine no cartão."
+          : "Plano " + a.plano + " ativo no cartão. Renova sozinho.")
+      : a.status === "pendente" ? "Estamos aguardando a confirmação do pagamento. Se já pagou, isso leva alguns segundos."
+      : "Seu período grátis acabou. Seus dados continuam aqui — escolha um plano para voltar a lançar.";
+    document.getElementById("assinSituacao").textContent = situacao;
+    var ativoNoCartao = a.motivo === "assinatura" && a.metodo === "cartao" && a.status === "ativa";
+    document.getElementById("assinCancelar").hidden = !ativoNoCartao;
+    document.getElementById("assinEscolha").hidden = !cfg.pagamentosLigados || ativoNoCartao;
+    document.getElementById("assinIndisponivel").hidden = !!cfg.pagamentosLigados;
+    document.getElementById("assinTitulo").textContent = a.motivo === "assinatura" ? "Minha assinatura" : "Assine o Wonner Sols";
+  }
+
+  function abrirAssinatura() {
+    document.getElementById("assinErro").hidden = true;
+    document.getElementById("assinOverlay").hidden = false;
+  }
+  document.getElementById("planoBtn").addEventListener("click", abrirAssinatura);
+  document.getElementById("assinFaixa").addEventListener("click", abrirAssinatura);
+  document.getElementById("assinFechar").addEventListener("click", function () { document.getElementById("assinOverlay").hidden = true; });
+  document.getElementById("assinOverlay").addEventListener("click", function (e) { if (e.target === e.currentTarget) this.hidden = true; });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".assin-plano"), function (b) {
+    b.addEventListener("click", function () {
+      state.planoEscolhido = b.getAttribute("data-plano");
+      Array.prototype.forEach.call(document.querySelectorAll(".assin-plano"), function (x) { x.classList.toggle("ativo", x === b); });
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".assin-pagar"), function (b) {
+    b.addEventListener("click", function () {
+      var erro = document.getElementById("assinErro");
+      erro.hidden = true;
+      b.disabled = true;
+      apiJson("POST", "/api/pagamentos?acao=assinar", { plano: state.planoEscolhido, metodo: b.getAttribute("data-metodo") })
+        .then(function (r) { window.location.href = r.url; })
+        .catch(function (e) {
+          b.disabled = false;
+          erro.textContent = (e && e.message) || "Não consegui abrir o pagamento agora.";
+          erro.hidden = false;
+        });
+    });
+  });
+  document.getElementById("assinCancelar").addEventListener("click", function () {
+    if (!window.confirm("Cancelar a renovação automática? Você continua com acesso até o fim do período já pago.")) return;
+    apiJson("POST", "/api/pagamentos?acao=cancelar", {}).then(conferirConfig).catch(function (e) {
+      window.alert((e && e.message) || "Não consegui cancelar agora.");
+    });
+  });
+
+  // Voltou do Mercado Pago: avisa e limpa o endereço. A confirmação chega pelo
+  // aviso do MP ao servidor e aparece aqui na próxima conferência (15 s).
+  if (/[?&]assinatura=retorno/.test(window.location.search)) {
+    history.replaceState(null, "", window.location.pathname);
+    setTimeout(function () {
+      if (!state.sessao) return;
+      document.getElementById("assinSituacao").textContent =
+        "Recebemos você de volta do Mercado Pago! Assim que o pagamento for confirmado, o acesso é liberado sozinho.";
+      abrirAssinatura();
+    }, 1500);
   }
 
   // ---------- Página de vendas ----------
@@ -3704,6 +3904,10 @@
       document.getElementById("adminChaveCadastros").checked = cfg.cadastrosAbertos;
       document.getElementById("adminChaveAssistente").checked = cfg.assistente;
       document.getElementById("adminChaveManutencao").checked = cfg.manutencao;
+      document.getElementById("adminChaveAprovar").checked = cfg.aprovarCadastros !== false;
+      setAmountValue(document.getElementById("adminPrecoMensal"), cfg.precoMensal);
+      setAmountValue(document.getElementById("adminPrecoAnual"), cfg.precoAnual);
+      document.getElementById("adminDiasTeste").value = cfg.diasTeste;
       mostrarAvisoDoAlvo();
     }).catch(function () {
       document.getElementById("adminAvisoStatus").textContent = "não consegui ler a configuração";
@@ -3964,6 +4168,15 @@
     });
   }
 
+  function seloPlano(p) {
+    if (!p) return "";
+    var texto = p.motivo === "cortesia" ? "cortesia"
+      : p.motivo === "assinatura" ? (p.plano || "assinante") + (p.metodo === "pix" ? " · pix" : "") + (p.status === "cancelada" ? " · cancelada" : "")
+      : p.motivo === "teste" ? "teste · " + p.diasTeste + "d"
+      : "sem plano";
+    return '<span class="selo-pendente selo-plano-' + p.motivo + '">' + escapeHtml(texto) + '</span>';
+  }
+
   function enterAdminMode() {
     carregarReportes();
     carregarNumeros();
@@ -3993,7 +4206,15 @@
             (c.aviso ? '<span class="selo-pendente selo-aviso">aviso</span>' : "") +
             (c.cobranca ? '<span class="selo-pendente selo-cobranca">cobrança</span>' : "") +
             (c.manutencao ? '<span class="selo-pendente selo-manut">manutenção</span>' : "") +
-            (c.whatsapp ? '<span class="selo-pendente selo-whats">WhatsApp</span>' : "") + '</span>' +
+            (c.whatsapp ? '<span class="selo-pendente selo-whats">WhatsApp</span>' : "") +
+            seloPlano(c.plano) +
+            '<select class="admin-plano-acao" data-email="' + escapeHtml(c.email) + '" aria-label="Acesso de ' + escapeHtml(c.email) + '">' +
+              '<option value="">Acesso…</option>' +
+              (c.plano && c.plano.motivo === "cortesia"
+                ? '<option value="tirar-cortesia">Tirar cortesia (passa a pagar)</option>'
+                : '<option value="cortesia">Dar cortesia (usa sem pagar)</option>') +
+              '<option value="7">+7 dias grátis</option><option value="30">+30 dias grátis</option>' +
+            '</select></span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
             '" data-aprovar="' + (pendente ? "1" : "0") + '">' +
@@ -4004,6 +4225,26 @@
             '" title="Excluir conta">' + ICON_TRASH + '</button>' +
         '</div>';
       }).join("");
+
+      Array.prototype.forEach.call(lista.querySelectorAll(".admin-plano-acao"), function (sel) {
+        sel.addEventListener("change", function () {
+          var email = sel.getAttribute("data-email"), v = sel.value;
+          if (!v) return;
+          var corpo = v === "cortesia" ? { email: email, cortesia: true }
+            : v === "tirar-cortesia" ? { email: email, cortesia: false }
+            : { email: email, diasExtras: Number(v) };
+          var pergunta = v === "cortesia" ? "Dar cortesia a " + email + "? Ele usa o app sem pagar."
+            : v === "tirar-cortesia" ? "Tirar a cortesia de " + email + "? Sem teste nem assinatura, ele fica sem poder lançar."
+            : "Dar mais " + v + " dias grátis a " + email + "?";
+          if (!window.confirm(pergunta)) { sel.value = ""; return; }
+          sel.disabled = true;
+          apiJson("POST", "/api/admin/plano-cliente", corpo).then(enterAdminMode).catch(function (e) {
+            sel.disabled = false;
+            sel.value = "";
+            window.alert((e && e.message) || "Não consegui agora.");
+          });
+        });
+      });
 
       Array.prototype.forEach.call(lista.querySelectorAll(".admin-aprovar"), function (btn) {
         btn.addEventListener("click", function () {
@@ -4264,6 +4505,7 @@
     { id: "adminChaveCadastros", campo: "cadastrosAbertos", liga: "cadastros abertos", desliga: "cadastros fechados" },
     { id: "adminChaveAssistente", campo: "assistente", liga: "assistente ligado", desliga: "assistente desligado" },
     { id: "adminChaveManutencao", campo: "manutencao", liga: "manutenção ligada", desliga: "manutenção desligada" },
+    { id: "adminChaveAprovar", campo: "aprovarCadastros", liga: "aprovação manual ligada", desliga: "cadastro entra direto" },
   ].forEach(function (c) {
     var caixa = document.getElementById(c.id);
     caixa.addEventListener("change", function () {
@@ -4298,6 +4540,17 @@
   // Chave Pix e link costumam ser os mesmos em toda cobrança: ficam lembrados
   // neste navegador (só do admin) para não precisar digitar de novo.
   attachAmountMask(document.getElementById("adminCobrancaValor"));
+  attachAmountMask(document.getElementById("adminPrecoMensal"));
+  attachAmountMask(document.getElementById("adminPrecoAnual"));
+  document.getElementById("adminPrecosSalvar").addEventListener("click", function () {
+    var mensal = Number(document.getElementById("adminPrecoMensal").dataset.raw || 0) / 100;
+    var anual = Number(document.getElementById("adminPrecoAnual").dataset.raw || 0) / 100;
+    var dias = Number(document.getElementById("adminDiasTeste").value);
+    var status = document.getElementById("adminRecursosStatus");
+    if (!(mensal > 0) || !(anual > 0)) { status.textContent = "informe os dois preços"; return; }
+    if (!(dias >= 0 && dias <= 90)) { status.textContent = "dias grátis: de 0 a 90"; return; }
+    salvarConfig({ precoMensal: mensal, precoAnual: anual, diasTeste: dias }, "adminRecursosStatus", "preços salvos").catch(function () {});
+  });
   try {
     document.getElementById("adminCobrancaPix").value = localStorage.getItem("wonner-cobranca-pix") || "";
     document.getElementById("adminCobrancaLink").value = localStorage.getItem("wonner-cobranca-link") || "";
@@ -4643,6 +4896,8 @@
   var acoesLancamento = document.getElementById("acoesLancamento");
 
   function abrirLancamento(tipo) {
+    // Sem assinatura, abrir o formulário só levaria a um erro ao salvar.
+    if (state.bloqueado) { abrirAssinatura(); return; }
     currentType = tipo === "receita" ? "receita" : "despesa";
     txForm.classList.toggle("e-receita", currentType === "receita");
     document.getElementById("entryTitulo").textContent =

@@ -37,14 +37,20 @@ module.exports = async function handler(req, res) {
     var id = crypto.randomUUID();
     var hash = auth.hashPassword(password);
 
-    // Nasce aguardando aprovação, e por isso nenhum cookie é emitido: entrar
-    // agora e ser barrado na tela seguinte seria pior que não entrar.
+    // Com aprovação manual (padrão), nasce aguardando e nenhum cookie é
+    // emitido: entrar agora e ser barrado na tela seguinte seria pior que não
+    // entrar. Sem aprovação manual, já entra — e o teste grátis começa agora.
+    // cortesia = false: só contas que existiam antes da assinatura são cortesia.
+    var aprovado = config.aprovarCadastros === false;
+    var dias = Math.max(0, Math.min(90, Number(config.diasTeste) || 0));
     await db.query(
-      "INSERT INTO users (id, email, password_hash, aprovado) VALUES ($1, $2, $3, false)",
-      [id, email, hash]
+      "INSERT INTO users (id, email, password_hash, aprovado, cortesia, teste_ate) " +
+      "VALUES ($1, $2, $3, $4, false, now() + ($5 || ' days')::interval)",
+      [id, email, hash, aprovado, String(dias)]
     );
 
-    return res.status(200).json({ email: email, aprovado: false });
+    if (aprovado) auth.setSessionCookie(res, auth.createSessionToken(id));
+    return res.status(200).json({ email: email, aprovado: aprovado });
   } catch (e) {
     console.error("signup falhou:", e);
     return res.status(500).json({
