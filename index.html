@@ -1437,6 +1437,49 @@
   .orc-acoes { display: flex; gap: 8px; margin-top: 12px; }
   .col-side > .panel + .panel { margin-top: 18px; }
 
+  /* ---- Relatório ---- */
+  .rel-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .rel-topo h2 { font-size: 22px; letter-spacing: -0.02em; }
+  .rel-sub { font-size: 13px; color: var(--ink-muted); margin: 4px 0 0; }
+  .rel-delta { font-size: 12px; margin-top: 4px; font-weight: 600; }
+  .rel-delta.bom { color: var(--income); }
+  .rel-delta.ruim { color: var(--expense); }
+  .rel-delta.neutro { color: var(--ink-faint); font-weight: 500; }
+  .rel-insights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .rel-insights li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
+  .rel-insights .ico { flex: none; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--surface-2); }
+  .rel-duas { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 880px) { .rel-duas { grid-template-columns: 1fr; } }
+  .rel-cat { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; font-size: 13px; }
+  .rel-cat-barra { height: 9px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .rel-cat-barra span { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+  .rel-cat-valor { text-align: right; white-space: nowrap; }
+  .rel-cat-valor small { display: block; font-size: 11px; }
+  .rel-maior { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .rel-maior:last-child { border-bottom: none; }
+  .rel-maior small { display: block; font-size: 11.5px; color: var(--ink-faint); }
+  .rel-rodape { font-size: 11.5px; color: var(--ink-faint); text-align: center; margin: 18px 0 0; }
+  .relatorio > .panel { margin-top: 18px; }
+
+  /* "Salvar em PDF" usa a impressão do navegador: sai só o relatório, em
+     fundo branco, sem botões, abas nem barra do topo. */
+  @media print {
+    @page { margin: 14mm; }
+    body * { visibility: hidden !important; }
+    #relatorio, #relatorio * { visibility: visible !important; }
+    #relatorio { position: absolute; left: 0; top: 0; width: 100%; }
+    #relPdf { display: none !important; }
+    html, body { background: #fff !important; }
+    #relatorio, #relatorio .panel, #relatorio .stats, #relatorio .stat {
+      background: #fff !important; color: #111 !important; box-shadow: none !important; border-color: #ccc !important;
+    }
+    #relatorio .rel-sub, #relatorio .stat .label, #relatorio .stat .sub, #relatorio small:not(.rel-delta), #relatorio .rel-rodape { color: #555 !important; }
+    #relatorio, #relatorio * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #relatorio .rel-cat-barra { background: #eee !important; }
+    #relatorio .rel-insights .ico { background: #f1f1f1 !important; }
+    .toast-area, .reportar-fab { display: none !important; }
+  }
+
   /* ---- Contas fixas ---- */
   .fixas-panel { margin-bottom: 18px; }
   .fixas-form { display: grid; grid-template-columns: 2fr 1fr 90px 110px 1.2fr 1.2fr; gap: 8px; align-items: end; padding-bottom: 14px; margin-bottom: 6px; border-bottom: 1px dashed var(--border); }
@@ -2603,6 +2646,7 @@
     <button class="tab-btn active" data-tab="lancamentos" type="button" role="tab" aria-selected="true">Lançamentos</button>
     <button class="tab-btn" data-tab="parcelas" type="button" role="tab" aria-selected="false">Parcelas</button>
     <button class="tab-btn" data-tab="investimentos" type="button" role="tab" aria-selected="false">Investimentos &amp; metas</button>
+    <button class="tab-btn" data-tab="relatorio" type="button" role="tab" aria-selected="false">Relatório</button>
     <button class="tab-btn" data-tab="assistente" type="button" role="tab" aria-selected="false">Assistente</button>
     <button class="tab-btn" data-tab="admin" type="button" role="tab" aria-selected="false" hidden>Administração<span class="tab-contador" id="adminTabContador" hidden></span></button>
   </div>
@@ -3077,6 +3121,37 @@
     </div>
   </div>
 
+  <div class="tab-panel" data-panel="relatorio" hidden>
+    <section class="relatorio" id="relatorio">
+      <div class="rel-topo">
+        <div>
+          <h2 id="relTitulo">Relatório do mês</h2>
+          <p class="rel-sub" id="relSub"></p>
+        </div>
+        <button type="button" class="btn-add" id="relPdf">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Salvar em PDF
+        </button>
+      </div>
+      <div class="stats rel-kpis" id="relKpis"></div>
+      <div class="panel">
+        <div class="panel-head"><h2>O que chamou atenção</h2></div>
+        <ul class="rel-insights" id="relInsights"></ul>
+      </div>
+      <div class="rel-duas">
+        <div class="panel">
+          <div class="panel-head"><h2>Gastos por categoria</h2><span class="hint" id="relCatHint"></span></div>
+          <div id="relCategorias"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Maiores gastos</h2></div>
+          <div id="relMaiores"></div>
+        </div>
+      </div>
+      <p class="rel-rodape">Wonner Sols · relatório gerado em <span id="relGerado"></span></p>
+    </section>
+  </div>
+
   <div class="tab-panel" data-panel="assistente" hidden>
     <div class="panel chat-panel">
       <div class="chat-head">
@@ -3461,6 +3536,7 @@
     if (!storageFunciona()) {
       setStorageAlert(true, "Este navegador não está deixando salvar nada: o que você lançar vai sumir ao recarregar a página. Costuma ser navegação privada (aba anônima) ou armazenamento bloqueado nas configurações do site.");
     }
+    state.dadosProntos = true;
     gerarContasFixas();
     render();
   }
@@ -3606,6 +3682,7 @@
       state.investments = res[2];
       state.cards = res[3];
       COLECOES_NOVAS.forEach(function (c, i) { state[c] = res[4 + i]; });
+      state.dadosProntos = true;
       gerarContasFixas();
       render();
     }).catch(function (e) {
@@ -5217,8 +5294,10 @@
     document.getElementById("orcEditarBtn").textContent = linhas.length ? "Editar" : "Definir";
 
     // Avisa quando uma categoria SOBE de faixa no mês atual (lançamento novo,
-    // de qualquer origem). Na primeira vez que desenha, só memoriza.
-    if (mk === todayISO().slice(0, 7)) {
+    // de qualquer origem). Só depois de os dados chegarem: antes disso a tela
+    // desenha com listas vazias, e a chegada dos dados pareceria "gasto novo".
+    if (!state.dadosProntos) { state.orcFaixaAnterior = null; }
+    else if (mk === todayISO().slice(0, 7)) {
       var agora = {};
       linhas.forEach(function (l) { agora[l.category] = l.faixa; });
       if (state.orcFaixaAnterior) {
@@ -5291,6 +5370,114 @@
     fecharEditorOrcamento();
   });
 
+  // ---------- Relatório do mês ----------
+  // Tudo calculado dos lançamentos do mês escolhido no topo, comparado com o
+  // mês anterior. As frases só aparecem quando dizem algo (variação relevante).
+  function resumoDoMes(mk) {
+    var r = { entradas: 0, saidas: 0, porCat: {}, itens: [] };
+    state.transactions.forEach(function (t) {
+      if (monthKey(t.date) !== mk) return;
+      var v = Number(t.amount) || 0;
+      if (t.type === "receita") r.entradas += v;
+      else { r.saidas += v; r.porCat[t.category] = (r.porCat[t.category] || 0) + v; r.itens.push(t); }
+    });
+    r.saldo = r.entradas - r.saidas;
+    r.poupanca = r.entradas > 0 ? r.saldo / r.entradas * 100 : null;
+    return r;
+  }
+  function nomeMes(mk) { var p = mk.split("-"); return MONTHS_PT[Number(p[1]) - 1]; }
+  function variacao(atual, antes) { return antes > 0 ? (atual - antes) / antes * 100 : null; }
+
+  function renderRelatorio(mk) {
+    var ant = addMonthsISO(mk + "-01", -1).slice(0, 7);
+    var a = resumoDoMes(mk), b = resumoDoMes(ant);
+    var mNome = nomeMes(mk), antNome = nomeMes(ant);
+    document.getElementById("relTitulo").textContent = "Relatório de " + mNome + " de " + mk.slice(0, 4);
+    document.getElementById("relSub").textContent = a.itens.length || a.entradas
+      ? "Comparado com " + antNome + "."
+      : "Ainda não há lançamentos neste mês.";
+    document.getElementById("relGerado").textContent = new Date().toLocaleDateString("pt-BR");
+
+    // Indicadores com a variação: na saída, subir é ruim; nos outros, é bom.
+    function delta(atual, antes, subirEhBom, emPontos) {
+      if (emPontos) {
+        if (atual == null || antes == null) return '<div class="rel-delta neutro">sem comparação</div>';
+        var dp = atual - antes;
+        if (Math.abs(dp) < 1) return '<div class="rel-delta neutro">igual a ' + antNome + '</div>';
+        return '<div class="rel-delta ' + ((dp > 0) === subirEhBom ? "bom" : "ruim") + '">' + (dp > 0 ? "▲ +" : "▼ ") + Math.round(dp) + " pontos vs " + antNome + "</div>";
+      }
+      var v = variacao(atual, antes);
+      if (v == null) return '<div class="rel-delta neutro">sem comparação</div>';
+      if (Math.abs(v) < 1) return '<div class="rel-delta neutro">igual a ' + antNome + '</div>';
+      return '<div class="rel-delta ' + ((v > 0) === subirEhBom ? "bom" : "ruim") + '">' + (v > 0 ? "▲ " : "▼ ") + Math.abs(Math.round(v)) + "% vs " + antNome + "</div>";
+    }
+    document.getElementById("relKpis").innerHTML =
+      '<div class="stat"><div class="label">Entradas</div><div class="value income num">' + fmt(a.entradas) + "</div>" + delta(a.entradas, b.entradas, true) + "</div>" +
+      '<div class="stat"><div class="label">Saídas</div><div class="value expense num">' + fmt(a.saidas) + "</div>" + delta(a.saidas, b.saidas, false) + "</div>" +
+      '<div class="stat"><div class="label">Saldo</div><div class="value num">' + fmt(a.saldo) + "</div>" +
+        (b.entradas || b.saidas ? '<div class="rel-delta ' + (a.saldo >= b.saldo ? "bom" : "ruim") + '">' + (a.saldo >= b.saldo ? "▲ " : "▼ ") + fmt(Math.abs(a.saldo - b.saldo)) + " vs " + antNome + "</div>" : '<div class="rel-delta neutro">sem comparação</div>') + "</div>" +
+      '<div class="stat"><div class="label">Quanto sobrou</div><div class="value rate num">' + (a.poupanca == null ? "—" : Math.round(a.poupanca) + "%") + "</div>" + delta(a.poupanca, b.poupanca, true, true) + "</div>";
+
+    // Frases.
+    var frases = [];
+    var cats = Object.keys(a.porCat).sort(function (x, y) { return a.porCat[y] - a.porCat[x]; });
+    if (a.saidas > 0 && b.saidas > 0) {
+      var vs = variacao(a.saidas, b.saidas);
+      if (Math.abs(vs) >= 5) frases.push([vs > 0 ? "📈" : "📉", "Você gastou " + Math.abs(Math.round(vs)) + "% " + (vs > 0 ? "a mais" : "a menos") + " que em " + antNome + " (" + fmt(Math.abs(a.saidas - b.saidas)) + (vs > 0 ? " a mais)." : " a menos).")]);
+    }
+    if (cats.length) {
+      var top = cats[0];
+      frases.push(["🏷️", catMeta(top).label + " foi onde você mais gastou: " + fmt(a.porCat[top]) + ", " + Math.round(a.porCat[top] / a.saidas * 100) + "% das saídas."]);
+    }
+    // Maior alta e maior queda por categoria (só se a diferença pesar).
+    var altas = ALL_CATEGORIES.map(function (c) {
+      return { k: c.key, dif: (a.porCat[c.key] || 0) - (b.porCat[c.key] || 0), antes: b.porCat[c.key] || 0 };
+    }).filter(function (x) { return Math.abs(x.dif) >= 50; }).sort(function (x, y) { return y.dif - x.dif; });
+    if (altas.length && altas[0].dif > 0 && b.saidas > 0) {
+      var al = altas[0];
+      frases.push(["⚠️", "Maior aumento: " + catMeta(al.k).label + ", " + fmt(al.dif) + " a mais que em " + antNome + (al.antes > 0 ? " (+" + Math.round(al.dif / al.antes * 100) + "%)." : ".")]);
+    }
+    var queda = altas.length ? altas[altas.length - 1] : null;
+    if (queda && queda.dif < 0) frases.push(["💚", "Você economizou " + fmt(-queda.dif) + " em " + catMeta(queda.k).label + " em relação a " + antNome + "."]);
+    if (a.poupanca != null) {
+      if (a.poupanca < 0) frases.push(["🚨", "Saiu mais do que entrou: faltaram " + fmt(-a.saldo) + " para fechar o mês."]);
+      else if (a.poupanca >= 20) frases.push(["🎯", "Ótimo: sobrou " + Math.round(a.poupanca) + "% do que entrou (" + fmt(a.saldo) + ")."]);
+      else frases.push(["💡", "Sobrou " + Math.round(a.poupanca) + "% do que entrou. Uma meta comum é guardar pelo menos 20%."]);
+    }
+    var estouros = orcamentoDoMes(mk).filter(function (o) { return o.faixa === "estourou"; });
+    if (estouros.length) frases.push(["🧾", "Orçamento estourado em " + estouros.map(function (o) { return catMeta(o.category).label + " (" + fmt(o.gasto - o.limite) + " acima)"; }).join(", ") + "."]);
+    var fixas = 0;
+    state.recurring.forEach(function (r) { if (r.ativa !== false && (r.type || "despesa") === "despesa") fixas += Number(r.amount); });
+    if (fixas > 0 && a.entradas > 0) frases.push(["📌", "Contas fixas somam " + fmt(fixas) + " por mês, " + Math.round(fixas / a.entradas * 100) + "% do que entrou."]);
+    var futuras = 0;
+    state.transactions.forEach(function (t) { if (t.parcela && !isPaid(t) && monthKey(t.date) > mk) futuras += Number(t.amount); });
+    if (futuras > 0) frases.push(["💳", "Parcelas já comprometem " + fmt(futuras) + " dos próximos meses."]);
+    if (!frases.length) frases.push(["📝", "Lance seus gastos e entradas do mês para ver a análise aqui."]);
+    document.getElementById("relInsights").innerHTML = frases.map(function (f) {
+      return '<li><span class="ico" aria-hidden="true">' + f[0] + "</span><span>" + escapeHtml(f[1]) + "</span></li>";
+    }).join("");
+
+    // Categorias: barra do mês (uma série, cor da categoria) e a variação escrita.
+    var maior = cats.length ? a.porCat[cats[0]] : 0;
+    document.getElementById("relCatHint").textContent = cats.length ? "vs " + antNome : "";
+    document.getElementById("relCategorias").innerHTML = !cats.length ? '<div class="empty-note">Sem saídas neste mês.</div>' : cats.map(function (k) {
+      var meta = catMeta(k), v = a.porCat[k], antes = b.porCat[k] || 0;
+      var d = antes > 0 ? Math.round((v - antes) / antes * 100) : null;
+      return '<div class="rel-cat"><span>' + meta.label + "</span>" +
+        '<span class="rel-cat-barra"><span style="width:' + (v / maior * 100).toFixed(1) + "%;background:" + meta.color + '"></span></span>' +
+        '<span class="rel-cat-valor num">' + fmt(v) +
+          "<small class=\"rel-delta " + (d == null ? "neutro" : d > 0 ? "ruim" : "bom") + '">' +
+          (d == null ? "novo" : d === 0 ? "igual" : (d > 0 ? "▲ " : "▼ ") + Math.abs(d) + "%") + "</small></span></div>";
+    }).join("");
+
+    var maiores = a.itens.slice().sort(function (x, y) { return y.amount - x.amount; }).slice(0, 5);
+    document.getElementById("relMaiores").innerHTML = !maiores.length ? '<div class="empty-note">Sem saídas neste mês.</div>' : maiores.map(function (t) {
+      return '<div class="rel-maior"><span>' + escapeHtml(t.desc) + "<small>" + catMeta(t.category).label + " · " + dataBR(t.date) + "</small></span>" +
+        '<strong class="num">' + fmt(t.amount) + "</strong></div>";
+    }).join("");
+  }
+  document.getElementById("relPdf").addEventListener("click", function () { window.print(); });
+
   // ---------- Contas fixas ----------
   // Cada conta fixa vira um lançamento pendente no mês corrente, uma vez por
   // mês. "Já existe?" é decidido olhando os próprios lançamentos (recorrenteId +
@@ -5326,7 +5513,10 @@
   state.nuvemPronta = {};
   function nuvemCarregou(nome) {
     state.nuvemPronta[nome] = true;
-    if (state.nuvemPronta.transactions && state.nuvemPronta.recurring) gerarContasFixas();
+    if (state.nuvemPronta.transactions && state.nuvemPronta.recurring && state.nuvemPronta.budgets) {
+      state.dadosProntos = true;
+      gerarContasFixas();
+    }
   }
 
   function preencherFormFixas() {
@@ -7578,6 +7768,7 @@
     renderOrcamento(mk);
     renderContasFixas();
     renderAlertaFixas();
+    renderRelatorio(mk);
     renderPassos();
 
     // transaction list
