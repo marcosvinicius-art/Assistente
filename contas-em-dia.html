@@ -2171,6 +2171,163 @@
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
   }
+
+  /* ================================================================
+     Refinamento visual (out/2026) — tema escuro fixo, "extrato de banco
+     privado": números como protagonistas, cor só com significado, e um
+     único detalhe da marca: o fio prateado no topo de cada bloco.
+     Fica no fim do CSS de propósito: ajusta o que veio antes sem reescrever.
+     ================================================================ */
+
+  /* Só escuro: vale mesmo com o aparelho no modo claro. */
+  :root, :root[data-theme="light"] {
+    --bg: #070C16;
+    --surface: #0D1626;
+    --surface-2: #142035;
+    --ink: #E9EEF5;
+    --ink-muted: #9AAAC0;
+    --ink-faint: #7787A0;
+    --border: #1C2A40;
+    --accent: #2774CC;
+    --accent-soft: #12253D;
+    --accent-ink: #93C2F2;
+    --on-accent: #FFFFFF;
+    --income: #4ADE80;
+    --income-soft: #10291F;
+    --expense: #FB7185;
+    --expense-soft: #351A22;
+    --warning: #F0B429;
+    --rate: #8FB9EA;
+    --prata: #B8C3D1;
+    --prata-fio: rgba(184, 195, 209, 0.32);
+    --shadow: none;
+    --shadow-raised: 0 18px 40px -18px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(184, 195, 209, 0.08);
+    --radius: 14px;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); font-size: 14.5px; }
+  .app { padding: 0 24px 72px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- Topo: só marca, mês, plano e conta ---- */
+  .app > .topbar {
+    margin: 0 -24px 0;
+    padding: 14px 24px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    gap: 14px;
+  }
+  .topbar .brand h1 { font-size: 19px; letter-spacing: -0.02em; }
+  .topbar .brand .status { display: none; }
+  .topbar .brand-mark rect:first-child { fill: var(--prata); }
+  .topbar-actions { gap: 10px; }
+  .topbar .month-nav { background: transparent; border: 1px solid var(--border); box-shadow: none; padding: 3px; }
+  .topbar .month-label { font-weight: 700; font-size: 14px; min-width: 132px; text-align: center; font-variant-numeric: tabular-nums; }
+  .topbar .month-nav button { border-radius: 999px; }
+  .topbar .month-nav button:hover { background: var(--surface-2); color: var(--ink); }
+  .topbar .qr-btn { background: transparent; border-color: var(--border); box-shadow: none; color: var(--ink-muted); }
+  .topbar .qr-btn:hover { background: var(--surface-2); border-color: var(--prata-fio); color: var(--ink); }
+
+  .conta { position: relative; }
+  .conta-btn {
+    display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 3px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); border-radius: 999px; color: var(--ink-muted);
+    font: inherit;
+  }
+  .conta-btn:hover, .conta-btn[aria-expanded="true"] { border-color: var(--prata-fio); color: var(--ink); }
+  .conta-avatar {
+    width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); color: var(--prata); font-weight: 800; font-size: 13.5px;
+    box-shadow: inset 0 0 0 1px var(--prata-fio);
+  }
+  .conta-menu {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 45; width: 268px;
+    background: var(--surface); border: 1px solid var(--border); border-top-color: var(--prata-fio);
+    border-radius: 12px; box-shadow: var(--shadow-raised); padding: 6px;
+  }
+  .conta-quem { padding: 10px 10px 12px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+  .conta-quem strong { display: block; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conta-sync { display: block; font-size: 12px; color: var(--ink-faint); margin-top: 3px; }
+  .conta-sync .status-dot { margin-right: 5px; }
+  .conta-menu .qr-btn {
+    width: 100%; justify-content: flex-start; gap: 10px; padding: 10px; border: none; border-radius: 8px;
+    background: transparent; box-shadow: none; color: var(--ink); font-weight: 500; font-size: 13.5px;
+  }
+  .conta-menu .qr-btn:hover { background: var(--surface-2); }
+  .conta-menu .qr-btn .icon { color: var(--ink-faint); }
+  .conta-menu .qr-btn-label { display: inline !important; }
+  .conta-menu .qr-btn[hidden] { display: none; }
+  .conta-sep { height: 1px; background: var(--border); margin: 6px 4px; }
+  .conta-menu #logoutBtn { color: var(--expense); }
+  .conta-menu #logoutBtn .icon { color: var(--expense); }
+
+  /* ---- Abas: presas no topo ao rolar, sublinhado prateado ---- */
+  .app > .tabs {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--bg);
+    margin: 0 -24px 22px; padding: 0 24px;
+    gap: 26px;
+  }
+  .tab-btn { padding: 15px 1px 13px; font-size: 14.5px; letter-spacing: -0.005em; color: var(--ink-faint); }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--prata); }
+
+  /* ---- Blocos: o fio prateado no topo é a assinatura ---- */
+  .panel {
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--prata-fio);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+  }
+  .panel-head { margin-bottom: 16px; }
+  .panel-head h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.012em; }
+  .panel-head .hint { font-size: 12.5px; }
+
+  /* Banda de números: os protagonistas. */
+  .stats {
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--prata-fio);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .stat { padding: 20px 22px 18px; border-left-color: var(--border); }
+  .stat .label { font-size: 12.5px; color: var(--ink-muted); margin-bottom: 8px; }
+  .stat .value { font-size: 27px; font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+  .stat .sub { font-size: 12px; }
+
+  /* Controles: um raio menor que o dos blocos (hierarquia de cantos). */
+  input, select, textarea { border-radius: 10px; background: var(--surface-2); border-color: var(--border); }
+  input:hover, select:hover, textarea:hover { border-color: #2A3B55; }
+  .btn-add { border-radius: 10px; height: 38px; font-weight: 700; }
+  .btn-add:hover { box-shadow: none; filter: brightness(1.12); }
+  .export-btn { border-radius: 10px; }
+
+  .acao { border-radius: 12px; background: var(--surface-2); border-color: var(--border); }
+  .gasto-rapido { background: transparent; }
+  .gasto-cartao { background: var(--accent-soft); }
+
+  .tx-row { padding: 11px 8px; border-radius: 10px; }
+  .tx-row + .tx-row { border-top: 1px solid rgba(28, 42, 64, 0.6); border-radius: 0; }
+  .tx-row:hover { background: var(--surface-2); border-radius: 10px; }
+  .tx-desc { font-size: 14px; font-weight: 600; }
+  .tx-amount { font-size: 14.5px; font-variant-numeric: tabular-nums; }
+
+  .qr-card { border-radius: 16px; border-top-color: var(--prata-fio); }
+  .site-aviso, .assin-faixa, .cobranca-faixa, .fixas-alerta { border-radius: 12px; }
+
+  /* Celular: topo em duas linhas (marca + conta; mês ocupando a linha). */
+  @media (max-width: 560px) {
+    .app { padding: 0 16px 72px; }
+    .app > .topbar { margin: 0 -16px; padding: 12px 16px; }
+    .app > .tabs { margin: 0 -16px 18px; padding: 0 16px; gap: 20px; }
+    .topbar-actions { width: 100%; }
+    .topbar .month-nav { flex: 1; justify-content: space-between; }
+    .topbar .month-label { min-width: 0; }
+    .panel { padding: 18px 16px; }
+    .stat .value { font-size: 22px; }
+  }
 </style>
 
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='7' fill='%23001539'/%3E%3Crect x='5.3' y='15.4' width='4.2' height='5.8' rx='1.3' fill='%23F4F6F9'/%3E%3Crect x='11.9' y='11.2' width='4.2' height='10' rx='1.3' fill='%23F4F6F9'/%3E%3Crect x='18.5' y='6.8' width='4.2' height='14.4' rx='1.3' fill='%23F4F6F9'/%3E%3C/svg%3E">
@@ -2361,30 +2518,40 @@
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </button>
       </div>
-      <button type="button" class="qr-btn" id="qrOpenBtn" title="Abrir no celular">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
-        <span class="qr-btn-label">No celular</span>
-      </button>
       <button type="button" class="qr-btn plano-btn" id="planoBtn" title="Minha assinatura" hidden>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6.5 7 .9-5.1 4.8 1.3 7-6.2-3.4-6.2 3.4 1.3-7L2 9.4l7-.9z"/></svg>
         <span class="qr-btn-label" id="planoBtnTexto">Assinar</span>
       </button>
-      <button type="button" class="qr-btn" id="whatsOpenBtn" title="Usar pelo WhatsApp" hidden>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
-        <span class="qr-btn-label">WhatsApp</span>
-      </button>
-      <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
-        <span class="qr-btn-label">Avaliar</span>
-      </button>
-      <button type="button" class="qr-btn" id="senhaOpenBtn" title="Trocar senha" hidden>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M10 13 20 3"/><path d="m17 6 2 2"/><path d="m14 9 2 2"/></svg>
-        <span class="qr-btn-label">Senha</span>
-      </button>
-      <button type="button" class="qr-btn" id="logoutBtn" title="Sair da conta" hidden>
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="qr-btn-label" id="logoutLabel">Sair</span>
-      </button>
+      <div class="conta">
+        <button type="button" class="conta-btn" id="contaBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu da conta">
+          <span class="conta-avatar" id="contaAvatar" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+          <svg class="icon-sm conta-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="conta-menu" id="contaMenu" role="menu" hidden>
+          <div class="conta-quem" id="contaQuem"></div>
+          <button type="button" class="qr-btn" id="qrOpenBtn" title="Abrir no celular">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
+            <span class="qr-btn-label">Abrir no celular</span>
+          </button>
+          <button type="button" class="qr-btn" id="whatsOpenBtn" title="Usar pelo WhatsApp" hidden>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
+            <span class="qr-btn-label">Usar pelo WhatsApp</span>
+          </button>
+          <button type="button" class="qr-btn" id="feedbackFab" title="Dar feedback">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+            <span class="qr-btn-label">Avaliar o app</span>
+          </button>
+          <button type="button" class="qr-btn" id="senhaOpenBtn" title="Trocar senha" hidden>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M10 13 20 3"/><path d="m17 6 2 2"/><path d="m14 9 2 2"/></svg>
+            <span class="qr-btn-label">Trocar senha</span>
+          </button>
+          <div class="conta-sep" role="separator"></div>
+          <button type="button" class="qr-btn" id="logoutBtn" title="Sair da conta" hidden>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span class="qr-btn-label" id="logoutLabel">Sair</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="qr-overlay" id="qrOverlay" hidden>
@@ -3629,6 +3796,7 @@
 
   function enterServerMode(email, isAdmin) {
     state.sessao = { email: email, isAdmin: !!isAdmin };
+    atualizarAvatar();
     // Definido antes do aplicarConfig abaixo: em manutenção, a janela de
     // cobrança não pode abrir por cima do aviso de manutenção.
     state.parouNaManutencao = foraPorManutencao(state.config) && !isAdmin;
@@ -5243,6 +5411,33 @@
     document.querySelector(".comprovante-campo").classList.remove("so-na-criacao");
     renderMarcaEdicao();
   }
+
+  // ---------- Menu da conta (topo) ----------
+  // Os botões de sempre (celular, WhatsApp, avaliar, senha, sair) moram aqui
+  // dentro; o topo fica só com o mês, o plano e este menu.
+  var contaBtn = document.getElementById("contaBtn");
+  var contaMenu = document.getElementById("contaMenu");
+  function abrirMenuConta(abrir) {
+    contaMenu.hidden = !abrir;
+    contaBtn.setAttribute("aria-expanded", abrir ? "true" : "false");
+    if (abrir) {
+      // Quem está logado e onde os dados ficam: o que antes ocupava o topo.
+      var email = state.sessao && state.sessao.email;
+      var onde = state.storage === "server" ? "Sincronizado com sua conta"
+        : state.storage === "cloud" ? "Salvo na sua conta Claude" : "Salvo só neste navegador";
+      document.getElementById("contaQuem").innerHTML =
+        (email ? "<strong>" + escapeHtml(email) + "</strong>" : "<strong>Sem conta</strong>") +
+        '<span class="conta-sync"><span class="status-dot' + (state.storage === "local" ? " local" : "") + '"></span>' + onde + "</span>";
+    }
+  }
+  function atualizarAvatar() {
+    var email = state.sessao && state.sessao.email;
+    if (email) document.getElementById("contaAvatar").textContent = email.charAt(0).toUpperCase();
+  }
+  contaBtn.addEventListener("click", function (e) { e.stopPropagation(); abrirMenuConta(contaMenu.hidden); });
+  contaMenu.addEventListener("click", function (e) { if (e.target.closest("button")) abrirMenuConta(false); });
+  document.addEventListener("click", function (e) { if (!contaMenu.hidden && !e.target.closest(".conta")) abrirMenuConta(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !contaMenu.hidden) { abrirMenuConta(false); contaBtn.focus(); } });
 
   // ---------- Avisos rápidos ----------
   function avisar(texto, tipo) {
