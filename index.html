@@ -1337,6 +1337,35 @@
   .tx-comprovante { color: var(--accent-ink); }
   .tx-comprovante:hover { background: var(--accent-soft); color: var(--accent-ink); }
 
+  /* ---- Primeiros passos ---- */
+  .passos { margin-bottom: 20px; border-top-color: var(--accent); }
+  .passos-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .passos-topo h2 { font-size: 17px; }
+  .passos-topo .qr-close { position: static; flex: none; }
+  .passos-sub { font-size: 13px; color: var(--ink-muted); margin: 4px 0 0; }
+  .passos-barra { height: 6px; border-radius: 999px; background: var(--surface-2); margin: 14px 0 12px; overflow: hidden; }
+  .passos-barra span { display: block; height: 100%; border-radius: 999px; background: var(--income); transition: width 0.5s var(--ease); }
+  .passos-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+  .passo {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    font: inherit; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    transition: border-color var(--ease), background var(--ease);
+  }
+  .passo:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .passo-marca {
+    width: 22px; height: 22px; flex: none; border-radius: 50%;
+    border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: transparent;
+  }
+  .passo-texto { display: flex; flex-direction: column; min-width: 0; }
+  .passo-texto strong { font-size: 13.5px; }
+  .passo-texto small { font-size: 11.5px; color: var(--ink-muted); }
+  .passo.feito { cursor: default; background: transparent; }
+  .passo.feito:hover { border-color: var(--border); background: transparent; }
+  .passo.feito .passo-marca { background: var(--income); border-color: var(--income); color: #fff; }
+  .passo.feito strong { color: var(--ink-muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+
   /* ---- WhatsApp ---- */
   .whats-card { max-width: 380px; }
   .whats-passos, .whats-exemplos { text-align: left; font-size: 13.5px; line-height: 1.6; margin: 0 0 14px; padding-left: 20px; color: var(--ink); }
@@ -2230,6 +2259,20 @@
   </div>
 
   <div class="tab-panel" data-panel="lancamentos">
+    <section class="panel passos" id="passos" hidden>
+      <div class="passos-topo">
+        <div>
+          <h2 id="passosTitulo">Bem-vindo ao Wonner Sols! 👋</h2>
+          <p class="passos-sub" id="passosSub">Deixe tudo pronto em 2 minutos.</p>
+        </div>
+        <button type="button" class="qr-close" id="passosFechar" aria-label="Esconder primeiros passos" title="Esconder">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="passos-barra"><span id="passosBarra"></span></div>
+      <ol class="passos-lista" id="passosLista"></ol>
+    </section>
+
     <div class="quick-filters" id="quickFilters">
       <button type="button" class="qf-btn" data-qf="hoje">Hoje</button>
       <button type="button" class="qf-btn" data-qf="7dias">7 dias</button>
@@ -3170,6 +3213,7 @@
 
     aplicarCobranca(cfg.minhaCobranca);
     aplicarWhatsapp(cfg);
+    renderPassos();
 
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
     authToggleBtn.hidden = !podeCadastrar;
@@ -4392,6 +4436,94 @@
     atualizarHintParcelas();
     limparComprovanteDoForm();
   }
+
+  // ---------- Primeiros passos ----------
+  // Cada passo se marca sozinho pelos próprios dados (tem cartão? já lançou?),
+  // então não há o que salvar no servidor. Só "escondi" e "instalei" ficam
+  // neste aparelho, por conta — são preferências de tela, não dados.
+  function chavePassos(sufixo) { return "wonner-passos-" + ((state.sessao && state.sessao.email) || "local") + "-" + sufixo; }
+  function lerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function gravarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sem armazenamento: só não lembra */ } }
+
+  function passosDoCliente() {
+    var instalado = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+      window.navigator.standalone === true || lerLocal(chavePassos("celular")) === "1";
+    var lista = [
+      { id: "lancar", titulo: "Lançar um gasto", dica: "Use os gastos rápidos", feito: state.transactions.some(function (t) { return t.type === "despesa"; }) },
+      { id: "salario", titulo: "Registrar o salário", dica: "Para ver quanto sobra", feito: state.transactions.some(function (t) { return t.type === "receita"; }) },
+      { id: "cartao", titulo: "Cadastrar um cartão", dica: "Crédito ou débito", feito: state.cards.length > 0 },
+      { id: "celular", titulo: "Instalar no celular", dica: "Vira um app na tela inicial", feito: instalado }
+    ];
+    if (state.config.agenteWhatsapp) {
+      lista.push({ id: "whatsapp", titulo: "Conectar o WhatsApp", dica: "Lance gastos por mensagem", feito: !!state.config.meuWhatsapp });
+    }
+    return lista;
+  }
+
+  function renderPassos() {
+    var caixa = document.getElementById("passos");
+    var s = state.sessao;
+    // Só para clientes com conta (o admin não precisa) e enquanto não escondeu.
+    if (!s || s.isAdmin || lerLocal(chavePassos("escondido")) === "1") { caixa.hidden = true; return; }
+    var passos = passosDoCliente();
+    var feitos = passos.filter(function (p) { return p.feito; }).length;
+    document.getElementById("passosLista").innerHTML = passos.map(function (p) {
+      return '<li><button type="button" class="passo' + (p.feito ? " feito" : "") + '" data-passo="' + p.id + '"' +
+        (p.feito ? " disabled" : "") + '>' +
+        '<span class="passo-marca">✓</span>' +
+        '<span class="passo-texto"><strong>' + p.titulo + '</strong><small>' + p.dica + '</small></span>' +
+      '</button></li>';
+    }).join("");
+    if (feitos === passos.length) {
+      // Tudo pronto: some de vez, com um último "parabéns" se acabou agora.
+      if (!caixa.hidden && lerLocal(chavePassos("concluido")) !== "1") {
+        document.getElementById("passosTitulo").textContent = "Tudo pronto! 🎉";
+        document.getElementById("passosSub").textContent = "Seu Wonner Sols está configurado.";
+        document.getElementById("passosBarra").style.width = "100%";
+        setTimeout(function () { caixa.hidden = true; }, 4000);
+      } else {
+        caixa.hidden = true;
+      }
+      gravarLocal(chavePassos("concluido"), "1");
+      return;
+    }
+    caixa.hidden = false;
+    document.getElementById("passosTitulo").textContent = feitos ? "Primeiros passos" : "Bem-vindo ao Wonner Sols! 👋";
+    document.getElementById("passosSub").textContent = feitos
+      ? feitos + " de " + passos.length + " feitos — falta pouco."
+      : "Deixe tudo pronto em 2 minutos.";
+    document.getElementById("passosBarra").style.width = Math.round(feitos / passos.length * 100) + "%";
+  }
+
+  document.getElementById("passosLista").addEventListener("click", function (e) {
+    var b = e.target.closest(".passo");
+    if (!b || b.disabled) return;
+    var id = b.getAttribute("data-passo");
+    if (id === "lancar") {
+      document.getElementById("gastosRapidos").scrollIntoView({ behavior: "smooth", block: "center" });
+      abrirLancamento("despesa");
+    } else if (id === "salario") {
+      var sal = document.getElementById("salaryInput");
+      sal.scrollIntoView({ behavior: "smooth", block: "center" });
+      sal.focus();
+    } else if (id === "cartao") {
+      document.querySelector('.tab-btn[data-tab="parcelas"]').click();
+      var nome = document.getElementById("cardName");
+      nome.scrollIntoView({ behavior: "smooth", block: "center" });
+      nome.focus();
+    } else if (id === "celular") {
+      // Não dá para saber de fora se instalou: mostrar o QR já conta como feito.
+      gravarLocal(chavePassos("celular"), "1");
+      document.getElementById("qrOpenBtn").click();
+      renderPassos();
+    } else if (id === "whatsapp") {
+      document.getElementById("whatsOpenBtn").click();
+    }
+  });
+  document.getElementById("passosFechar").addEventListener("click", function () {
+    gravarLocal(chavePassos("escondido"), "1");
+    document.getElementById("passos").hidden = true;
+  });
 
   // ---------- Gastos rápidos ----------
   // Primeiro o que a própria pessoa mais lança (últimos 90 dias, 2+ vezes), com
@@ -6344,6 +6476,7 @@
     }
 
     renderGastosRapidos();
+    renderPassos();
 
     // transaction list
     var list = document.getElementById("txList");
