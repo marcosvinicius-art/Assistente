@@ -170,6 +170,10 @@ var CONFIG_PADRAO = {
   cadastrosAbertos: true,
   manutencao: false,
   assistente: true,
+  // Assinatura: preços em reais e dias de teste grátis. Editáveis no painel.
+  precoMensal: 19.9,
+  precoAnual: 199,
+  diasTeste: 7,
 };
 
 async function lerConfig() {

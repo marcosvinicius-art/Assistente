@@ -1470,16 +1470,95 @@
     line-height: 1.5;
   }
 
+  /* A tela de quem não está logado é a página de vendas: rola como um site,
+     com o cartão de entrar/cadastrar no topo. Em manutenção (.simples) volta a
+     ser só o cartão, centralizado. */
   .auth-gate {
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: var(--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
+    background:
+      radial-gradient(1200px 520px at 85% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+      var(--bg);
+    overflow-y: auto;
+    padding: 0 24px;
+    scroll-behavior: smooth;
   }
+  .auth-gate.simples, .auth-gate.em-manutencao { display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .auth-gate.simples .lp-marketing, .auth-gate.em-manutencao .lp-marketing { display: none; }
+  .auth-gate.simples .lp-heroi, .auth-gate.em-manutencao .lp-heroi { display: contents; }
+  .auth-gate[hidden] { display: none !important; }
+
+  .lp-topo, .lp-heroi, .lp-secao, .lp-final, .lp-rodape { max-width: 1120px; margin: 0 auto; }
+  .lp-topo { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; }
+  .lp-marca { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .lp-nav { display: flex; align-items: center; gap: 22px; }
+  .lp-nav a { color: var(--ink-muted); text-decoration: none; font-size: 14px; font-weight: 600; }
+  .lp-nav a:hover { color: var(--ink); }
+
+  .lp-heroi {
+    display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, 380px);
+    gap: 56px; align-items: center; padding: 48px 0 72px;
+  }
+  .lp-heroi .auth-card { max-width: 380px; justify-self: end; }
+  .lp-sobretitulo { display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent-soft); border-radius: 999px; padding: 5px 12px; }
+  .lp-titulo { font-size: clamp(32px, 5vw, 52px); line-height: 1.05; letter-spacing: -0.035em; font-weight: 800; margin: 18px 0 16px; }
+  .lp-lead { font-size: 17px; line-height: 1.6; color: var(--ink-muted); max-width: 34em; margin: 0 0 26px; }
+  .lp-ctas { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .lp-cta { height: 48px; padding: 0 24px; font-size: 15.5px; border-radius: 10px; }
+  .lp-link { color: var(--ink); font-weight: 600; font-size: 15px; }
+  .lp-garantia { font-size: 13px; color: var(--ink-faint); margin: 14px 0 0; }
+
+  .lp-secao { padding: 56px 0; border-top: 1px solid var(--border); }
+  .lp-h2 { font-size: clamp(22px, 3vw, 30px); letter-spacing: -0.025em; font-weight: 800; text-align: center; margin: 0 0 8px; }
+  .lp-h2-sub { text-align: center; color: var(--ink-muted); font-size: 15px; margin: 0 0 28px; }
+  .lp-recursos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 28px; }
+  .lp-recurso { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .lp-recurso[hidden] { display: none; }
+  .lp-recurso h3 { font-size: 16px; margin: 12px 0 6px; }
+  .lp-recurso p { font-size: 14px; line-height: 1.55; color: var(--ink-muted); margin: 0; }
+  .lp-icone { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent-ink); }
+  .lp-icone svg { width: 21px; height: 21px; }
+
+  .lp-passos { list-style: none; counter-reset: lp; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: 0; margin: 28px 0 0; }
+  .lp-passos li { counter-increment: lp; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 12px 12px 0; }
+  .lp-passos li::before { content: counter(lp); font-size: 13px; font-weight: 800; color: var(--accent-ink); }
+  .lp-passos strong { font-size: 16px; }
+  .lp-passos span { font-size: 14px; color: var(--ink-muted); line-height: 1.5; }
+
+  .lp-planos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 340px)); justify-content: center; gap: 16px; margin-bottom: 18px; }
+  .lp-plano { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px 22px; display: flex; flex-direction: column; gap: 6px; }
+  .lp-plano.destaque { border: 2px solid var(--accent); box-shadow: 0 18px 40px -24px var(--accent); }
+  .lp-plano h3 { font-size: 15px; color: var(--ink-muted); font-weight: 700; margin: 0; }
+  .lp-preco { margin: 4px 0 0; font-size: 38px; font-weight: 800; letter-spacing: -0.03em; }
+  .lp-preco small { font-size: 15px; font-weight: 600; color: var(--ink-muted); margin-left: 4px; letter-spacing: 0; }
+  .lp-plano-nota { font-size: 13.5px; color: var(--ink-muted); margin: 0 0 14px; }
+  .lp-cta-plano { height: 42px; width: 100%; justify-content: center; margin-top: auto; }
+  .lp-selo { position: absolute; top: -12px; right: 18px; background: var(--income); color: #04210F; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 4px 10px; }
+
+  .lp-duvidas { max-width: 760px; margin: 22px auto 0; display: flex; flex-direction: column; gap: 10px; }
+  .lp-duvidas details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0 18px; }
+  .lp-duvidas summary { cursor: pointer; font-weight: 700; font-size: 15px; padding: 16px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  .lp-duvidas summary::-webkit-details-marker { display: none; }
+  .lp-duvidas summary::after { content: "+"; font-size: 20px; line-height: 1; color: var(--ink-faint); }
+  .lp-duvidas details[open] summary::after { content: "−"; }
+  .lp-duvidas p { margin: 0 0 16px; font-size: 14.5px; line-height: 1.6; color: var(--ink-muted); }
+
+  .lp-final { text-align: center; padding: 56px 0 64px; border-top: 1px solid var(--border); }
+  .lp-final .lp-h2 { max-width: 640px; margin: 0 auto 22px; }
+  .lp-rodape { display: flex; gap: 18px; justify-content: center; padding: 22px 0 32px; border-top: 1px solid var(--border); font-size: 13px; color: var(--ink-faint); }
+  .lp-rodape a { color: var(--ink-muted); }
+  .auth-gate.sem-cadastro .lp-so-cadastro { display: none; }
+
+  @media (max-width: 860px) {
+    .lp-heroi { grid-template-columns: 1fr; gap: 32px; padding: 24px 0 48px; }
+    .lp-heroi .auth-card { justify-self: center; }
+    .lp-nav a { display: none; }
+    .lp-heroi-texto { text-align: center; }
+    .lp-lead { margin-left: auto; margin-right: auto; }
+    .lp-ctas { justify-content: center; }
+  }
+  @media (max-width: 560px) { .auth-gate { padding: 0 16px; } }
   .auth-card {
     width: 100%;
     max-width: 340px;
@@ -1972,6 +2051,31 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <div class="auth-gate" id="authGate" hidden>
+  <header class="lp-topo lp-marketing">
+    <div class="lp-marca">
+      <svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#001539"/><rect x="5.3" y="15.4" width="4.2" height="5.8" rx="1.3" fill="#F4F6F9"/><rect x="11.9" y="11.2" width="4.2" height="10" rx="1.3" fill="#F4F6F9"/><rect x="18.5" y="6.8" width="4.2" height="14.4" rx="1.3" fill="#F4F6F9"/></svg>
+      <span>Wonner Sols</span>
+    </div>
+    <nav class="lp-nav">
+      <a href="#lpRecursos">Recursos</a>
+      <a href="#lpPrecos">Preços</a>
+      <a href="#lpDuvidas">Dúvidas</a>
+      <button type="button" class="export-btn" data-lp="entrar">Entrar</button>
+    </nav>
+  </header>
+
+  <section class="lp-heroi">
+    <div class="lp-heroi-texto lp-marketing">
+      <span class="lp-sobretitulo">Controle financeiro pessoal</span>
+      <h2 class="lp-titulo">Saiba para onde vai cada real — sem planilha.</h2>
+      <p class="lp-lead">Lance um gasto em dois toques, acompanhe cartões e parcelas e veja quanto sobra no fim do mês. No computador e no celular.</p>
+      <div class="lp-ctas">
+        <button type="button" class="btn-add lp-cta lp-so-cadastro" data-lp="cadastrar">Começar <span class="lp-dias">7</span> dias grátis</button>
+        <a class="lp-link" href="#lpPrecos">Ver preços</a>
+      </div>
+      <p class="lp-garantia lp-so-cadastro">Não precisa de cartão para testar. Cancele quando quiser.</p>
+    </div>
+
   <form class="auth-card" id="authForm">
     <svg class="brand-mark" width="36" height="36" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <rect x="0.5" y="0.5" width="27" height="27" rx="7" fill="var(--ink)"/>
@@ -2000,6 +2104,100 @@
     <button type="button" class="auth-toggle" id="authEsqueciBtn">Esqueci minha senha</button>
     <button type="button" class="auth-toggle" id="authLocalBtn" hidden>Usar sem conta, só neste aparelho</button>
   </form>
+  </section>
+
+  <section class="lp-secao lp-marketing" id="lpRecursos">
+    <h2 class="lp-h2">Tudo o que você precisa para não se perder no mês</h2>
+    <div class="lp-recursos">
+      <article class="lp-recurso">
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+        <h3>Lançamento em dois toques</h3>
+        <p>Os gastos rápidos aprendem o que você mais compra e já vêm com o último valor.</p>
+      </article>
+      <article class="lp-recurso">
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>
+        <h3>Cartões e parcelas</h3>
+        <p>Limite livre de cada cartão, parcelas do mês e quanto ainda falta pagar no total.</p>
+      </article>
+      <article class="lp-recurso">
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
+        <h3>Comprovantes guardados</h3>
+        <p>Anexe a foto da nota ao gasto e encontre quando precisar, sem caçar no celular.</p>
+      </article>
+      <article class="lp-recurso">
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>
+        <h3>Metas e investimentos</h3>
+        <p>Acompanhe a reserva de emergência e seus aportes no mesmo lugar dos gastos.</p>
+      </article>
+      <article class="lp-recurso">
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg></span>
+        <h3>App no celular</h3>
+        <p>Instale na tela inicial e use como qualquer aplicativo, sem baixar nada da loja.</p>
+      </article>
+      <article class="lp-recurso" id="lpRecursoWhats" hidden>
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg></span>
+        <h3>Pelo WhatsApp</h3>
+        <p>Mande "gastei 45 no mercado" para o nosso número e o gasto entra na sua conta.</p>
+      </article>
+      <article class="lp-recurso">
+        <span class="lp-icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <h3>Seus dados protegidos</h3>
+        <p>Cada conta só enxerga os próprios dados. Nunca pedimos senha de banco nem número de cartão.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="lp-secao lp-marketing">
+    <h2 class="lp-h2">Como funciona</h2>
+    <ol class="lp-passos">
+      <li><strong>Crie sua conta</strong><span>Leva menos de um minuto. Só email e senha.</span></li>
+      <li><strong>Lance o que gastou</strong><span>Na hora, pelos gastos rápidos, ou com a foto da nota.</span></li>
+      <li><strong>Veja quanto sobra</strong><span>Saldo do mês, gastos por categoria e parcelas que vêm por aí.</span></li>
+    </ol>
+  </section>
+
+  <section class="lp-secao lp-marketing" id="lpPrecos">
+    <h2 class="lp-h2">Preço simples</h2>
+    <p class="lp-h2-sub"><span class="lp-dias">7</span> dias grátis com tudo liberado. Depois, escolha o plano.</p>
+    <div class="lp-planos">
+      <article class="lp-plano">
+        <h3>Mensal</h3>
+        <p class="lp-preco"><span id="lpPrecoMensal">R$ 19,90</span><small>/mês</small></p>
+        <p class="lp-plano-nota">Renova todo mês. Cancele quando quiser.</p>
+        <button type="button" class="export-btn lp-cta-plano lp-so-cadastro" data-lp="cadastrar">Começar grátis</button>
+      </article>
+      <article class="lp-plano destaque">
+        <span class="lp-selo" id="lpEconomia">2 meses grátis</span>
+        <h3>Anual</h3>
+        <p class="lp-preco"><span id="lpPrecoAnual">R$ 199,00</span><small>/ano</small></p>
+        <p class="lp-plano-nota" id="lpAnualMes">Sai por R$ 16,58 por mês.</p>
+        <button type="button" class="btn-add lp-cta-plano lp-so-cadastro" data-lp="cadastrar">Começar grátis</button>
+      </article>
+    </div>
+    <p class="lp-h2-sub">Pagamento no cartão de crédito ou no Pix.</p>
+  </section>
+
+  <section class="lp-secao lp-marketing" id="lpDuvidas">
+    <h2 class="lp-h2">Dúvidas</h2>
+    <div class="lp-duvidas">
+      <details><summary>Preciso de cartão para testar?</summary><p>Não. São <span class="lp-dias">7</span> dias grátis com tudo liberado. Você só escolhe um plano se quiser continuar.</p></details>
+      <details><summary>Como eu pago?</summary><p>No cartão de crédito, que renova sozinho, ou no Pix. O pagamento é processado pelo Mercado Pago.</p></details>
+      <details><summary>Posso cancelar?</summary><p>Sim, quando quiser e sem multa. Seus lançamentos continuam guardados e você pode consultar o que já registrou.</p></details>
+      <details><summary>Meus dados estão seguros?</summary><p>Sua senha é guardada de forma que nem nós conseguimos lê-la, e cada conta só acessa os próprios dados. Não pedimos senha de banco nem número de cartão.</p></details>
+      <details><summary>Funciona no celular?</summary><p>Sim. Abra pelo navegador do celular e instale na tela inicial: ele vira um aplicativo.</p></details>
+    </div>
+  </section>
+
+  <section class="lp-final lp-marketing lp-so-cadastro">
+    <h2 class="lp-h2">Comece hoje e feche o mês sabendo para onde foi o dinheiro.</h2>
+    <button type="button" class="btn-add lp-cta" data-lp="cadastrar">Começar <span class="lp-dias">7</span> dias grátis</button>
+  </section>
+
+  <footer class="lp-rodape lp-marketing">
+    <span>© Wonner Sols</span>
+    <a href="termos-de-uso.html">Termos de uso</a>
+    <a href="privacidade.html">Privacidade</a>
+  </footer>
 </div>
 
 <div class="app">
@@ -3134,8 +3332,10 @@
     }).finally(function () { if (onSettle) onSettle(); });
   }
 
+  // Com mensagem (manutenção), só o cartão; sem, a página de vendas inteira.
   function showAuthGate(sub) {
     document.getElementById("authGate").hidden = false;
+    document.getElementById("authGate").classList.toggle("simples", !!sub);
     document.getElementById("authSub").textContent = sub || "Entre com seu email e senha.";
   }
   function hideAuthGate() {
@@ -3217,6 +3417,7 @@
 
     var podeCadastrar = cfg.cadastrosAbertos && !cfg.manutencao;
     authToggleBtn.hidden = !podeCadastrar;
+    aplicarPaginaDeVendas(cfg, podeCadastrar);
     if (!podeCadastrar && authMode === "signup") setAuthMode("login");
 
     // O admin continua vendo o Assistente desligado: precisa testar antes de religar.
@@ -3226,6 +3427,34 @@
       document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
     }
   }
+
+  // ---------- Página de vendas ----------
+  // Preços e dias de teste vêm da configuração do painel; com cadastros
+  // fechados, somem os botões de "começar grátis" e fica só o "Entrar".
+  function aplicarPaginaDeVendas(cfg, podeCadastrar) {
+    var mensal = Number(cfg.precoMensal) || 19.9;
+    var anual = Number(cfg.precoAnual) || 199;
+    var dias = Number(cfg.diasTeste) || 7;
+    document.getElementById("lpPrecoMensal").textContent = fmt(mensal);
+    document.getElementById("lpPrecoAnual").textContent = fmt(anual);
+    document.getElementById("lpAnualMes").textContent = "Sai por " + fmt(anual / 12) + " por mês.";
+    var mesesGratis = Math.round((mensal * 12 - anual) / mensal);
+    var selo = document.getElementById("lpEconomia");
+    selo.hidden = mesesGratis < 1;
+    selo.textContent = mesesGratis === 1 ? "1 mês grátis" : mesesGratis + " meses grátis";
+    Array.prototype.forEach.call(document.querySelectorAll(".lp-dias"), function (el) { el.textContent = dias; });
+    document.getElementById("lpRecursoWhats").hidden = !cfg.agenteWhatsapp;
+    document.getElementById("authGate").classList.toggle("sem-cadastro", !podeCadastrar);
+    document.getElementById("authGate").classList.toggle("em-manutencao", !!cfg.manutencao);
+  }
+
+  document.getElementById("authGate").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-lp]");
+    if (!b) return;
+    setAuthMode(b.getAttribute("data-lp") === "cadastrar" ? "signup" : "login");
+    document.getElementById("authForm").scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("authEmail").focus({ preventScroll: true });
+  });
 
   // ---------- WhatsApp (cliente) ----------
   // O botão só existe com o agente configurado no servidor e para clientes
