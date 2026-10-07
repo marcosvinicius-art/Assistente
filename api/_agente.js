@@ -199,8 +199,11 @@ async function lancar(user, l, comprovante) {
       ids.push(await inserir(user.id, tx));
     }
   } else {
+    // Igual ao app: no crédito a compra nasce em aberto (ocupa o limite até a
+    // fatura ser paga); à vista ou no débito, já saiu da conta.
+    var noCredito = !!(l.cartao && l.cartao.tipo !== "debito");
     var um = {
-      desc: l.desc, amount: l.amount, type: l.type, category: l.category, date: l.date, paid: true,
+      desc: l.desc, amount: l.amount, type: l.type, category: l.category, date: l.date, paid: !noCredito,
       cartaoId: l.cartao ? l.cartao.id : null, createdAt: agora, origem: "whatsapp",
     };
     if (comprovante) um.comprovante = comprovante;

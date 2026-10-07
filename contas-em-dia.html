@@ -1016,31 +1016,118 @@
   .parc-bar { height: 5px; border-radius: 999px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
   .parc-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.35s ease; }
   /* ---- Cartões ---- */
-  .card-form {
+  /* Cadastro: o cartão 3D ao lado do formulário, montando-se enquanto se digita. */
+  .card-cadastro {
     display: grid;
-    grid-template-columns: minmax(0, 1.6fr) 96px minmax(120px, 1fr) auto;
-    gap: 8px;
-    align-items: end;
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: center;
     margin-bottom: 14px;
-    padding-bottom: 14px;
+    padding-bottom: 16px;
     border-bottom: 1px dashed var(--border);
   }
+  .card-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+    align-items: end;
+  }
+  .card-form-nome { grid-column: 1 / -1; }
+  .card-form .btn-add { grid-column: 1 / -1; height: 38px; }
+  .card-form.debito .so-credito { display: none; }
+  @media (max-width: 880px) {
+    .card-cadastro { grid-template-columns: 1fr; }
+    .cartao3d-palco { max-width: 320px; margin: 0 auto; width: 100%; }
+  }
+
+  /* ---- O cartão em si ---- */
+  /* Proporção de cartão de verdade (ISO 7810: 85,6 x 54 mm). A profundidade vem
+     da perspectiva do palco + inclinação em X/Y; o brilho é um degradê radial
+     que segue o ponteiro. Parado, flutua devagar. */
+  .cartao3d-palco { perspective: 900px; padding: 8px 4px; }
+  .cartao3d {
+    --rx: 0deg; --ry: 0deg; --bx: 30%; --by: 20%;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 85.6 / 54;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+    transition: transform 0.25s ease-out;
+    animation: cartao-flutua 6s ease-in-out infinite;
+  }
+  .cartao3d.segurando { animation: none; transition: transform 0.06s linear; }
+  @keyframes cartao-flutua {
+    0%, 100% { transform: rotateX(4deg) rotateY(-10deg) translateY(0); }
+    50% { transform: rotateX(-3deg) rotateY(10deg) translateY(-4px); }
+  }
+  .cartao3d.entrando { animation: cartao-entra 0.9s cubic-bezier(.2,.8,.2,1); }
+  @keyframes cartao-entra {
+    0% { transform: rotateY(-180deg) scale(0.6); opacity: 0; }
+    60% { transform: rotateY(15deg) scale(1.04); opacity: 1; }
+    100% { transform: rotateY(0) scale(1); }
+  }
+  .cartao3d-face {
+    position: absolute; inset: 0;
+    border-radius: 14px;
+    padding: 7% 7.5%;
+    display: flex; flex-direction: column; justify-content: space-between;
+    color: var(--tx);
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,0.18), transparent 55%),
+      linear-gradient(135deg, var(--c1), var(--c2));
+    box-shadow: 0 18px 30px -14px rgba(0,0,0,0.65), 0 2px 0 rgba(255,255,255,0.12) inset, 0 -1px 0 rgba(0,0,0,0.25) inset;
+    overflow: hidden;
+    transform: translateZ(0);
+    font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
+    transition: background 0.4s ease;
+  }
+  .cartao3d-face::after {
+    /* Faixas finas em diagonal: textura de plástico de cartão. */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(115deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 9px);
+  }
+  .cartao3d-brilho {
+    position: absolute; inset: 0; pointer-events: none; mix-blend-mode: overlay;
+    background: radial-gradient(circle at var(--bx) var(--by), rgba(255,255,255,0.55), transparent 45%);
+    opacity: 0.7;
+  }
+  .cartao3d-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: relative; z-index: 1; }
+  .cartao3d-banco { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cartao3d-logo { height: 22px; max-width: 55%; object-fit: contain; border-radius: 4px; }
+  .cartao3d-tipo { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; opacity: 0.85; }
+  .cartao3d-meio { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+  .cartao3d-chip {
+    width: 15%; aspect-ratio: 1.3; border-radius: 5px;
+    background: linear-gradient(135deg, #F3DC92, #C9A14A 55%, #F0D78A);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+    background-image:
+      linear-gradient(90deg, transparent 32%, rgba(0,0,0,0.18) 32% 35%, transparent 35% 65%, rgba(0,0,0,0.18) 65% 68%, transparent 68%),
+      linear-gradient(0deg, transparent 45%, rgba(0,0,0,0.18) 45% 55%, transparent 55%),
+      linear-gradient(135deg, #F3DC92, #C9A14A 55%, #F0D78A);
+  }
+  .cartao3d-nfc svg { width: 20px; height: 20px; opacity: 0.85; display: block; }
+  .cartao3d-numero { font-family: ui-monospace, Consolas, monospace; font-size: 15px; letter-spacing: 0.12em; opacity: 0.9; position: relative; z-index: 1; text-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+  /* Apelido numa linha e limite/vencimento embaixo: lado a lado, o apelido
+     era cortado com reticências. */
+  .cartao3d-base { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; position: relative; z-index: 1; min-width: 0; }
+  .cartao3d-apelido { max-width: 100%; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cartao3d-linha { font-size: 11px; opacity: 0.85; white-space: nowrap; }
+
+  /* Versão mini, na lista: só banco, tipo e apelido. */
+  .cartao3d.mini { animation: none; }
+  .cartao3d.mini .cartao3d-face { border-radius: 7px; padding: 8% 9%; box-shadow: 0 6px 12px -6px rgba(0,0,0,0.6); }
+  .cartao3d.mini .cartao3d-banco { font-size: 10.5px; }
+  .cartao3d.mini .cartao3d-tipo { font-size: 6.5px; letter-spacing: 0.08em; }
+  .cartao3d.mini .cartao3d-apelido { font-size: 7.5px; }
+  .cartao3d.mini .cartao3d-logo { height: 13px; }
   .card-item { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--border); }
   .card-item:last-child { border-bottom: none; }
+  /* Na lista, o cartão mini é também o botão de pôr a foto/logo do banco. */
   .card-chip {
-    width: 58px; height: 58px; flex: none; padding: 0;
-    border-radius: 8px; overflow: hidden; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, var(--brand-navy-bright), var(--brand-navy-deep));
-    border: 1px solid var(--metal-suave);
-    color: rgba(255, 255, 255, 0.75);
-    transition: border-color var(--ease), transform var(--ease);
+    width: 92px; flex: none; padding: 0; border: none; background: none;
+    cursor: pointer; perspective: 400px; transition: transform var(--ease);
   }
-  .card-chip:hover { border-color: var(--accent); transform: scale(1.05); }
-  /* Com foto o fundo some: um logo com transparência sobre o degradê marinho
-     ficaria com a cor do app por trás, não a do banco. */
-  .card-chip.com-foto { background: var(--surface-2); }
-  .card-chip img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .card-chip:hover { transform: translateY(-2px) rotate(-2deg); }
   .card-info { flex: 1; min-width: 0; }
   .card-nome { font-size: 13.5px; font-weight: 600; }
   .card-sub { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
@@ -1067,7 +1154,7 @@
 
   .card-edit {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) 96px minmax(110px, 1fr) auto auto;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 8px;
     align-items: end;
     padding: 12px 2px;
@@ -1106,10 +1193,6 @@
     .card-edit .btn-add, .card-edit .export-btn { grid-column: span 1; }
   }
 
-  @media (max-width: 560px) {
-    .card-form { grid-template-columns: 1fr 1fr; }
-    .card-form .btn-add { grid-column: 1 / -1; }
-  }
 
   .parc-month { font-size: 12.5px; color: var(--ink-muted); background: var(--surface-2); border-radius: 8px; padding: 9px 11px; margin-bottom: 12px; }
   .parc-month strong { color: var(--ink); font-weight: 600; }
@@ -2338,21 +2421,35 @@
         <h2>Meus cartões</h2>
         <span class="hint" id="cardsHint"></span>
       </div>
-      <form class="card-form" id="cardForm">
-        <div class="field">
-          <label for="cardName">Apelido do cartão</label>
-          <input id="cardName" type="text" placeholder="Ex: Nubank" required maxlength="40">
-        </div>
-        <div class="field">
-          <label for="cardDue">Vence dia</label>
-          <input id="cardDue" type="number" min="1" max="31" step="1" placeholder="10">
-        </div>
-        <div class="field">
-          <label for="cardLimit">Limite (opcional)</label>
-          <input id="cardLimit" type="text" inputmode="numeric" placeholder="0,00">
-        </div>
-        <button type="submit" class="btn-add">Adicionar</button>
-      </form>
+      <div class="card-cadastro">
+        <div class="cartao3d-palco" id="cardPreview"></div>
+        <form class="card-form" id="cardForm">
+          <div class="field card-form-nome">
+            <label for="cardName">Apelido do cartão</label>
+            <input id="cardName" type="text" placeholder="Ex: Nubank" required maxlength="40">
+          </div>
+          <div class="field">
+            <label for="cardBanco">Banco</label>
+            <select id="cardBanco"></select>
+          </div>
+          <div class="field">
+            <label for="cardTipo">Tipo</label>
+            <select id="cardTipo">
+              <option value="credito">Crédito</option>
+              <option value="debito">Débito</option>
+            </select>
+          </div>
+          <div class="field so-credito">
+            <label for="cardDue">Vence dia</label>
+            <input id="cardDue" type="number" min="1" max="31" step="1" placeholder="10">
+          </div>
+          <div class="field so-credito">
+            <label for="cardLimit">Limite (opcional)</label>
+            <input id="cardLimit" type="text" inputmode="numeric" placeholder="0,00">
+          </div>
+          <button type="submit" class="btn-add">Adicionar</button>
+        </form>
+      </div>
       <div id="cardsList"></div>
     </div>
 
@@ -4289,14 +4386,15 @@
   ];
   var MAX_GASTOS_RAPIDOS = 9;
 
-  // O cartão mais usado nos últimos 3 meses (ou o primeiro cadastrado).
+  // O cartão de crédito mais usado nos últimos 3 meses (ou o primeiro cadastrado).
   function cartaoPreferido() {
-    if (!state.cards.length) return null;
+    var credito = state.cards.filter(function (c) { return !ehDebito(c); });
+    if (!credito.length) return null;
     var limite = addMonthsISO(todayISO(), -3), uso = {};
     state.transactions.forEach(function (t) {
       if (t.cartaoId && t.date >= limite) uso[t.cartaoId] = (uso[t.cartaoId] || 0) + 1;
     });
-    return state.cards.slice().sort(function (a, b) { return (uso[b.id] || 0) - (uso[a.id] || 0); })[0];
+    return credito.sort(function (a, b) { return (uso[b.id] || 0) - (uso[a.id] || 0); })[0];
   }
 
   function gastosRapidos() {
@@ -4386,8 +4484,8 @@
   // passa a significar "a fatura já foi paga" — que é o momento em que o limite
   // volta. Sem trocar o rótulo, marcá-la parecia apenas confirmar a compra.
   function atualizarRotuloPago() {
-    var noCartao = !!document.getElementById("txCard").value &&
-      document.getElementById("txCard").value !== NOVO_CARTAO;
+    var sel = document.getElementById("txCard").value;
+    var noCartao = !!sel && sel !== NOVO_CARTAO && !ehDebito(cardMeta(sel));
     document.getElementById("txPaidLabel").textContent = noCartao
       ? "Fatura já paga"
       : (currentType === "receita" ? "Já recebi" : "Já paguei");
@@ -5534,6 +5632,145 @@
 
   var editandoCartaoId = null;
 
+  // ---------- Cartão 3D ----------
+  // Cada banco com as cores da marca (aproximadas) e o nome escrito no cartão.
+  // Logotipo oficial não entra: é marca registrada de cada banco. Quem quiser o
+  // logo de verdade põe a foto do cartão, que aparece por cima.
+  // "achar": palavras do apelido que identificam o banco sozinhas.
+  var BANCOS = [
+    { key: "nubank", nome: "Nubank", c1: "#9B30F0", c2: "#4A0A7A", tx: "#FFFFFF", achar: ["nubank", "nu "] },
+    { key: "inter", nome: "Inter", c1: "#FF8A1E", c2: "#E05A00", tx: "#FFFFFF", achar: ["inter"] },
+    { key: "itau", nome: "Itaú", c1: "#FF8C1A", c2: "#1B2D7A", tx: "#FFFFFF", achar: ["itau", "itaú", "personnalité", "personnalite"] },
+    { key: "bradesco", nome: "Bradesco", c1: "#E0103A", c2: "#7A0019", tx: "#FFFFFF", achar: ["bradesco", "next"] },
+    { key: "santander", nome: "Santander", c1: "#F2231A", c2: "#9C0A05", tx: "#FFFFFF", achar: ["santander"] },
+    { key: "bb", nome: "Banco do Brasil", curto: "BB", c1: "#FFE94D", c2: "#F2C500", tx: "#1A3FB3", achar: ["banco do brasil", "bb", "ourocard"] },
+    { key: "caixa", nome: "Caixa", c1: "#1C6FC2", c2: "#0B3C73", tx: "#FFFFFF", achar: ["caixa"] },
+    { key: "c6", nome: "C6 Bank", c1: "#3A3A3A", c2: "#0E0E0E", tx: "#F2F2F2", achar: ["c6"] },
+    { key: "picpay", nome: "PicPay", c1: "#2CD67F", c2: "#0B8F4D", tx: "#FFFFFF", achar: ["picpay"] },
+    { key: "mercadopago", nome: "Mercado Pago", curto: "M. Pago", c1: "#28C3F0", c2: "#0A6FB8", tx: "#FFFFFF", achar: ["mercado pago", "mercadopago", "mercado livre"] },
+    { key: "btg", nome: "BTG Pactual", curto: "BTG", c1: "#1C3A66", c2: "#07142B", tx: "#FFFFFF", achar: ["btg"] },
+    { key: "xp", nome: "XP", c1: "#2B2B2B", c2: "#000000", tx: "#F5D547", achar: ["xp"] },
+    { key: "neon", nome: "Neon", c1: "#14E0F5", c2: "#0A4FA8", tx: "#FFFFFF", achar: ["neon"] },
+    { key: "pagbank", nome: "PagBank", c1: "#2FCF9A", c2: "#0E7A5A", tx: "#FFFFFF", achar: ["pagbank", "pagseguro"] },
+    { key: "sicredi", nome: "Sicredi", c1: "#4CB82E", c2: "#1E6B12", tx: "#FFFFFF", achar: ["sicredi"] },
+    { key: "sicoob", nome: "Sicoob", c1: "#14B8A6", c2: "#004A4F", tx: "#FFFFFF", achar: ["sicoob"] },
+    { key: "outro", nome: "", c1: "#1E3A6E", c2: "#001539", tx: "#F4F6F9", achar: [] }
+  ];
+  function bancoPorKey(k) {
+    for (var i = 0; i < BANCOS.length; i++) if (BANCOS[i].key === k) return BANCOS[i];
+    return BANCOS[BANCOS.length - 1];
+  }
+  function detectarBanco(apelido) {
+    var t = " " + String(apelido || "").toLowerCase() + " ";
+    for (var i = 0; i < BANCOS.length; i++) {
+      for (var j = 0; j < BANCOS[i].achar.length; j++) {
+        // Palavra inteira: "bb" não pode casar dentro de outra palavra.
+        if (temPalavra(t, BANCOS[i].achar[j].trim())) return BANCOS[i].key;
+      }
+    }
+    return "outro";
+  }
+  // Cartões salvos antes deste campo existir não têm banco nem tipo: o banco
+  // sai do apelido e o tipo é crédito, que era o único que existia.
+  function bancoDoCartao(c) { return bancoPorKey(c.banco || detectarBanco(c.nome)); }
+  function ehDebito(c) { return !!c && c.tipo === "debito"; }
+
+  var ICON_SEM_CONTATO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8.5 7.5a6 6 0 0 1 0 9"/><path d="M12 5a9.5 9.5 0 0 1 0 14"/><path d="M15.5 2.5a13 13 0 0 1 0 19"/></svg>';
+
+  // O número do cartão é sempre de enfeite (pontinhos): o app nunca pede nem
+  // guarda número de cartão de ninguém.
+  function cartao3DHtml(c, mini) {
+    var b = bancoDoCartao(c);
+    var temFoto = /^data:image\//.test(c.logo || "");
+    var linha = ehDebito(c) ? "Débito"
+      : (c.limite > 0 ? "Limite " + fmt(c.limite) : "Crédito") + (c.vencimento ? " · vence dia " + c.vencimento : "");
+    return '<div class="cartao3d' + (mini ? " mini" : "") + '" style="--c1:' + b.c1 + ";--c2:" + b.c2 + ";--tx:" + b.tx + '">' +
+      '<div class="cartao3d-face">' +
+        '<div class="cartao3d-topo">' +
+          (temFoto ? '<img class="cartao3d-logo" src="' + escapeHtml(c.logo) + '" alt="">'
+            : '<span class="cartao3d-banco">' + escapeHtml(mini ? (b.curto || b.nome) : (b.nome || "Meu cartão")) + '</span>') +
+          // No mini não cabe: a lista já diz crédito/débito ao lado.
+          (mini ? "" : '<span class="cartao3d-tipo">' + (ehDebito(c) ? "DÉBITO" : "CRÉDITO") + '</span>') +
+        '</div>' +
+        (mini ? "" :
+          '<div class="cartao3d-meio"><span class="cartao3d-chip"></span><span class="cartao3d-nfc">' + ICON_SEM_CONTATO + '</span></div>' +
+          '<div class="cartao3d-numero">•••• •••• •••• ••••</div>') +
+        '<div class="cartao3d-base">' +
+          '<span class="cartao3d-apelido">' + escapeHtml(c.nome || "Apelido do cartão") + '</span>' +
+          (mini ? "" : '<span class="cartao3d-linha">' + escapeHtml(linha) + '</span>') +
+        '</div>' +
+        '<span class="cartao3d-brilho"></span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Inclinação seguindo o ponteiro (mouse ou dedo); solto, volta a flutuar.
+  // O ouvinte fica no palco, que não é redesenhado: o cartão dentro dele é
+  // trocado a cada tecla digitada.
+  function ligarInclinacao(palco) {
+    palco.addEventListener("pointermove", function (e) {
+      var el = palco.querySelector(".cartao3d");
+      if (!el) return;
+      var r = el.getBoundingClientRect();
+      var x = Math.max(-0.5, Math.min(0.5, (e.clientX - r.left) / r.width - 0.5));
+      var y = Math.max(-0.5, Math.min(0.5, (e.clientY - r.top) / r.height - 0.5));
+      el.classList.add("segurando");
+      el.style.setProperty("--ry", (x * 26).toFixed(1) + "deg");
+      el.style.setProperty("--rx", (-y * 20).toFixed(1) + "deg");
+      el.style.setProperty("--bx", ((x + 0.5) * 100).toFixed(0) + "%");
+      el.style.setProperty("--by", ((y + 0.5) * 100).toFixed(0) + "%");
+    });
+    palco.addEventListener("pointerleave", function () {
+      var el = palco.querySelector(".cartao3d");
+      if (!el) return;
+      el.classList.remove("segurando");
+      el.style.removeProperty("--ry");
+      el.style.removeProperty("--rx");
+    });
+  }
+
+  // ---------- Cadastro com prévia ----------
+  var cardForm = document.getElementById("cardForm");
+  var cardBancoSel = document.getElementById("cardBanco");
+  var cardTipoSel = document.getElementById("cardTipo");
+  var cardPreview = document.getElementById("cardPreview");
+  // Enquanto a pessoa não escolhe o banco à mão, ele acompanha o apelido.
+  var bancoEscolhidoAMao = false;
+
+  cardBancoSel.innerHTML = BANCOS.map(function (b) {
+    return '<option value="' + b.key + '">' + (b.nome || "Outro banco") + "</option>";
+  }).join("");
+  cardBancoSel.value = "outro";
+
+  function cartaoDoFormulario() {
+    var dia = parseInt(document.getElementById("cardDue").value, 10);
+    var limite = parseAmount(document.getElementById("cardLimit").value);
+    var debito = cardTipoSel.value === "debito";
+    return {
+      nome: document.getElementById("cardName").value.trim(),
+      banco: cardBancoSel.value,
+      tipo: debito ? "debito" : "credito",
+      vencimento: !debito && dia >= 1 && dia <= 31 ? dia : null,
+      limite: !debito && typeof limite === "number" && !isNaN(limite) && limite > 0 ? limite : null
+    };
+  }
+
+  function atualizarPreviaCartao() {
+    cardForm.classList.toggle("debito", cardTipoSel.value === "debito");
+    cardPreview.innerHTML = cartao3DHtml(cartaoDoFormulario(), false);
+  }
+
+  document.getElementById("cardName").addEventListener("input", function () {
+    if (!bancoEscolhidoAMao) cardBancoSel.value = detectarBanco(this.value);
+    atualizarPreviaCartao();
+  });
+  cardBancoSel.addEventListener("change", function () { bancoEscolhidoAMao = true; atualizarPreviaCartao(); });
+  cardTipoSel.addEventListener("change", atualizarPreviaCartao);
+  document.getElementById("cardDue").addEventListener("input", atualizarPreviaCartao);
+  document.getElementById("cardLimit").addEventListener("input", atualizarPreviaCartao);
+  ligarInclinacao(cardPreview);
+  atualizarPreviaCartao();
+
   function cardMeta(id) {
     for (var i = 0; i < state.cards.length; i++) if (state.cards[i].id === id) return state.cards[i];
     return null;
@@ -5549,7 +5786,7 @@
     var atual = sel.value;
     sel.innerHTML = '<option value="">à vista / débito</option>' +
       state.cards.map(function (c) {
-        return '<option value="' + c.id + '">' + escapeHtml(c.nome) + "</option>";
+        return '<option value="' + c.id + '">' + escapeHtml(c.nome) + (ehDebito(c) ? " · débito" : "") + "</option>";
       }).join("") +
       '<option value="' + NOVO_CARTAO + '">+ cadastrar cartão…</option>';
     if (atual && atual !== NOVO_CARTAO) sel.value = atual;
@@ -5565,11 +5802,14 @@
       var nome = document.getElementById("cardName");
       nome.scrollIntoView({ block: "center" });
       nome.focus();
-    } else if (this.value) {
+    } else if (this.value && !ehDebito(cardMeta(this.value))) {
       // Compra no crédito nasce em aberto: é ela que ocupa o limite até a fatura
       // ser paga. Deixar "já paguei" marcado — o padrão do formulário — fazia o
-      // lançamento nascer quitado e o limite não se mexer.
+      // lançamento nascer quitado e o limite não se mexer. No débito o dinheiro
+      // já saiu da conta: continua "já paguei".
       document.getElementById("txPaid").checked = false;
+    } else if (this.value) {
+      document.getElementById("txPaid").checked = true;
     }
     atualizarRotuloPago();
   });
@@ -5618,6 +5858,18 @@
             '<input id="editNome" type="text" value="' + escapeHtml(c.nome) + '" required maxlength="40">' +
           '</div>' +
           '<div class="field">' +
+            '<label for="editBanco">Banco</label>' +
+            '<select id="editBanco">' + BANCOS.map(function (b) {
+              return '<option value="' + b.key + '"' + (b.key === bancoDoCartao(c).key ? " selected" : "") + '>' +
+                (b.nome || "Outro banco") + '</option>';
+            }).join("") + '</select>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="editTipo">Tipo</label>' +
+            '<select id="editTipo"><option value="credito">Crédito</option>' +
+              '<option value="debito"' + (ehDebito(c) ? " selected" : "") + '>Débito</option></select>' +
+          '</div>' +
+          '<div class="field">' +
             '<label for="editDia">Vence dia</label>' +
             '<input id="editDia" type="number" min="1" max="31" step="1" value="' + (c.vencimento || "") + '">' +
           '</div>' +
@@ -5630,11 +5882,35 @@
         '</form>';
       }
 
-      var usado = emAbertoPorCartao[c.id] || 0;
       // O logo vai dentro de um atributo src, e a API aceita qualquer texto
-      // nesse campo. Exigir o prefixo de imagem barra um valor gravado direto na
-      // rota que tentasse fechar o atributo e injetar marcação.
-      var temFoto = /^data:image\//.test(c.logo || "");
+      // nesse campo. Exigir o prefixo de imagem (feito em cartao3DHtml) barra
+      // um valor gravado direto na rota que tentasse injetar marcação.
+      var chip = '<button type="button" class="card-chip" data-id="' + c.id + '" title="' +
+        (c.logo ? "Trocar" : "Pôr") + ' a foto/logo deste cartão">' + cartao3DHtml(c, true) + '</button>';
+      var acoes = '<button type="button" class="card-edit-btn" data-id="' + c.id +
+          '" title="Editar cartão">' + ICON_PENCIL + '</button>' +
+        '<button type="button" class="card-del" data-id="' + c.id + '" data-nome="' + escapeHtml(c.nome) +
+          '" title="Excluir cartão">' + ICON_TRASH + '</button>';
+
+      // Débito não tem limite nem fatura: o que interessa é quanto já saiu
+      // da conta por ele neste mês.
+      if (ehDebito(c)) {
+        var mesAtual = todayISO().slice(0, 7);
+        var gastoMes = state.transactions.reduce(function (s, t) {
+          return t.cartaoId === c.id && t.type === "despesa" && String(t.date).slice(0, 7) === mesAtual ? s + Number(t.amount) : s;
+        }, 0);
+        return '<div class="card-item">' + chip +
+          '<div class="card-info">' +
+            '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
+            '<div class="card-sub">Cartão de débito' + (bancoDoCartao(c).nome ? " " + escapeHtml(bancoDoCartao(c).nome) : "") + '</div>' +
+          '</div>' +
+          '<div class="card-uso"><div class="card-uso-valor">' + fmt(gastoMes) + '</div>' +
+            '<div class="card-uso-label">gasto este mês</div></div>' +
+          acoes +
+        '</div>';
+      }
+
+      var usado = emAbertoPorCartao[c.id] || 0;
       var temLimite = typeof c.limite === "number" && c.limite > 0;
       var pct = temLimite ? Math.min(100, Math.round((usado / c.limite) * 100)) : 0;
       var disponivel = temLimite ? c.limite - usado : 0;
@@ -5645,14 +5921,10 @@
       // junta pedaços que não formam oração e é um dos vícios mais visíveis de
       // interface gerada; escrito por extenso, lê-se de uma vez.
       var detalhe = temLimite
-        ? "Usou " + fmt(usado) + " dos " + fmt(c.limite)
-        : "Sem limite informado";
+        ? "Crédito, usou " + fmt(usado) + " dos " + fmt(c.limite)
+        : "Crédito sem limite informado";
       if (c.vencimento) detalhe += ", vence dia " + c.vencimento;
-      return '<div class="card-item">' +
-        '<button type="button" class="card-chip' + (temFoto ? " com-foto" : "") + '" data-id="' + c.id +
-          '" title="' + (c.logo ? "Trocar" : "Escolher") + ' a foto deste cartão">' +
-          (temFoto ? '<img src="' + escapeHtml(c.logo) + '" alt="">' : ICON_CAMERA) +
-        '</button>' +
+      return '<div class="card-item">' + chip +
         '<div class="card-info">' +
           '<div class="card-nome">' + escapeHtml(c.nome) + '</div>' +
           '<div class="card-sub">' + escapeHtml(detalhe) + '</div>' +
@@ -5666,10 +5938,7 @@
             (temLimite ? (disponivel > 0 ? "livre pra gastar" : "acima do limite") : "em aberto") +
           '</div>' +
         '</div>' +
-        '<button type="button" class="card-edit-btn" data-id="' + c.id +
-          '" title="Editar limite e vencimento">' + ICON_PENCIL + '</button>' +
-        '<button type="button" class="card-del" data-id="' + c.id + '" data-nome="' + escapeHtml(c.nome) +
-          '" title="Excluir cartão">' + ICON_TRASH + '</button>' +
+        acoes +
       '</div>';
     }).join("");
 
@@ -5719,12 +5988,16 @@
         // Fecha na hora. No modo servidor updateCard só redesenha quando a
         // resposta chega, e até lá o formulário pareceria travado.
         renderCards();
+        var debito = document.getElementById("editTipo").value === "debito";
         updateCard(id, {
           nome: nome,
-          vencimento: (dia >= 1 && dia <= 31) ? dia : null,
+          banco: document.getElementById("editBanco").value,
+          tipo: debito ? "debito" : "credito",
+          // Débito não tem vencimento nem limite; ficaria um limite fantasma.
+          vencimento: !debito && (dia >= 1 && dia <= 31) ? dia : null,
           // Limite zerado vira null e não 0: "sem limite informado" e "limite de
           // zero reais" são coisas diferentes, e zero travaria o cartão inteiro.
-          limite: (typeof limite === "number" && !isNaN(limite) && limite > 0) ? limite : null
+          limite: !debito && (typeof limite === "number" && !isNaN(limite) && limite > 0) ? limite : null
         });
       });
       document.getElementById("editCancelar").addEventListener("click", function () {
@@ -5736,20 +6009,31 @@
 
   document.getElementById("cardForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var nome = document.getElementById("cardName").value.trim();
-    if (!nome) return;
-    var diaEl = document.getElementById("cardDue");
-    var dia = parseInt(diaEl.value, 10);
-    var limite = parseAmount(document.getElementById("cardLimit").value);
-    addCard({
-      nome: nome,
-      vencimento: (dia >= 1 && dia <= 31) ? dia : null,
-      limite: (typeof limite === "number" && !isNaN(limite) && limite > 0) ? limite : null,
-      createdAt: new Date().toISOString()
-    });
-    document.getElementById("cardName").value = "";
-    diaEl.value = "";
-    setAmountValue(document.getElementById("cardLimit"), null);
+    var novo = cartaoDoFormulario();
+    if (!novo.nome) return;
+    novo.createdAt = new Date().toISOString();
+    addCard(novo);
+
+    // O cartão recém-criado dá um giro e "entra" antes de o formulário zerar:
+    // é a confirmação visual de que ele foi para a lista abaixo.
+    // Com "reduzir movimento" a animação não roda e o animationend nunca vem:
+    // o tempo limite garante que o formulário zere de qualquer jeito.
+    var feito = cardPreview.querySelector(".cartao3d");
+    var zerado = false;
+    function zerarCadastro() {
+      if (zerado) return;
+      zerado = true;
+      document.getElementById("cardName").value = "";
+      document.getElementById("cardDue").value = "";
+      setAmountValue(document.getElementById("cardLimit"), null);
+      cardTipoSel.value = "credito";
+      cardBancoSel.value = "outro";
+      bancoEscolhidoAMao = false;
+      atualizarPreviaCartao();
+    }
+    feito.classList.add("entrando");
+    feito.addEventListener("animationend", zerarCadastro, { once: true });
+    setTimeout(zerarCadastro, 1100);
     document.getElementById("cardName").focus();
   });
 
