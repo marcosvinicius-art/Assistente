@@ -12,6 +12,7 @@ var KIND_BY_RESOURCE = {
   cards: "card",
   budgets: "budget",     // orçamento por categoria
   recurring: "recurring", // contas fixas que se repetem todo mês
+  paineis: "painel",      // painéis salvos do assistente (guardam só a pergunta)
 };
 
 // O conteúdo de cada registro é decidido pelo front-end, então este arquivo não

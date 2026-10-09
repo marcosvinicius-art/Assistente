@@ -2068,6 +2068,27 @@
     border-bottom-left-radius: 4px;
   }
   .chat-bubble.assistant.thinking { color: var(--ink-faint); font-style: italic; }
+  .chat-bubble.chat-painel { max-width: 100%; width: 100%; padding: 0; background: none; border: 0; white-space: normal; }
+
+  /* ---- Painel por pergunta (assistente e "Meus painéis") ---- */
+  .pq { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .pq-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .pq-titulo { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .pq-periodo { font-size: 12px; color: var(--ink-faint); margin-left: 4px; }
+  .pq-salvar { flex: none; border: 0; border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--surface); }
+  .pq-salvar:disabled { opacity: 0.6; cursor: default; }
+  .pq-salvar.remover { background: var(--surface-2); color: var(--ink-muted); border: 1px solid var(--border); }
+  .pq-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); padding: 12px; }
+  .pq-card-titulo { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+  .pq-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pq-kpi .pq-valor { font-size: 22px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; margin: 2px 0 8px; }
+  .pq-pill { display: inline-block; font-size: 11px; color: var(--ink-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; }
+  .pq-cat { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 12.5px; padding: 5px 0; }
+  .pq-cat-trilho { height: 10px; border-radius: 4px; background: var(--surface); overflow: hidden; }
+  .pq-cat-barra { height: 100%; border-radius: 4px; background: var(--accent-ink); }
+  .paineis-salvos { margin-bottom: 18px; }
+  .paineis-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; }
+  @media (max-width: 520px) { .paineis-lista { grid-template-columns: 1fr; } .pq-valor { font-size: 19px; } }
 
   .chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--border); margin-bottom: 10px; }
   .chat-chip {
@@ -3284,6 +3305,10 @@
           Salvar em PDF
         </button>
       </div>
+      <div class="paineis-salvos" id="paineisSalvos" hidden>
+        <div class="panel-head"><h2>Meus painéis</h2><span class="hint">criados no Assistente</span></div>
+        <div class="paineis-lista" id="paineisLista"></div>
+      </div>
       <div class="stats rel-kpis" id="relKpis"></div>
       <div class="panel">
         <div class="panel-head"><h2>O que chamou atenção</h2></div>
@@ -3316,6 +3341,7 @@
         <button type="button" class="chat-chip" data-text="Recebi salário de 4200">Recebi salário</button>
         <button type="button" class="chat-chip" data-text="Guardei 200 na reserva de emergência">Guardei numa meta</button>
         <button type="button" class="chat-chip" data-text="Caiu 20 de dividendo do Tesouro Selic">Caiu um dividendo</button>
+        <button type="button" class="chat-chip" data-text="Gráfico dos meus gastos por dia esta semana">Gráfico</button>
       </div>
       <form class="chat-input-row" id="chatForm">
         <button type="button" class="photo-btn" id="photoBtn" title="Enviar foto da nota fiscal" hidden>
@@ -3624,6 +3650,7 @@
     cards: [],
     budgets: [],   // orçamento: { category, limite }
     recurring: [], // contas fixas: { desc, amount, type, category, dia, cartaoId, ativa, desde }
+    paineis: [],   // painéis salvos do assistente: { texto }
     db: null,
     downloads: null,
     sample: null,
@@ -3644,7 +3671,7 @@
   var LS_CARDS = "contas_em_dia_cards";
   // Coleções criadas depois (orçamento, contas fixas): um caminho só para os três
   // modos de armazenamento — conta no servidor, Claude e só neste navegador.
-  var COLECOES_NOVAS = ["budgets", "recurring"];
+  var COLECOES_NOVAS = ["budgets", "recurring", "paineis"];
   var LS_PREFIXO = "contas_em_dia_";
 
   // Coleções simples, de propósito. O caminho privado por usuário ("data/users/me/...")
@@ -7948,6 +7975,7 @@
     renderContasFixas();
     renderAlertaFixas();
     renderRelatorio(mk);
+    renderPaineis();
     renderPassos();
 
     // transaction list
@@ -8454,6 +8482,225 @@
     });
   }
 
+  // ---------- Painel por pergunta ----------
+  // "Um gráfico das transferências para a Ana por dia esta semana" vira um painel com
+  // barras, total e maior dia. Sem IA, como o modo simples: período, agrupamento e
+  // filtro saem de regras. O painel salvo guarda só a frase e é recalculado a cada
+  // render — "esta semana" continua sendo a semana atual.
+  var DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  // Tudo que não é período, agrupamento ou verbo sobra como filtro ("ana", "mercado").
+  var PALAVRAS_DO_PEDIDO = ("um uma uns umas me mostra mostre mostrar faz faca monta monte quero ver gera gere grafico graficos painel dashboard " +
+    "quanto quantos eu gastei gasto gastos despesa despesas paguei pagamento pagamentos recebi receita receitas entrada entradas ganhei " +
+    "transferencia transferencias transferi pix mandei enviei enviado enviados meu meus minha minhas total " +
+    "de do da dos das o a os as para pra pro com no na nos nas em e por " +
+    "hoje ontem ultimo ultimos ultima ultimas dias dia semana semanas passada passado mes meses ano este esta esse essa neste nesta nesse nessa categoria categorias")
+    .split(" ").concat(MONTHS_PT.map(semAcentoTexto));
+
+  function ehPedidoDeGrafico(text) {
+    var s = semAcentoTexto(text);
+    return /\b(grafico|painel|dashboard)\b/.test(s) || /^\s*quanto\b/.test(s) || /\bpor (dia|semana|mes|categoria)\b/.test(s);
+  }
+
+  function somaDias(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function inicioDaSemana(d) { return somaDias(d, -((d.getDay() + 6) % 7)); } // segunda-feira
+  function diasEntre(ini, fim) { return Math.round((fim - ini) / 864e5) + 1; }
+
+  function periodoDoPedido(s) {
+    var agora = new Date(), hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    var y = hoje.getFullYear(), mes = hoje.getMonth(), m;
+    function p(ini, fim, rotulo, tipo, comparado, total) { return { ini: ini, fim: fim, rotulo: rotulo, tipo: tipo, comparado: comparado, total: total }; }
+    if (/\bontem\b/.test(s)) return p(somaDias(hoje, -1), somaDias(hoje, -1), "ontem", "dias", "anteontem", "Total de ontem");
+    if (/\bhoje\b/.test(s)) return p(hoje, hoje, "hoje", "dias", "ontem", "Total de hoje");
+    if ((m = s.match(/\bultim[oa]s?\s+(\d{1,3})\s+dias\b/))) {
+      var n = Math.max(1, Number(m[1]));
+      return p(somaDias(hoje, 1 - n), hoje, "últimos " + n + " dias", "dias", n + " dias anteriores", "Total do período");
+    }
+    if (/\bsemana passada\b/.test(s)) {
+      var sp = somaDias(inicioDaSemana(hoje), -7);
+      return p(sp, somaDias(sp, 6), "semana passada", "dias", "semana anterior", "Total da semana");
+    }
+    if (/\bsemana\b/.test(s)) {
+      var si = inicioDaSemana(hoje);
+      return p(si, somaDias(si, 6), "esta semana", "dias", "semana anterior", "Total da semana");
+    }
+    if (/\bmes passado\b/.test(s)) return p(new Date(y, mes - 1, 1), new Date(y, mes, 0), "mês passado", "mes", "mês anterior", "Total do mês");
+    if (/\bano passado\b/.test(s)) return p(new Date(y - 1, 0, 1), new Date(y - 1, 11, 31), "ano passado", "ano", "ano anterior", "Total do ano");
+    if (/\bano\b/.test(s)) return p(new Date(y, 0, 1), new Date(y, 11, 31), "este ano", "ano", "ano anterior", "Total do ano");
+    for (var i = 0; i < 12; i++) {
+      if (new RegExp("\\b" + semAcentoTexto(MONTHS_PT[i]) + "\\b").test(s)) {
+        var ano = i > mes ? y - 1 : y; // mês que ainda não chegou: é o do ano passado
+        return p(new Date(ano, i, 1), new Date(ano, i + 1, 0), MONTHS_PT[i] + (ano !== y ? " de " + ano : ""), "mes", "mês anterior", "Total do mês");
+      }
+    }
+    return p(new Date(y, mes, 1), new Date(y, mes + 1, 0), "este mês", "mes", "mês anterior", "Total do mês");
+  }
+
+  function periodoAnterior(per) {
+    if (per.tipo === "mes") return { ini: new Date(per.ini.getFullYear(), per.ini.getMonth() - 1, 1), fim: somaDias(per.ini, -1) };
+    if (per.tipo === "ano") return { ini: new Date(per.ini.getFullYear() - 1, 0, 1), fim: somaDias(per.ini, -1) };
+    return { ini: somaDias(per.ini, -diasEntre(per.ini, per.fim)), fim: somaDias(per.ini, -1) };
+  }
+
+  function lerPedidoDeGrafico(text) {
+    var s = semAcentoTexto(text);
+    // "por semana"/"por mês" sai antes de ler o período, senão vira "esta semana"/"este mês".
+    var g = s.match(/\bpor (dia|semana|mes|categoria)\b/);
+    var per = periodoDoPedido(g ? s.replace(g[0], " ") : s);
+    var palavras = String(text).toLowerCase().split(/[^0-9a-zà-ÿ]+/).filter(function (w) {
+      return w && !/^\d+$/.test(w) && PALAVRAS_DO_PEDIDO.indexOf(semAcentoTexto(w)) === -1;
+    });
+    var termo = palavras.map(semAcentoTexto).join(" ");
+    var tipo = /\b(recebi|receitas?|entradas?|ganhei)\b/.test(s) ? "receita" : "despesa";
+    // O filtro pode ser uma categoria ("alimentação", "salário") em vez de um texto da descrição.
+    var cat = null;
+    if (termo.length >= 3) {
+      // "Outros" existe nos dois lados: procura primeiro no lado do verbo usado.
+      var ordem = tipo === "receita" ? INCOME_CATEGORIES.concat(EXPENSE_CATEGORIES) : ALL_CATEGORIES;
+      var achada = ordem.filter(function (c) { return semAcentoTexto(c.label).indexOf(termo) === 0; })[0];
+      if (achada) { cat = achada.key; tipo = INCOME_CATEGORIES.indexOf(achada) !== -1 ? "receita" : "despesa"; }
+    }
+    var dias = diasEntre(per.ini, per.fim);
+    var grupo = g ? g[1] : dias <= 7 ? "dia" : dias <= 31 ? (termo ? "dia" : "categoria") : "mes";
+    if (grupo === "dia" && dias > 62) grupo = "semana";
+    var envio = /\b(transferencias?|transferi|pix|mandei|enviei|enviados?)\b/.test(s);
+    var nome = palavras.map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(" ");
+    var titulo = cat ? (tipo === "receita" ? "Entradas · " : "Gastos com ") + catMeta(cat).label
+      : nome ? (envio ? "Transferências para " : tipo === "receita" ? "Entradas de " : "Gastos com ") + nome
+      : tipo === "receita" ? "Entradas" : "Gastos";
+    return {
+      per: per, grupo: grupo, tipo: tipo, cat: cat, nome: nome, titulo: titulo,
+      palavras: termo ? termo.split(" ") : [],
+      verbo: envio ? "Enviado" : tipo === "receita" ? "Recebido" : "Gasto"
+    };
+  }
+
+  function dadosDoPainel(q) {
+    function filtra(ini, fim) {
+      var a = toISODate(ini), b = toISODate(fim);
+      return state.transactions.filter(function (t) {
+        if ((t.type === "receita") !== (q.tipo === "receita") || t.date < a || t.date > b) return false;
+        if (q.cat) return t.category === q.cat;
+        var d = semAcentoTexto(t.desc);
+        return q.palavras.every(function (w) { return d.indexOf(w) !== -1; });
+      });
+    }
+    function soma(lista) { return lista.reduce(function (s, t) { return s + (Number(t.amount) || 0); }, 0); }
+    var itens = filtra(q.per.ini, q.per.fim);
+    var ant = periodoAnterior(q.per);
+    var barras = [];
+    if (q.grupo === "categoria") {
+      var por = {};
+      itens.forEach(function (t) { por[t.category] = (por[t.category] || 0) + (Number(t.amount) || 0); });
+      barras = Object.keys(por).map(function (k) { return { rotulo: catMeta(k).label, longo: catMeta(k).label, valor: por[k] }; })
+        .sort(function (a, b) { return b.valor - a.valor; });
+    } else {
+      var curto = diasEntre(q.per.ini, q.per.fim) <= 7;
+      for (var d = q.per.ini; d <= q.per.fim;) {
+        var prox, rotulo, longo, dm = String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+        if (q.grupo === "dia") { prox = somaDias(d, 1); rotulo = curto ? DIAS_CURTOS[d.getDay()] : String(d.getDate()); longo = DIAS_CURTOS[d.getDay()] + ", " + dm; }
+        else if (q.grupo === "semana") { prox = somaDias(d, 7); rotulo = dm; longo = "semana de " + dm; }
+        else { prox = new Date(d.getFullYear(), d.getMonth() + 1, 1); rotulo = MONTHS_SHORT[d.getMonth()]; longo = MONTHS_PT[d.getMonth()]; }
+        barras.push({ ini: toISODate(d), fim: toISODate(somaDias(prox, -1)), rotulo: rotulo, longo: longo, valor: 0 });
+        d = prox;
+      }
+      itens.forEach(function (t) {
+        for (var i = 0; i < barras.length; i++) {
+          if (t.date >= barras[i].ini && t.date <= barras[i].fim) { barras[i].valor += Number(t.amount) || 0; break; }
+        }
+      });
+    }
+    var maior = barras.reduce(function (m, b) { return !m || b.valor > m.valor ? b : m; }, null);
+    return { itens: itens, barras: barras, total: soma(itens), totalAnt: soma(filtra(ant.ini, ant.fim)), maior: maior };
+  }
+
+  function graficoDeBarras(barras, titulo) {
+    // Topo do eixo arredondado (80, 160, 240…) — senão as linhas ficam em R$ 73, R$ 147.
+    var bruto = Math.max(1, Math.max.apply(null, barras.map(function (b) { return b.valor; }))) / 3;
+    var mag = Math.pow(10, Math.floor(Math.log10(bruto))), passo = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].filter(function (k) { return k * mag >= bruto; })[0] * mag;
+    var max = passo * 3;
+    // viewBox estreito: no celular o SVG encolhe pouco e o texto continua legível.
+    var W = 400, H = 190, padL = 44, padR = 4, padT = 20, padB = 22;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var n = barras.length, slot = plotW / n, barW = Math.min(48, slot * 0.62);
+    var passoRotulo = Math.ceil(n / 8); // mês inteiro por dia: um rótulo a cada poucos dias
+    var fonte = ' font-family="Archivo, sans-serif" font-variant-numeric="tabular-nums"';
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + escapeHtml(titulo) + '">';
+    for (var s = 0; s <= 3; s++) {
+      var v = max / 3 * s, y = padT + plotH - v / max * plotH;
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--border)" stroke-width="1"' + (s ? ' stroke-dasharray="3 4"' : "") + ' />';
+      svg += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="var(--ink-faint)"' + fonte + '>' + fmtShort(v) + '</text>';
+    }
+    barras.forEach(function (b, i) {
+      var cx = padL + slot * i + slot / 2, h = b.valor / max * plotH;
+      svg += '<rect x="' + (cx - barW / 2) + '" y="' + (padT + plotH - h) + '" width="' + barW + '" height="' + h + '" rx="3" fill="var(--accent-ink)"><title>' + escapeHtml(b.longo) + ': ' + fmt(b.valor) + '</title></rect>';
+      if (n <= 12 && b.valor > 0) {
+        svg += '<text x="' + cx + '" y="' + (padT + plotH - h - 6) + '" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)"' + fonte + '>' +
+          (b.valor >= 10000 ? fmtShort(b.valor).replace("R$ ", "") : Math.round(b.valor).toLocaleString("pt-BR")) + '</text>';
+      }
+      if (i % passoRotulo === 0) svg += '<text x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle" font-size="12" fill="var(--ink-muted)"' + fonte + '>' + escapeHtml(b.rotulo) + '</text>';
+    });
+    return svg + '</svg>';
+  }
+
+  function barrasDeCategoria(barras) {
+    if (!barras.length) return '<p class="hint">Sem lançamentos no período.</p>';
+    var max = barras[0].valor || 1;
+    return barras.slice(0, 8).map(function (b) {
+      return '<div class="pq-cat"><span>' + escapeHtml(b.rotulo) + '</span><div class="pq-cat-trilho"><div class="pq-cat-barra" style="width:' +
+        (b.valor / max * 100).toFixed(1) + '%"></div></div><span class="num">' + fmt(b.valor) + '</span></div>';
+    }).join("");
+  }
+
+  function painelHtml(q, dados, botao) {
+    var nomeGrupo = { dia: "dia", semana: "semana", mes: "mês", categoria: "categoria" }[q.grupo];
+    var v = variacao(dados.total, dados.totalAnt);
+    var comparacao = v == null ? "sem comparação" : (v > 0 ? "+" : "") + v.toFixed(1).replace(".", ",") + "% vs. " + q.per.comparado;
+    var maior = dados.maior && dados.maior.valor > 0 ? dados.maior : null;
+    return '<div class="pq">' +
+      '<div class="pq-topo"><div><span class="pq-titulo">' + escapeHtml(q.titulo) + '</span><span class="pq-periodo">· ' + escapeHtml(q.per.rotulo) + '</span></div>' + botao + '</div>' +
+      '<div class="pq-card"><div class="pq-card-titulo">' + q.verbo + ' por ' + nomeGrupo + '</div>' +
+        (q.grupo === "categoria" ? barrasDeCategoria(dados.barras) : graficoDeBarras(dados.barras, q.titulo + ", " + q.per.rotulo)) + '</div>' +
+      '<div class="pq-kpis">' +
+        '<div class="pq-card pq-kpi"><div class="pq-card-titulo">' + q.per.total + '</div><div class="pq-valor">' + fmt(dados.total) + '</div><span class="pq-pill">' + comparacao + '</span></div>' +
+        '<div class="pq-card pq-kpi"><div class="pq-card-titulo">Maior ' + nomeGrupo + '</div><div class="pq-valor">' + (maior ? fmt(maior.valor) : "—") + '</div><span class="pq-pill">' +
+          (maior ? escapeHtml(maior.longo) + " · " + Math.round(maior.valor / dados.total * 100) + "% do total" : "sem lançamentos") + '</span></div>' +
+      '</div></div>';
+  }
+
+  function responderComGrafico(text) {
+    var q = lerPedidoDeGrafico(text);
+    var dados = dadosDoPainel(q);
+    if (!dados.itens.length) {
+      appendChatBubble("assistant", (q.nome || q.cat ? "Não achei lançamentos de “" + (q.cat ? catMeta(q.cat).label : q.nome) + "”" : "Não há " + (q.tipo === "receita" ? "entradas" : "gastos")) +
+        " em: " + q.per.rotulo + ". Tenta outro período, tipo \"este mês\" ou \"últimos 30 dias\".");
+      return;
+    }
+    var jaSalvo = state.paineis.some(function (p) { return semAcentoTexto(p.texto) === semAcentoTexto(text); });
+    var bolha = appendChatBubble("assistant", "");
+    bolha.classList.add("chat-painel");
+    bolha.innerHTML = painelHtml(q, dados, '<button type="button" class="pq-salvar"' + (jaSalvo ? " disabled>Painel salvo" : ">Salvar painel") + '</button>');
+    var botao = bolha.querySelector(".pq-salvar");
+    botao.addEventListener("click", function () {
+      botao.disabled = true;
+      botao.textContent = "Painel salvo";
+      colAdd("paineis", { texto: text }, "o painel");
+      appendChatBubble("assistant", "Salvei. Ele fica na aba Relatório, em \"Meus painéis\", e se atualiza sozinho.");
+    });
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function renderPaineis() {
+    document.getElementById("paineisSalvos").hidden = !state.paineis.length;
+    document.getElementById("paineisLista").innerHTML = state.paineis.map(function (p) {
+      var q = lerPedidoDeGrafico(p.texto);
+      return painelHtml(q, dadosDoPainel(q), '<button type="button" class="pq-salvar remover" data-remover-painel="' + escapeHtml(p.id) + '">Remover</button>');
+    }).join("");
+  }
+  document.getElementById("paineisLista").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-remover-painel]");
+    if (b) colDelete("paineis", b.getAttribute("data-remover-painel"), "o painel");
+  });
+
   // ---------- Chat assistant ----------
   function fuzzyFind(list, query, field) {
     if (!query) return null;
@@ -8842,6 +9089,8 @@
 
   function sendChatMessage(text) {
     appendChatBubble("user", text);
+    // Pergunta de gráfico é respondida aqui mesmo, com ou sem IA: o painel é montado na tela.
+    if (ehPedidoDeGrafico(text)) { responderComGrafico(text); return; }
     state.chatTurns.push({ role: "user", content: text });
     if (state.chatTurns.length > MAX_CHAT_TURNS) {
       state.chatTurns = state.chatTurns.slice(-MAX_CHAT_TURNS);
