@@ -8624,7 +8624,7 @@
     var n = barras.length, slot = plotW / n, barW = Math.min(48, slot * 0.62);
     var passoRotulo = Math.ceil(n / 8); // mês inteiro por dia: um rótulo a cada poucos dias
     var fonte = ' font-family="Archivo, sans-serif" font-variant-numeric="tabular-nums"';
-    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + escapeHtml(titulo) + '">';
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;display:block" role="img" aria-label="' + escapeHtml(titulo) + '">';
     for (var s = 0; s <= 3; s++) {
       var v = max / 3 * s, y = padT + plotH - v / max * plotH;
       svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--border)" stroke-width="1"' + (s ? ' stroke-dasharray="3 4"' : "") + ' />';
