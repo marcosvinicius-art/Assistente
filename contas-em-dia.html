@@ -2885,7 +2885,7 @@
       <div>
         <div class="label">Saldo disponível</div>
         <div class="value num saldo-disponivel-value">R$ 0,00</div>
-        <div class="sub">só o que já foi pago/recebido este mês</div>
+        <div class="sub saldo-disponivel-sub">só o que já foi pago/recebido este mês</div>
       </div>
       <div>
         <div class="label">Saldo previsto</div>
@@ -3158,7 +3158,7 @@
       <div>
         <div class="label">Saldo disponível</div>
         <div class="value num saldo-disponivel-value">R$ 0,00</div>
-        <div class="sub">só o que já foi pago/recebido este mês</div>
+        <div class="sub saldo-disponivel-sub">só o que já foi pago/recebido este mês</div>
       </div>
       <div>
         <div class="label">Saldo previsto</div>
@@ -8277,6 +8277,12 @@
   // pra mostrar como fica o mês se tudo que já foi lançado se resolver.
   // Investimentos e dividendos não têm status de pendência neste app — entram
   // nos dois cálculos do mesmo jeito.
+  // Metas (guardado): o total acumulado em cada meta é deduzido do saldo — esse
+  // dinheiro já foi reservado e não está disponível pra gastar.
+  function totalMetas() {
+    return state.goals.reduce(function (s, g) { return s + Number(g.current || 0); }, 0);
+  }
+
   function computeSaldoDisponivel() {
     var rmk = todayISO().slice(0, 7);
     var inc = 0, exp = 0, inv = 0, div = 0;
@@ -8288,7 +8294,7 @@
       if (monthKey(i.date) === rmk) inv += Number(i.amount);
       (i.dividends || []).forEach(function (d) { if (monthKey(d.date) === rmk) div += Number(d.amount); });
     });
-    return inc + div - exp - inv;
+    return inc + div - exp - inv - totalMetas();
   }
 
   function computeSaldoPrevisto() {
@@ -8302,7 +8308,7 @@
       if (monthKey(i.date) === rmk) inv += Number(i.amount);
       (i.dividends || []).forEach(function (d) { if (monthKey(d.date) === rmk) div += Number(d.amount); });
     });
-    return inc + div - exp - inv;
+    return inc + div - exp - inv - totalMetas();
   }
 
   function renderInvestTab() {
@@ -8421,9 +8427,15 @@
 
     var disponivel = computeSaldoDisponivel();
     var previsto = computeSaldoPrevisto();
+    var metas = totalMetas();
     Array.prototype.forEach.call(document.querySelectorAll(".saldo-disponivel-value"), function (el) {
       el.textContent = fmt(disponivel);
       el.style.color = disponivel >= 0 ? "var(--income)" : "var(--expense)";
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".saldo-disponivel-sub"), function (el) {
+      el.textContent = metas > 0
+        ? "já descontando " + fmt(metas) + " reservado em metas"
+        : "só o que já foi pago/recebido este mês";
     });
     Array.prototype.forEach.call(document.querySelectorAll(".saldo-previsto-value"), function (el) {
       el.textContent = fmt(previsto);
