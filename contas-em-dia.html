@@ -4691,10 +4691,9 @@
           var d = new Date(c.lastSeen);
           dataHora = " · " + d.toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
         }
-        var msgBtn = (dias !== null && dias >= 3) ?
-          '<button class="av-msg-btn" data-email="' + escapeHtml(c.email) + '" title="Enviar mensagem">' +
+        var msgBtn = '<button class="av-msg-btn" data-email="' + escapeHtml(c.email) + '" title="Enviar mensagem">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' +
-          '</button>' : '';
+          '</button>';
         listHTML += '<div class="' + cardCls + '">' +
           '<div class="av-avatar" style="background:' + color + '">' + initials + '</div>' +
           '<div class="av-info"><span class="av-email">' + escapeHtml(c.email) + '</span>' +
