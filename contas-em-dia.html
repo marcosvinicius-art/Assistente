@@ -1716,12 +1716,25 @@
   .senha-ver { position: absolute; right: 10px; background: none; border: none; padding: 4px; cursor: pointer; color: var(--ink-faint); line-height: 0; }
   .senha-ver:hover { color: var(--ink-muted); }
   /* Painel ao vivo (admin) */
-  .admin-vivo-row { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .admin-vivo-row:last-child { border-bottom: none; }
-  .admin-vivo-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-  .admin-vivo-email { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .admin-vivo-quando { color: var(--ink-faint); font-size: 12px; white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-  .admin-vivo-hora { font-size: 11px; opacity: 0.7; }
+  .av-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .av-stat-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .av-stat-num { font-size: 22px; font-weight: 700; line-height: 1; }
+  .av-stat-label { font-size: 10px; color: var(--ink-faint); margin-top: 3px; }
+  .av-section-hd { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); margin: 14px 0 6px; }
+  .av-section-hd:first-child { margin-top: 0; }
+  .av-card { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); margin-bottom: 5px; }
+  .av-card.av-is-online { border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.05); }
+  .av-card.av-is-nunca { opacity: 0.5; }
+  .av-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex: none; }
+  .av-info { overflow: hidden; min-width: 0; }
+  .av-email { display: block; font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .av-sub { display: block; font-size: 11px; color: var(--ink-faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .av-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .av-b-online { background: rgba(74,222,128,0.18); color: #4ADE80; }
+  .av-b-recente { background: rgba(127,179,232,0.18); color: #7FB3E8; }
+  .av-b-hoje { background: rgba(240,180,41,0.18); color: #F0B429; }
+  .av-b-ausente { background: rgba(251,113,133,0.18); color: #FB7185; }
+  .av-b-nunca { background: rgba(122,138,161,0.18); color: #7A8AA1; }
   .auth-error {
     width: 100%;
     background: var(--expense-soft);
@@ -3396,7 +3409,8 @@
         <h2>Ao vivo</h2>
         <span class="hint" id="adminOnlineCount">carregando…</span>
       </div>
-      <div id="adminAtividadeGrafico" style="margin:12px 0 16px;"></div>
+      <div id="adminStatCards"></div>
+      <div id="adminAtividadeGrafico" style="margin:0 0 16px;"></div>
       <div id="adminAoVivoCorpo"></div>
     </div>
 
@@ -4607,25 +4621,53 @@
       svgBars += '</svg>';
       document.getElementById("adminAtividadeGrafico").innerHTML = svgBars;
 
-      // --- Lista de usuários ---
-      var DOT = { online: "#4ADE80", recente: "#7FB3E8", hoje: "#F0B429", ausente: "#FB7185", nunca: "#7A8AA1" };
-      var LABEL = { online: "online agora", recente: "menos de 1h atrás", hoje: "visto hoje", ausente: "ausente", nunca: "nunca entrou" };
-      el.innerHTML = ord.map(function (c) {
+      // --- Stats cards ---
+      var AV_COLORS = ["#6366F1","#EC4899","#14B8A6","#F59E0B","#10B981","#8B5CF6","#EF4444","#3B82F6"];
+      function avColor(e) { var h=0; for(var i=0;i<e.length;i++) h=(h*31+e.charCodeAt(i))&0xFFFFFF; return AV_COLORS[((h%AV_COLORS.length)+AV_COLORS.length)%AV_COLORS.length]; }
+      var cntOnline=0, cntHoje=0, cntSemana=0, cntNunca=0;
+      clientes.forEach(function(c) {
         var st = statusOnline(c.lastSeen);
         var dias = diasDesdeISO(c.lastSeen);
-        var dStr = dias === null ? "nunca entrou" : (dias === 0 ? "hoje" : (dias === 1 ? "ontem" : dias + " dias atrás"));
-        // Data e hora exata no fuso de Brasília
+        if (st==="online") cntOnline++;
+        else if (dias!==null && dias<1) cntHoje++;
+        else if (dias!==null && dias<7) cntSemana++;
+        if (st==="nunca") cntNunca++;
+      });
+      var sc = document.getElementById("adminStatCards");
+      if (sc) sc.innerHTML = '<div class="av-stats">' +
+        '<div class="av-stat-card"><div class="av-stat-num" style="color:#4ADE80">' + cntOnline + '</div><div class="av-stat-label">Online agora</div></div>' +
+        '<div class="av-stat-card"><div class="av-stat-num" style="color:#F0B429">' + cntHoje + '</div><div class="av-stat-label">Hoje</div></div>' +
+        '<div class="av-stat-card"><div class="av-stat-num" style="color:#7FB3E8">' + cntSemana + '</div><div class="av-stat-label">Esta semana</div></div>' +
+        '<div class="av-stat-card"><div class="av-stat-num" style="color:#7A8AA1">' + cntNunca + '</div><div class="av-stat-label">Nunca entrou</div></div>' +
+      '</div>';
+
+      // --- Lista de usuários em cards ---
+      var BADGE_CLS = { online:"av-b-online", recente:"av-b-recente", hoje:"av-b-hoje", ausente:"av-b-ausente", nunca:"av-b-nunca" };
+      var BADGE_TXT = { online:"ONLINE", recente:"< 1h", hoje:"HOJE", ausente:"AUSENTE", nunca:"NUNCA" };
+      var SEC_LABEL = { online:"Online agora", recente:"Online agora", hoje:"Vistos hoje", ausente:"Inativos", nunca:"Nunca entraram" };
+      var prevSec = null, listHTML = "";
+      ord.forEach(function(c) {
+        var st = statusOnline(c.lastSeen);
+        var dias = diasDesdeISO(c.lastSeen);
+        var sec = SEC_LABEL[st];
+        if (prevSec !== sec) { listHTML += '<div class="av-section-hd">' + sec + '</div>'; prevSec = sec; }
+        var initials = escapeHtml((c.email || "?").charAt(0).toUpperCase());
+        var color = avColor(c.email || "");
+        var cardCls = "av-card" + (st==="online" ? " av-is-online" : "") + (st==="nunca" ? " av-is-nunca" : "");
+        var dStr = dias === null ? "Nunca entrou" : (dias < 1 ? "hoje" : (dias === 1 ? "ontem" : dias + " dias atrás"));
         var dataHora = "";
         if (c.lastSeen) {
           var d = new Date(c.lastSeen);
-          dataHora = d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+          dataHora = " · " + d.toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
         }
-        return '<div class="admin-vivo-row">' +
-          '<span class="admin-vivo-dot" style="background:' + DOT[st] + '" title="' + LABEL[st] + '"></span>' +
-          '<span class="admin-vivo-email">' + escapeHtml(c.email) + '</span>' +
-          '<span class="admin-vivo-quando"><span>' + dStr + '</span>' + (dataHora ? '<span class="admin-vivo-hora">' + dataHora + '</span>' : '') + '</span>' +
+        listHTML += '<div class="' + cardCls + '">' +
+          '<div class="av-avatar" style="background:' + color + '">' + initials + '</div>' +
+          '<div class="av-info"><span class="av-email">' + escapeHtml(c.email) + '</span>' +
+          '<span class="av-sub">' + dStr + dataHora + '</span></div>' +
+          '<span class="av-badge ' + BADGE_CLS[st] + '">' + BADGE_TXT[st] + '</span>' +
         '</div>';
-      }).join("");
+      });
+      el.innerHTML = listHTML;
     }).catch(function (e) {
       if (el) el.innerHTML = '<div class="empty-note">Não foi possível carregar: ' + escapeHtml((e && e.message) || "erro") + '</div>';
     });
