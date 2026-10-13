@@ -27,12 +27,13 @@ async function listarClientes(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "method_not_allowed" });
   // Pendentes primeiro: são as únicas linhas que pedem uma decisão, e no fim de
   // uma lista longa ficariam sem ser vistas.
-  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao, (whatsapp IS NOT NULL) AS tem_whatsapp, cortesia, teste_ate, assinatura FROM users ORDER BY aprovado ASC, created_at DESC");
+  var r = await db.query("SELECT email, created_at, aprovado, aviso, cobranca, manutencao, (whatsapp IS NOT NULL) AS tem_whatsapp, cortesia, teste_ate, assinatura, last_seen FROM users ORDER BY aprovado ASC, last_seen DESC NULLS LAST, created_at DESC");
   return res.status(200).json(r.rows.map(function (u) {
     return {
       email: u.email, criadoEm: u.created_at, aprovado: u.aprovado,
       aviso: u.aviso || null, cobranca: u.cobranca || null, manutencao: !!u.manutencao, whatsapp: !!u.tem_whatsapp,
       plano: db.situacaoAssinatura(u),
+      lastSeen: u.last_seen || null,
     };
   }));
 }

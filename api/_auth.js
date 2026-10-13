@@ -118,7 +118,17 @@ function getSession(req) {
   var token = parseCookies(req)[SESSION_COOKIE];
   if (!token) return null;
   try {
-    return verifySessionToken(token);
+    var session = verifySessionToken(token);
+    if (session && !session.isAdmin) {
+      // Atualiza last_seen com throttle de 1 min para não sobrecarregar o banco.
+      // Fire-and-forget: falha não bloqueia a requisição principal.
+      var db = require("./_db");
+      db.query(
+        "UPDATE users SET last_seen = now() WHERE id = $1 AND (last_seen IS NULL OR last_seen < now() - interval '1 minute')",
+        [session.uid]
+      ).catch(function () {});
+    }
+    return session;
   } catch (e) {
     // Toda rota chama isto fora do seu try, então um erro aqui derrubava a
     // requisição com 500 sem corpo nenhum. Sem a chave não há como validar

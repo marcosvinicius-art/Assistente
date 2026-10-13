@@ -1731,6 +1731,12 @@
   .senha-wrap input { flex: 1; padding-right: 40px; }
   .senha-ver { position: absolute; right: 10px; background: none; border: none; padding: 4px; cursor: pointer; color: var(--ink-faint); line-height: 0; }
   .senha-ver:hover { color: var(--ink-muted); }
+  /* Painel ao vivo (admin) */
+  .admin-vivo-row { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .admin-vivo-row:last-child { border-bottom: none; }
+  .admin-vivo-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .admin-vivo-email { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-vivo-quando { color: var(--ink-faint); font-size: 12px; white-space: nowrap; }
   .auth-error {
     width: 100%;
     background: var(--expense-soft);
@@ -3399,6 +3405,16 @@
   </div>
 
   <div class="tab-panel" data-panel="admin" hidden>
+
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h2>Ao vivo</h2>
+        <span class="hint" id="adminOnlineCount">carregando…</span>
+      </div>
+      <div id="adminAtividadeGrafico" style="margin:12px 0 16px;"></div>
+      <div id="adminAoVivoCorpo"></div>
+    </div>
+
     <div class="stats" id="adminStats">
       <div class="stat">
         <div class="label">Clientes</div>
@@ -3877,7 +3893,9 @@
     document.querySelector('.tab-btn[data-tab="admin"]').hidden = !isAdmin;
     // "Reportar" é dos clientes; o admin lê os reportes no painel dele.
     document.getElementById("reportarFab").hidden = !!isAdmin || state.parouNaManutencao;
-    if (isAdmin) carregarReportes();
+    if (isAdmin) { carregarReportes(); iniciarAdminHeartbeat(); }
+    // Clientes normais mandam heartbeat a cada 60s pra manter last_seen atualizado.
+    if (!isAdmin) iniciarClienteHeartbeat();
     // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
     // prometeria uma troca que o servidor recusa.
     document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
@@ -4520,6 +4538,108 @@
   // O admin nunca toca nos endpoints de dados financeiros: o "id" dele ("admin")
   // não é um UUID válido, e a query no banco quebraria. Por isso a aba dele só
   // chama /api/admin/clients, e recarrega a lista toda vez que é aberta.
+
+  // ---------- Heartbeat do cliente ----------
+  // Mantém last_seen atualizado: qualquer chamada autenticada já atualiza no
+  // servidor (_auth.js), mas se o usuário só estiver lendo (sem lançar nada)
+  // o heartbeat garante que o admin veja "online" mesmo assim.
+  function iniciarClienteHeartbeat() {
+    setInterval(function () {
+      apiJson("GET", "/api/health").catch(function () {}); // fire-and-forget
+    }, 60000); // 60 s
+  }
+
+  // ---------- Painel ao vivo (admin) ----------
+  var adminAoVivoInterval = null;
+
+  function iniciarAdminHeartbeat() {
+    renderAdminAoVivo();
+    adminAoVivoInterval = setInterval(renderAdminAoVivo, 30000); // atualiza a cada 30 s
+  }
+
+  function diasDesdeISO(isoStr) {
+    if (!isoStr) return null;
+    var ms = Date.now() - new Date(isoStr).getTime();
+    return Math.floor(ms / 86400000);
+  }
+
+  function statusOnline(isoStr) {
+    if (!isoStr) return "nunca";
+    var ms = Date.now() - new Date(isoStr).getTime();
+    if (ms < 3 * 60 * 1000) return "online";        // < 3 min
+    if (ms < 60 * 60 * 1000) return "recente";      // < 1 h
+    if (ms < 24 * 60 * 60 * 1000) return "hoje";    // < 24 h
+    return "ausente";
+  }
+
+  function renderAdminAoVivo() {
+    var el = document.getElementById("adminAoVivoCorpo");
+    if (!el) return;
+    apiJson("GET", "/api/admin/clients").then(function (clientes) {
+      state.adminClientes = clientes;
+      preencherDestinatarios();
+      preencherCobrancas();
+      preencherManutencao();
+      var agora = Date.now();
+      // ordena: online primeiro, depois recentes, depois por last_seen desc
+      var ord = clientes.slice().sort(function (a, b) {
+        var sa = statusOnline(a.lastSeen), sb = statusOnline(b.lastSeen);
+        var pri = { online: 0, recente: 1, hoje: 2, ausente: 3, nunca: 4 };
+        if (pri[sa] !== pri[sb]) return pri[sa] - pri[sb];
+        return (b.lastSeen || "") > (a.lastSeen || "") ? 1 : -1;
+      });
+      var onlineCount = ord.filter(function (c) { return statusOnline(c.lastSeen) === "online"; }).length;
+      document.getElementById("adminOnlineCount").textContent = onlineCount + " online agora";
+
+      // --- Gráfico de atividade: barras por categoria de dias sem entrar ---
+      var faixas = [
+        { label: "Hoje", max: 1, cor: "#4ADE80", count: 0 },
+        { label: "1–7 d", max: 7, cor: "#7FB3E8", count: 0 },
+        { label: "8–30 d", max: 30, cor: "#F0B429", count: 0 },
+        { label: ">30 d", max: Infinity, cor: "#FB7185", count: 0 },
+        { label: "Nunca", max: -1, cor: "#7A8AA1", count: 0 },
+      ];
+      clientes.forEach(function (c) {
+        var dias = diasDesdeISO(c.lastSeen);
+        if (dias === null) { faixas[4].count++; return; }
+        if (dias < 1) { faixas[0].count++; }
+        else if (dias < 8) { faixas[1].count++; }
+        else if (dias <= 30) { faixas[2].count++; }
+        else { faixas[3].count++; }
+      });
+      var maxCount = Math.max(1, Math.max.apply(null, faixas.map(function (f) { return f.count; })));
+      var GW = 340, GH = 100, pad = 28, barW = Math.floor((GW - pad * 2) / faixas.length * 0.6);
+      var groupW = (GW - pad * 2) / faixas.length;
+      var svgBars = '<svg viewBox="0 0 ' + GW + ' ' + GH + '" width="100%" style="max-width:' + GW + 'px;display:block">';
+      faixas.forEach(function (f, idx) {
+        var bh = f.count > 0 ? Math.max(4, Math.round((f.count / maxCount) * (GH - 32))) : 0;
+        var bx = pad + idx * groupW + (groupW - barW) / 2;
+        var by = GH - 18 - bh;
+        svgBars += '<rect x="' + bx + '" y="' + by + '" width="' + barW + '" height="' + bh + '" rx="3" fill="' + f.cor + '"/>';
+        if (f.count > 0) svgBars += '<text x="' + (bx + barW / 2) + '" y="' + (by - 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="Archivo,sans-serif">' + f.count + '</text>';
+        svgBars += '<text x="' + (bx + barW / 2) + '" y="' + (GH - 4) + '" text-anchor="middle" font-size="10" fill="var(--ink-faint)" font-family="Archivo,sans-serif">' + f.label + '</text>';
+      });
+      svgBars += '</svg>';
+      document.getElementById("adminAtividadeGrafico").innerHTML = svgBars;
+
+      // --- Lista de usuários ---
+      var DOT = { online: "#4ADE80", recente: "#7FB3E8", hoje: "#F0B429", ausente: "#FB7185", nunca: "#7A8AA1" };
+      var LABEL = { online: "online agora", recente: "menos de 1h atrás", hoje: "visto hoje", ausente: "ausente", nunca: "nunca entrou" };
+      el.innerHTML = ord.map(function (c) {
+        var st = statusOnline(c.lastSeen);
+        var dias = diasDesdeISO(c.lastSeen);
+        var dStr = dias === null ? "—" : (dias === 0 ? "hoje" : (dias === 1 ? "ontem" : dias + " dias atrás"));
+        return '<div class="admin-vivo-row">' +
+          '<span class="admin-vivo-dot" style="background:' + DOT[st] + '" title="' + LABEL[st] + '"></span>' +
+          '<span class="admin-vivo-email">' + escapeHtml(c.email) + '</span>' +
+          '<span class="admin-vivo-quando">' + dStr + '</span>' +
+        '</div>';
+      }).join("");
+    }).catch(function (e) {
+      if (el) el.innerHTML = '<div class="empty-note">Não foi possível carregar: ' + escapeHtml((e && e.message) || "erro") + '</div>';
+    });
+  }
+
   // ---------- Reportes dos clientes (admin) ----------
   var ROTULO_REPORTE = { erro: "Erro", melhoria: "Melhoria", ideia: "Ideia" };
 
