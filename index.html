@@ -1736,7 +1736,8 @@
   .admin-vivo-row:last-child { border-bottom: none; }
   .admin-vivo-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
   .admin-vivo-email { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .admin-vivo-quando { color: var(--ink-faint); font-size: 12px; white-space: nowrap; }
+  .admin-vivo-quando { color: var(--ink-faint); font-size: 12px; white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .admin-vivo-hora { font-size: 11px; opacity: 0.7; }
   .auth-error {
     width: 100%;
     background: var(--expense-soft);
@@ -4628,11 +4629,17 @@
       el.innerHTML = ord.map(function (c) {
         var st = statusOnline(c.lastSeen);
         var dias = diasDesdeISO(c.lastSeen);
-        var dStr = dias === null ? "—" : (dias === 0 ? "hoje" : (dias === 1 ? "ontem" : dias + " dias atrás"));
+        var dStr = dias === null ? "nunca entrou" : (dias === 0 ? "hoje" : (dias === 1 ? "ontem" : dias + " dias atrás"));
+        // Data e hora exata no fuso de Brasília
+        var dataHora = "";
+        if (c.lastSeen) {
+          var d = new Date(c.lastSeen);
+          dataHora = d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        }
         return '<div class="admin-vivo-row">' +
           '<span class="admin-vivo-dot" style="background:' + DOT[st] + '" title="' + LABEL[st] + '"></span>' +
           '<span class="admin-vivo-email">' + escapeHtml(c.email) + '</span>' +
-          '<span class="admin-vivo-quando">' + dStr + '</span>' +
+          '<span class="admin-vivo-quando"><span>' + dStr + '</span>' + (dataHora ? '<span class="admin-vivo-hora">' + dataHora + '</span>' : '') + '</span>' +
         '</div>';
       }).join("");
     }).catch(function (e) {
