@@ -1751,6 +1751,9 @@
   .av-b-hoje { background: rgba(240,180,41,0.18); color: #F0B429; }
   .av-b-ausente { background: rgba(251,113,133,0.18); color: #FB7185; }
   .av-b-nunca { background: rgba(122,138,161,0.18); color: #7A8AA1; }
+  .av-msg-btn { background: none; border: 1px solid var(--border); padding: 4px 7px; border-radius: 7px; color: var(--ink-faint); cursor: pointer; font-size: 13px; line-height: 1; transition: background 0.15s, color 0.15s; }
+  .av-msg-btn:hover { background: rgba(255,255,255,0.09); color: var(--ink); }
+  .av-card-acoes { display: flex; align-items: center; gap: 6px; flex: none; }
   .auth-error {
     width: 100%;
     background: var(--expense-soft);
@@ -2869,6 +2872,34 @@
         <button type="button" class="btn-add cobranca-ja-paguei" id="cobrancaJaPaguei">Já paguei</button>
         <button type="button" class="export-btn" id="cobrancaDepois">Depois</button>
       </div>
+    </div>
+  </div>
+
+  <div class="qr-overlay" id="avisoRapidoOverlay" hidden>
+    <div class="qr-card" role="dialog" aria-modal="true" aria-labelledby="avisoRapidoTitulo">
+      <button type="button" class="qr-close" id="avisoRapidoFechar" aria-label="Fechar">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <h2 id="avisoRapidoTitulo">Enviar mensagem</h2>
+      <p class="qr-hint" id="avisoRapidoPara" style="margin-bottom:14px;word-break:break-all;"></p>
+      <div class="field">
+        <label for="avisoRapidoTexto">Mensagem</label>
+        <textarea id="avisoRapidoTexto" rows="4" maxlength="300" placeholder="Ex: Sentimos sua falta! Veja o que há de novo no Wonner Sols…" style="resize:vertical;"></textarea>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label for="avisoRapidoTipo">Destaque</label>
+        <select id="avisoRapidoTipo">
+          <option value="info">Informativo (azul)</option>
+          <option value="alerta">Alerta (laranja)</option>
+          <option value="urgente">Urgente (vermelho)</option>
+        </select>
+      </div>
+      <div class="auth-error" id="avisoRapidoErro" hidden></div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button type="button" class="btn-add" id="avisoRapidoEnviar" style="flex:1;">Enviar</button>
+        <button type="button" class="export-btn" id="avisoRapidoCancelar">Cancelar</button>
+      </div>
+      <p class="hint" id="avisoRapidoOk" hidden style="margin-top:10px;text-align:center;color:#4ADE80;"></p>
     </div>
   </div>
 
@@ -4676,11 +4707,15 @@
           var d = new Date(c.lastSeen);
           dataHora = " · " + d.toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
         }
+        var msgBtn = (dias !== null && dias >= 3) ?
+          '<button class="av-msg-btn" data-email="' + escapeHtml(c.email) + '" title="Enviar mensagem">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' +
+          '</button>' : '';
         listHTML += '<div class="' + cardCls + '">' +
           '<div class="av-avatar" style="background:' + color + '">' + initials + '</div>' +
           '<div class="av-info"><span class="av-email">' + escapeHtml(c.email) + '</span>' +
           '<span class="av-sub">' + dStr + dataHora + '</span></div>' +
-          '<span class="av-badge ' + BADGE_CLS[st] + '">' + BADGE_TXT[st] + '</span>' +
+          '<div class="av-card-acoes"><span class="av-badge ' + BADGE_CLS[st] + '">' + BADGE_TXT[st] + '</span>' + msgBtn + '</div>' +
         '</div>';
       });
       el.innerHTML = listHTML;
@@ -9351,6 +9386,54 @@
     input.type = visivel ? "password" : "text";
     btn.querySelector(".senha-ver-off").hidden = !visivel;
     btn.querySelector(".senha-ver-on").hidden = visivel;
+  });
+
+  // ---------- Mensagem rápida para usuário inativo (botão nos cards Ao vivo) ----------
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".av-msg-btn");
+    if (!btn) return;
+    var overlay = document.getElementById("avisoRapidoOverlay");
+    overlay.dataset.email = btn.dataset.email;
+    document.getElementById("avisoRapidoPara").textContent = "Para: " + btn.dataset.email;
+    document.getElementById("avisoRapidoTexto").value = "";
+    document.getElementById("avisoRapidoTipo").value = "info";
+    document.getElementById("avisoRapidoErro").hidden = true;
+    document.getElementById("avisoRapidoOk").hidden = true;
+    overlay.hidden = false;
+    setTimeout(function () { document.getElementById("avisoRapidoTexto").focus(); }, 50);
+  });
+  document.getElementById("avisoRapidoFechar").addEventListener("click", function () {
+    document.getElementById("avisoRapidoOverlay").hidden = true;
+  });
+  document.getElementById("avisoRapidoCancelar").addEventListener("click", function () {
+    document.getElementById("avisoRapidoOverlay").hidden = true;
+  });
+  document.getElementById("avisoRapidoOverlay").addEventListener("click", function (e) {
+    if (e.target === this) this.hidden = true;
+  });
+  document.getElementById("avisoRapidoEnviar").addEventListener("click", function () {
+    var overlay = document.getElementById("avisoRapidoOverlay");
+    var email = overlay.dataset.email;
+    var texto = document.getElementById("avisoRapidoTexto").value.trim();
+    var tipo = document.getElementById("avisoRapidoTipo").value;
+    var erro = document.getElementById("avisoRapidoErro");
+    if (!texto) { erro.textContent = "Escreva a mensagem antes de enviar."; erro.hidden = false; return; }
+    erro.hidden = true;
+    var btn = this;
+    btn.disabled = true; btn.textContent = "Enviando…";
+    apiJson("POST", "/api/admin/aviso-cliente", { email: email, aviso: { texto: texto, tipo: tipo } })
+      .then(function () {
+        btn.disabled = false; btn.textContent = "Enviar";
+        var ok = document.getElementById("avisoRapidoOk");
+        ok.textContent = "Mensagem enviada!";
+        ok.hidden = false;
+        setTimeout(function () { overlay.hidden = true; }, 1400);
+      })
+      .catch(function (e) {
+        btn.disabled = false; btn.textContent = "Enviar";
+        erro.textContent = (e && e.message) || "Erro ao enviar.";
+        erro.hidden = false;
+      });
   });
 
   chatForm.addEventListener("submit", function (e) {
