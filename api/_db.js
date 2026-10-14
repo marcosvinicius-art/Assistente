@@ -124,6 +124,7 @@ function ensureSchema() {
       -- Última vez que o cliente fez qualquer chamada autenticada (heartbeat).
       -- Usado pelo painel do admin pra mostrar quem está online agora.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS push_sub JSONB;
       -- Pagamentos do Mercado Pago já processados: o mesmo aviso chegando duas
       -- vezes não estende o acesso duas vezes.
       CREATE TABLE IF NOT EXISTS pagamentos_mp (

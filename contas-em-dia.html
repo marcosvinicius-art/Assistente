@@ -3930,7 +3930,13 @@
     document.getElementById("reportarFab").hidden = !!isAdmin || state.parouNaManutencao;
     if (isAdmin) { carregarReportes(); iniciarAdminHeartbeat(); }
     // Clientes normais mandam heartbeat a cada 60s pra manter last_seen atualizado.
-    if (!isAdmin) iniciarClienteHeartbeat();
+    if (!isAdmin) {
+      iniciarClienteHeartbeat();
+      // Pede permissão de notificação push (só uma vez — o browser lembra).
+      if (state.config && state.config.vapidPublicKey) {
+        registrarPush(state.config.vapidPublicKey);
+      }
+    }
     // O admin não aparece aqui: a senha dele é variável de ambiente, e o botão
     // prometeria uma troca que o servidor recusa.
     document.getElementById("senhaOpenBtn").hidden = !!isAdmin;
@@ -4582,6 +4588,39 @@
     setInterval(function () {
       apiJson("GET", "/api/health").catch(function () {}); // fire-and-forget
     }, 60000); // 60 s
+  }
+
+  // ---------- Push notifications ----------
+  function base64urlToUint8Array(b64) {
+    var pad = "=".repeat((4 - b64.length % 4) % 4);
+    var raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+  }
+
+  function registrarPush(vapidPublicKey) {
+    if (!vapidPublicKey) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    navigator.serviceWorker.register("/sw.js").then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (sub) {
+        if (sub) {
+          // Já inscrito — reenvia ao servidor (pode ter mudado de conta).
+          apiJson("POST", "/api/push", { subscription: sub.toJSON() }).catch(function () {});
+          return;
+        }
+        if (Notification.permission === "denied") return;
+        Notification.requestPermission().then(function (perm) {
+          if (perm !== "granted") return;
+          reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: base64urlToUint8Array(vapidPublicKey),
+          }).then(function (novaSub) {
+            apiJson("POST", "/api/push", { subscription: novaSub.toJSON() }).catch(function () {});
+          });
+        });
+      });
+    }).catch(function () {});
   }
 
   // ---------- Painel ao vivo (admin) ----------

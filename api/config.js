@@ -64,6 +64,14 @@ module.exports = async function handler(req, res) {
     cfg.pagamentosLigados = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
     // Com e-mail ligado, "esqueci a senha" manda link; sem, mostra o contato.
     cfg.emailLigado = !!(process.env.RESEND_API_KEY && process.env.EMAIL_REMETENTE);
+    // Chave pública VAPID para o cliente se inscrever em push notifications.
+    // Gerada automaticamente na primeira chamada e salva no banco — não precisa
+    // de variável de ambiente.
+    try {
+      var vapid = require("./_vapid");
+      var chaves = await vapid.obterChaves();
+      cfg.vapidPublicKey = chaves.publicKey;
+    } catch (ve) { cfg.vapidPublicKey = null; }
     if (session && !session.isAdmin) {
       var u = await db.query(
         "SELECT aviso, cobranca, manutencao, whatsapp, wa_ultimos, cortesia, teste_ate, assinatura FROM users WHERE id = $1",

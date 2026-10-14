@@ -238,11 +238,25 @@ async function avisoCliente(req, res) {
   if (!email) return res.status(400).json({ error: "missing_email" });
 
   var aviso = normalizarAviso(body.aviso);
-  var r = await db.query("UPDATE users SET aviso = $1 WHERE email = $2 RETURNING id, whatsapp", [aviso, email]);
+  var r = await db.query("UPDATE users SET aviso = $1 WHERE email = $2 RETURNING id, whatsapp, push_sub", [aviso, email]);
   if (!r.rows.length) return res.status(404).json({ error: "not_found", message: "Cliente não encontrado." });
   var envio = aviso ? await avisarNoWhatsapp(r.rows[0].whatsapp, "📢 *Aviso do Wonner Sols*\n\n" + aviso.texto,
     process.env.WHATSAPP_TEMPLATE_AVISO, [aviso.texto]) : null;
-  return res.status(200).json({ email: email, aviso: aviso, whatsapp: envio });
+  var pushEnvio = null;
+  if (aviso && r.rows[0].push_sub) {
+    try {
+      var vapid = require("../_vapid");
+      await vapid.enviarPush(r.rows[0].push_sub, { title: "Wonner Sols", body: aviso.texto });
+      pushEnvio = "enviado";
+    } catch (pe) {
+      pushEnvio = "falhou: " + (pe && pe.message || "erro");
+      // Subscription expirada: limpa do banco para não tentar de novo
+      if (pe && pe.statusCode === 410) {
+        db.query("UPDATE users SET push_sub = NULL WHERE id = $1", [r.rows[0].id]).catch(function () {});
+      }
+    }
+  }
+  return res.status(200).json({ email: email, aviso: aviso, whatsapp: envio, push: pushEnvio });
 }
 
 // Manda também no WhatsApp do cliente, se ele conectou o dele. Falhar aqui não
