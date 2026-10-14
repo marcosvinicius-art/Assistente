@@ -20,6 +20,14 @@ module.exports = async function handler(req, res) {
 
     // Conectar o WhatsApp: código de 6 caracteres, vale 15 minutos, uso único.
     // Quem o manda para o número do agente liga aquele WhatsApp a esta conta.
+    // Cliente dispensa o próprio aviso após 1 minuto: limpa do banco para não
+    // reaparecer na próxima vez que ele abrir o app.
+    if (acao === "dispensar-aviso") {
+      if (!session || session.isAdmin) return res.status(401).json({ error: "not_authenticated" });
+      await db.query("UPDATE users SET aviso = NULL WHERE id = $1", [session.uid]);
+      return res.status(200).json({ ok: true });
+    }
+
     if (acao === "whatsapp-codigo" || acao === "whatsapp-desconectar") {
       if (!session || session.isAdmin) return res.status(401).json({ error: "not_authenticated" });
       if (acao === "whatsapp-desconectar") {

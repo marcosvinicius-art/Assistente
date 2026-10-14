@@ -3976,9 +3976,13 @@
   // Geral (todos os clientes) ou só desta conta: o efeito na tela é o mesmo.
   function foraPorManutencao(cfg) { return !!(cfg && (cfg.manutencao || cfg.minhaManutencao)); }
 
+  var _avisoTimer = null;
+
   function aplicarConfig(cfg) {
     if (!cfg) return;
     state.config = cfg;
+    // Cancela timer anterior para não dispensar um aviso novo antes da hora.
+    if (_avisoTimer) { clearTimeout(_avisoTimer); _avisoTimer = null; }
     // O aviso pessoal (cobrança, por exemplo) vem do servidor só para a conta
     // logada; fica em faixa própria, abaixo do aviso geral, até o admin tirar.
     [["siteAviso", cfg.aviso], ["authAviso", cfg.aviso], ["clienteAviso", cfg.meuAviso]].forEach(function (par) {
@@ -3990,6 +3994,15 @@
       el.classList.toggle("alerta", aviso.tipo === "alerta");
       el.classList.toggle("urgente", aviso.tipo === "urgente");
     });
+    // Aviso pessoal some após 1 minuto e é apagado do banco para não reaparecer.
+    if (cfg.meuAviso) {
+      _avisoTimer = setTimeout(function () {
+        _avisoTimer = null;
+        var el = document.getElementById("clienteAviso");
+        if (el) el.hidden = true;
+        apiJson("POST", "/api/config", { acao: "dispensar-aviso" }).catch(function () {});
+      }, 60000);
+    }
 
     aplicarCobranca(cfg.minhaCobranca);
     aplicarWhatsapp(cfg);
