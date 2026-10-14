@@ -1542,6 +1542,73 @@
   .reportar-fab[hidden] { display: none; }
   @media (max-width: 560px) { .reportar-fab { right: 14px; bottom: 14px; padding: 10px 15px 10px 12px; font-size: 13px; } }
 
+  /* Central de suporte — painel flutuante */
+  .suporte-panel {
+    position: fixed; right: 20px; bottom: 78px; z-index: 50;
+    width: 340px; max-width: calc(100vw - 32px);
+    border-radius: 16px; overflow: hidden;
+    background: var(--bg); border: 1px solid var(--border);
+    box-shadow: 0 20px 60px -8px rgba(0,0,0,0.55);
+  }
+  .suporte-panel[hidden] { display: none; }
+  .suporte-panel-animar { animation: suporte-in 0.18s var(--ease); }
+  @keyframes suporte-in { from { opacity:0; transform:translateY(14px) scale(0.97); } to { opacity:1; transform:none; } }
+  .suporte-header {
+    background: #12B8B8; padding: 20px 16px 18px 20px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .suporte-header-txt h2 { color: #001a33; font-size: 18px; margin: 0 0 3px; }
+  .suporte-header-txt p { color: #003355; font-size: 13px; margin: 0; }
+  .suporte-close {
+    background: none; border: none; color: #001a33; cursor: pointer;
+    padding: 2px 4px; font-size: 20px; line-height: 1; border-radius: 4px;
+  }
+  .suporte-close:hover { background: rgba(0,0,0,0.1); }
+  .suporte-busca {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+  }
+  .suporte-busca svg { flex: none; opacity: 0.45; }
+  .suporte-busca input {
+    flex:1; background:none; border:none; color:var(--ink); font:inherit;
+    font-size:14px; outline:none;
+  }
+  .suporte-busca input::placeholder { color: var(--ink-faint); }
+  .suporte-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 16px;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+    background: none; width: 100%; text-align: left; color: var(--ink);
+    font: inherit; transition: background 0.12s;
+  }
+  .suporte-item:last-child { border-bottom: none; }
+  .suporte-item:hover { background: rgba(255,255,255,0.05); }
+  .suporte-item-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: rgba(255,255,255,0.07); display:flex; align-items:center;
+    justify-content:center; flex:none;
+  }
+  .suporte-item-info { flex:1; min-width:0; }
+  .suporte-item-info strong { display:block; font-size:14px; font-weight:600; }
+  .suporte-item-info span { display:block; font-size:12px; color:var(--ink-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .suporte-item-seta { color: var(--ink-faint); flex:none; }
+  .suporte-item[hidden] { display: none; }
+  .suporte-chamados { padding: 12px 16px 14px; max-height: 260px; overflow-y: auto; }
+  .suporte-chamados-topo { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .suporte-chamados-topo button { background:none; border:none; color:var(--ink-faint); cursor:pointer; font:inherit; font-size:12px; padding:0; }
+  .suporte-chamados-topo button:hover { color:var(--ink); }
+  .suporte-ticket { border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .suporte-ticket:last-child { margin-bottom:0; }
+  .suporte-ticket-topo { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+  .suporte-ticket-tipo { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-faint); }
+  .suporte-ticket-texto { font-size:13px; color:var(--ink); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .suporte-ticket-data { font-size:11px; color:var(--ink-faint); margin-top:4px; }
+  .suporte-status { font-size:10px; font-weight:700; letter-spacing:0.04em; padding:2px 7px; border-radius:20px; white-space:nowrap; }
+  .suporte-status-aberto { background:rgba(240,180,41,0.18); color:#F0B429; }
+  .suporte-status-andamento { background:rgba(127,179,232,0.18); color:#7FB3E8; }
+  .suporte-status-resolvido { background:rgba(74,222,128,0.18); color:#4ADE80; }
+  @media (max-width:560px) { .suporte-panel { right:14px; bottom:70px; } }
+
   .reportar-card { max-width: 420px; text-align: left; padding: 20px 22px 18px; }
   .reportar-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .reportar-topo h2 { font-size: 16px; margin: 0; }
@@ -2783,9 +2850,48 @@
   </div>
 
   <button type="button" class="reportar-fab" id="reportarFab" hidden>
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
-    <span>Reportar</span>
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>Suporte</span>
   </button>
+
+  <div class="suporte-panel" id="suportePanel" hidden>
+    <div class="suporte-header">
+      <div class="suporte-header-txt">
+        <h2>Olá, <span id="suporteNome">você</span>!</h2>
+        <p>Como podemos ajudar?</p>
+      </div>
+      <button type="button" class="suporte-close" id="suporteFechar" aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="suporte-busca">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="suporteBusca" placeholder="Pesquise uma dúvida…" autocomplete="off">
+    </div>
+    <div id="suporteMenu">
+      <button type="button" class="suporte-item" data-acao="whatsapp">
+        <div class="suporte-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></div>
+        <div class="suporte-item-info"><strong>Falar com o suporte</strong><span>Inicie um atendimento</span></div>
+        <svg class="suporte-item-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button type="button" class="suporte-item" data-acao="solicitacao">
+        <div class="suporte-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+        <div class="suporte-item-info"><strong>Abrir solicitação</strong><span>Registre uma solicitação</span></div>
+        <svg class="suporte-item-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button type="button" class="suporte-item" data-acao="chamados">
+        <div class="suporte-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="suporte-item-info"><strong>Meus chamados</strong><span>Acompanhe suas solicitações</span></div>
+        <svg class="suporte-item-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button type="button" class="suporte-item" data-acao="ideia">
+        <div class="suporte-item-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg></div>
+        <div class="suporte-item-info"><strong>Tive uma ideia</strong><span>Sugira melhorias e acompanhe o que está sendo desenvolvido</span></div>
+        <svg class="suporte-item-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+    <div class="suporte-chamados" id="suporteChamados" hidden></div>
+  </div>
 
   <div class="qr-overlay" id="reportarOverlay" hidden>
     <form class="qr-card reportar-card" id="reportarForm" role="dialog" aria-modal="true" aria-labelledby="reportarTitulo">
@@ -6990,10 +7096,124 @@
     });
   }
 
-  document.getElementById("reportarFab").addEventListener("click", function () {
-    document.getElementById("reportarLocal").textContent = localAtual();
-    reportarOverlay.hidden = false;
-    reportarTexto.focus();
+  // ---------- Central de suporte ----------
+  var suportePanel = document.getElementById("suportePanel");
+  var suporteBusca = document.getElementById("suporteBusca");
+
+  function abrirSuporte() {
+    var nome = (state.sessao && state.sessao.email || "").split("@")[0];
+    document.getElementById("suporteNome").textContent = nome || "você";
+    document.getElementById("suporteChamados").hidden = true;
+    suporteBusca.value = "";
+    filtrarSuporte("");
+    suportePanel.hidden = false;
+    suportePanel.classList.add("suporte-panel-animar");
+    suportePanel.addEventListener("animationend", function h() {
+      suportePanel.classList.remove("suporte-panel-animar");
+      suportePanel.removeEventListener("animationend", h);
+    });
+    suporteBusca.focus();
+  }
+
+  function fecharSuporte() { suportePanel.hidden = true; }
+
+  function filtrarSuporte(q) {
+    var t = q.toLowerCase().trim();
+    document.querySelectorAll("#suporteMenu .suporte-item").forEach(function (el) {
+      var txt = el.textContent.toLowerCase();
+      el.hidden = t && txt.indexOf(t) === -1;
+    });
+  }
+
+  document.getElementById("reportarFab").addEventListener("click", abrirSuporte);
+  document.getElementById("suporteFechar").addEventListener("click", fecharSuporte);
+  suporteBusca.addEventListener("input", function () { filtrarSuporte(this.value); });
+
+  document.addEventListener("click", function (e) {
+    if (!suportePanel.hidden && !suportePanel.contains(e.target) &&
+        e.target !== document.getElementById("reportarFab") && !document.getElementById("reportarFab").contains(e.target)) {
+      fecharSuporte();
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !suportePanel.hidden) fecharSuporte();
+  });
+
+  document.getElementById("suporteMenu").addEventListener("click", function (e) {
+    var btn = e.target.closest(".suporte-item[data-acao]");
+    if (!btn) return;
+    var acao = btn.dataset.acao;
+
+    if (acao === "solicitacao") {
+      fecharSuporte();
+      escolherTipo("erro");
+      document.getElementById("reportarLocal").textContent = localAtual();
+      reportarOverlay.hidden = false;
+      reportarTexto.focus();
+    }
+
+    if (acao === "ideia") {
+      fecharSuporte();
+      escolherTipo("ideia");
+      document.getElementById("reportarLocal").textContent = localAtual();
+      reportarOverlay.hidden = false;
+      reportarTexto.focus();
+    }
+
+    if (acao === "whatsapp") {
+      var cfg = state.config || {};
+      var num = cfg.agenteWhatsapp;
+      if (num) {
+        window.open("https://wa.me/" + num + "?text=" + encodeURIComponent("Olá! Preciso de ajuda com o Wonner Sols."), "_blank", "noopener");
+      } else {
+        var email = "marcos.vinicius@useebrasil.com.br";
+        window.open("mailto:" + email + "?subject=" + encodeURIComponent("Suporte Wonner Sols"), "_blank");
+      }
+    }
+
+    if (acao === "chamados") {
+      var chamadosDiv = document.getElementById("suporteChamados");
+      chamadosDiv.innerHTML = '<p class="hint" style="margin:0;text-align:center;">Carregando…</p>';
+      chamadosDiv.hidden = false;
+      document.getElementById("suporteMenu").hidden = true;
+      suporteBusca.closest(".suporte-busca").hidden = true;
+      apiJson("GET", "/api/suporte").then(function (lista) {
+        if (!lista.length) {
+          chamadosDiv.innerHTML = '<div class="suporte-chamados-topo"><button id="suporteVoltar">← Voltar</button></div><p class="hint" style="margin:0;text-align:center;">Nenhuma solicitação ainda.</p>';
+        } else {
+          var STATUS_CLS = { aberto: "suporte-status-aberto", "em andamento": "suporte-status-andamento", resolvido: "suporte-status-resolvido" };
+          var STATUS_TXT = { aberto: "Aberto", "em andamento": "Em andamento", resolvido: "Resolvido" };
+          var TIPO_TXT = { erro: "Erro", melhoria: "Melhoria", ideia: "Ideia" };
+          chamadosDiv.innerHTML = '<div class="suporte-chamados-topo"><button id="suporteVoltar">← Voltar</button></div>' +
+            lista.map(function (t) {
+              var cls = STATUS_CLS[t.status] || "suporte-status-aberto";
+              var stxt = STATUS_TXT[t.status] || t.status;
+              var data = new Date(t.created_at).toLocaleDateString("pt-BR");
+              return '<div class="suporte-ticket">' +
+                '<div class="suporte-ticket-topo">' +
+                '<span class="suporte-ticket-tipo">' + (TIPO_TXT[t.tipo] || t.tipo) + '</span>' +
+                '<span class="suporte-status ' + cls + '">' + stxt + '</span>' +
+                '</div>' +
+                '<div class="suporte-ticket-texto">' + escapeHtml(t.texto) + '</div>' +
+                '<div class="suporte-ticket-data">' + data + '</div>' +
+              '</div>';
+            }).join("");
+        }
+        document.getElementById("suporteVoltar").addEventListener("click", function () {
+          chamadosDiv.hidden = true;
+          document.getElementById("suporteMenu").hidden = false;
+          suporteBusca.closest(".suporte-busca").hidden = false;
+        });
+      }).catch(function () {
+        chamadosDiv.innerHTML = '<div class="suporte-chamados-topo"><button id="suporteVoltar">← Voltar</button></div><p class="hint" style="margin:0;text-align:center;color:var(--expense);">Não foi possível carregar.</p>';
+        document.getElementById("suporteVoltar").addEventListener("click", function () {
+          chamadosDiv.hidden = true;
+          document.getElementById("suporteMenu").hidden = false;
+          suporteBusca.closest(".suporte-busca").hidden = false;
+        });
+      });
+    }
   });
   function fecharReportar() { reportarOverlay.hidden = true; }
   document.getElementById("reportarFechar").addEventListener("click", fecharReportar);
