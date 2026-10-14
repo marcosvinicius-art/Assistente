@@ -4,16 +4,15 @@
 self.addEventListener('push', function (e) {
   var data = {};
   try { data = e.data ? e.data.json() : {}; } catch (x) {}
-  e.waitUntil(
-    self.registration.showNotification(data.title || 'Wonner Sols', {
-      body: data.body || '',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'wonner-aviso',
-      renotify: true,
-      data: { url: '/' },
-    })
-  );
+  var opts = {
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'wonner-aviso',
+    renotify: true,
+    data: { url: '/' },
+  };
+  if (data.body) opts.body = data.body;
+  e.waitUntil(self.registration.showNotification(data.title || 'Wonner Sols', opts));
 });
 
 self.addEventListener('notificationclick', function (e) {

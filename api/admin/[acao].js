@@ -246,7 +246,7 @@ async function avisoCliente(req, res) {
   if (aviso && r.rows[0].push_sub) {
     try {
       var vapid = require("../_vapid");
-      await vapid.enviarPush(r.rows[0].push_sub, { title: "Wonner Sols", body: aviso.texto });
+      await vapid.enviarPush(r.rows[0].push_sub, { title: aviso.texto });
       pushEnvio = "enviado";
     } catch (pe) {
       pushEnvio = "falhou: " + (pe && pe.message || "erro");
