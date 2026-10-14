@@ -1821,6 +1821,9 @@
   .av-msg-btn { background: none; border: 1px solid var(--border); padding: 4px 7px; border-radius: 7px; color: var(--ink-faint); cursor: pointer; font-size: 13px; line-height: 1; transition: background 0.15s, color 0.15s; }
   .av-msg-btn:hover { background: rgba(255,255,255,0.09); color: var(--ink); }
   .av-card-acoes { display: flex; align-items: center; gap: 6px; flex: none; }
+  .av-tpl { background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 20px; padding: 5px 11px; font: inherit; font-size: 12px; color: var(--ink-faint); cursor: pointer; transition: background 0.13s, color 0.13s, border-color 0.13s; white-space: nowrap; }
+  .av-tpl:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .av-tpl.ativo { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .auth-error {
     width: 100%;
     background: var(--expense-soft);
@@ -2995,7 +2998,14 @@
       </div>
       <div class="field">
         <label for="avisoRapidoTexto">Nova mensagem</label>
-        <textarea id="avisoRapidoTexto" rows="4" maxlength="300" placeholder="Ex: Sentimos sua falta! Veja o que há de novo no Wonner Sols…" style="resize:vertical;"></textarea>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;" id="avisoTemplates">
+          <button type="button" class="av-tpl" data-txt="Sentimos sua falta! Que tal uma olhada no que há de novo no Wonner Sols? 👋">Sentimos sua falta</button>
+          <button type="button" class="av-tpl" data-txt="Você tem lançamentos pendentes. Entre no app e mantenha seu controle financeiro em dia! 📊">Lançamentos pendentes</button>
+          <button type="button" class="av-tpl" data-txt="Suas metas estão esperando por você! Que tal verificar como está seu progresso? 🎯">Ver metas</button>
+          <button type="button" class="av-tpl" data-txt="Novidade no Wonner Sols! Acesse o app e confira o que preparamos para você. ✨">Novidade no app</button>
+          <button type="button" class="av-tpl" data-txt="Lembre-se de registrar seus gastos do mês para manter o controle financeiro em dia. 💰">Registrar gastos</button>
+        </div>
+        <textarea id="avisoRapidoTexto" rows="4" maxlength="300" placeholder="Ou escreva uma mensagem personalizada…" style="resize:vertical;"></textarea>
       </div>
       <div class="field" style="margin-top:10px;">
         <label for="avisoRapidoTipo">Destaque</label>
@@ -9702,6 +9712,7 @@
     document.getElementById("avisoRapidoTipo").value = "info";
     document.getElementById("avisoRapidoErro").hidden = true;
     document.getElementById("avisoRapidoOk").hidden = true;
+    document.querySelectorAll(".av-tpl").forEach(function (b) { b.classList.remove("ativo"); });
     var atualBox = document.getElementById("avisoRapidoAtual");
     if (avisoTexto) {
       document.getElementById("avisoRapidoAtualTexto").textContent = avisoTexto;
@@ -9711,6 +9722,14 @@
     }
     overlay.hidden = false;
     setTimeout(function () { document.getElementById("avisoRapidoTexto").focus(); }, 50);
+  });
+  document.getElementById("avisoTemplates").addEventListener("click", function (e) {
+    var btn = e.target.closest(".av-tpl");
+    if (!btn) return;
+    document.getElementById("avisoRapidoTexto").value = btn.dataset.txt;
+    document.querySelectorAll(".av-tpl").forEach(function (b) { b.classList.remove("ativo"); });
+    btn.classList.add("ativo");
+    document.getElementById("avisoRapidoErro").hidden = true;
   });
   document.getElementById("avisoRapidoFechar").addEventListener("click", fecharAvisoRapido);
   document.getElementById("avisoRapidoCancelar").addEventListener("click", fecharAvisoRapido);
