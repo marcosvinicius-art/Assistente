@@ -2882,8 +2882,13 @@
       </button>
       <h2 id="avisoRapidoTitulo">Enviar mensagem</h2>
       <p class="qr-hint" id="avisoRapidoPara" style="margin-bottom:14px;word-break:break-all;"></p>
+      <div id="avisoRapidoAtual" hidden style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+        <p class="hint" style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Mensagem ativa</p>
+        <p id="avisoRapidoAtualTexto" style="margin:0;font-size:13px;color:var(--ink);"></p>
+        <button type="button" class="export-btn" id="avisoRapidoTirar" style="margin-top:10px;width:100%;">Tirar mensagem</button>
+      </div>
       <div class="field">
-        <label for="avisoRapidoTexto">Mensagem</label>
+        <label for="avisoRapidoTexto">Nova mensagem</label>
         <textarea id="avisoRapidoTexto" rows="4" maxlength="300" placeholder="Ex: Sentimos sua falta! Veja o que há de novo no Wonner Sols…" style="resize:vertical;"></textarea>
       </div>
       <div class="field" style="margin-top:10px;">
@@ -4707,7 +4712,8 @@
           var d = new Date(c.lastSeen);
           dataHora = " · " + d.toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
         }
-        var msgBtn = '<button class="av-msg-btn" data-email="' + escapeHtml(c.email) + '" title="Enviar mensagem">' +
+        var avisoAtivo = c.aviso ? escapeHtml(c.aviso.texto || "") : "";
+        var msgBtn = '<button class="av-msg-btn" data-email="' + escapeHtml(c.email) + '" data-aviso="' + avisoAtivo + '" title="Enviar mensagem">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' +
           '</button>';
         listHTML += '<div class="' + cardCls + '">' +
@@ -9387,28 +9393,62 @@
     btn.querySelector(".senha-ver-on").hidden = visivel;
   });
 
-  // ---------- Mensagem rápida para usuário inativo (botão nos cards Ao vivo) ----------
+  // ---------- Mensagem rápida para clientes (botão nos cards Ao vivo) ----------
+  function fecharAvisoRapido() { document.getElementById("avisoRapidoOverlay").hidden = true; }
+  function chamarAvisoCliente(email, aviso, btn, okMsg) {
+    var erro = document.getElementById("avisoRapidoErro");
+    erro.hidden = true;
+    btn.disabled = true;
+    return apiJson("POST", "/api/admin/aviso-cliente", { email: email, aviso: aviso })
+      .then(function () {
+        btn.disabled = false;
+        // atualiza dado local para refletir novo estado sem esperar refresh
+        if (state.adminClientes) state.adminClientes.forEach(function (c) {
+          if (c.email === email) c.aviso = aviso;
+        });
+        var ok = document.getElementById("avisoRapidoOk");
+        ok.textContent = okMsg;
+        ok.hidden = false;
+        setTimeout(fecharAvisoRapido, 1400);
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        erro.textContent = (e && e.message) || "Erro.";
+        erro.hidden = false;
+      });
+  }
+
   document.addEventListener("click", function (e) {
     var btn = e.target.closest(".av-msg-btn");
     if (!btn) return;
     var overlay = document.getElementById("avisoRapidoOverlay");
-    overlay.dataset.email = btn.dataset.email;
-    document.getElementById("avisoRapidoPara").textContent = "Para: " + btn.dataset.email;
+    var email = btn.dataset.email;
+    var avisoTexto = btn.dataset.aviso || "";
+    overlay.dataset.email = email;
+    document.getElementById("avisoRapidoPara").textContent = "Para: " + email;
     document.getElementById("avisoRapidoTexto").value = "";
     document.getElementById("avisoRapidoTipo").value = "info";
     document.getElementById("avisoRapidoErro").hidden = true;
     document.getElementById("avisoRapidoOk").hidden = true;
+    var atualBox = document.getElementById("avisoRapidoAtual");
+    if (avisoTexto) {
+      document.getElementById("avisoRapidoAtualTexto").textContent = avisoTexto;
+      atualBox.hidden = false;
+    } else {
+      atualBox.hidden = true;
+    }
     overlay.hidden = false;
     setTimeout(function () { document.getElementById("avisoRapidoTexto").focus(); }, 50);
   });
-  document.getElementById("avisoRapidoFechar").addEventListener("click", function () {
-    document.getElementById("avisoRapidoOverlay").hidden = true;
-  });
-  document.getElementById("avisoRapidoCancelar").addEventListener("click", function () {
-    document.getElementById("avisoRapidoOverlay").hidden = true;
-  });
+  document.getElementById("avisoRapidoFechar").addEventListener("click", fecharAvisoRapido);
+  document.getElementById("avisoRapidoCancelar").addEventListener("click", fecharAvisoRapido);
   document.getElementById("avisoRapidoOverlay").addEventListener("click", function (e) {
-    if (e.target === this) this.hidden = true;
+    if (e.target === this) fecharAvisoRapido();
+  });
+  document.getElementById("avisoRapidoTirar").addEventListener("click", function () {
+    var email = document.getElementById("avisoRapidoOverlay").dataset.email;
+    this.textContent = "Tirando…";
+    chamarAvisoCliente(email, null, this, "Mensagem removida!");
   });
   document.getElementById("avisoRapidoEnviar").addEventListener("click", function () {
     var overlay = document.getElementById("avisoRapidoOverlay");
@@ -9417,22 +9457,9 @@
     var tipo = document.getElementById("avisoRapidoTipo").value;
     var erro = document.getElementById("avisoRapidoErro");
     if (!texto) { erro.textContent = "Escreva a mensagem antes de enviar."; erro.hidden = false; return; }
-    erro.hidden = true;
-    var btn = this;
-    btn.disabled = true; btn.textContent = "Enviando…";
-    apiJson("POST", "/api/admin/aviso-cliente", { email: email, aviso: { texto: texto, tipo: tipo } })
-      .then(function () {
-        btn.disabled = false; btn.textContent = "Enviar";
-        var ok = document.getElementById("avisoRapidoOk");
-        ok.textContent = "Mensagem enviada!";
-        ok.hidden = false;
-        setTimeout(function () { overlay.hidden = true; }, 1400);
-      })
-      .catch(function (e) {
-        btn.disabled = false; btn.textContent = "Enviar";
-        erro.textContent = (e && e.message) || "Erro ao enviar.";
-        erro.hidden = false;
-      });
+    this.textContent = "Enviando…";
+    chamarAvisoCliente(email, { texto: texto, tipo: tipo }, this, "Mensagem enviada!");
+    this.textContent = "Enviar";
   });
 
   chatForm.addEventListener("submit", function (e) {
