@@ -14,7 +14,12 @@ var KIND_BY_RESOURCE = {
   recurring: "recurring", // contas fixas que se repetem todo mês
   paineis: "painel",      // painéis salvos do assistente (guardam só a pergunta)
   vendas: "venda",        // vendas (custo x preço) — só contas liberadas pelo admin
+  estoque: "aparelho",    // Wonner Loja: aparelhos em estoque (IMEI, custo, troca)
+  loja: "loja",           // Wonner Loja: dados da loja para o recibo (um registro só)
 };
+
+// Tipos da Wonner Loja: só para contas com a loja liberada (coluna "vendas").
+var KINDS_DA_LOJA = ["venda", "aparelho", "loja"];
 
 // O conteúdo de cada registro é decidido pelo front-end, então este arquivo não
 // sabe quais campos existem — mas sabe que nenhum registro legítimo é grande.
@@ -66,9 +71,9 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // A aba Vendas é liberada conta a conta pelo admin; esconder a aba na tela
-    // não basta, então a trava de verdade é esta.
-    if (kind === "venda" && !session.isAdmin) {
+    // A loja (e a aba Vendas) é liberada conta a conta pelo admin; esconder na
+    // tela não basta, então a trava de verdade é esta.
+    if (KINDS_DA_LOJA.indexOf(kind) >= 0 && !session.isAdmin) {
       var lib = await db.query("SELECT vendas FROM users WHERE id = $1", [userId]);
       if (!lib.rows.length || !lib.rows[0].vendas) {
         return res.status(403).json({ error: "vendas_bloqueado", message: "A aba Vendas não está liberada para sua conta." });

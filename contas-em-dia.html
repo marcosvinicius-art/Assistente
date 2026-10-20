@@ -3556,6 +3556,7 @@
   <div class="tab-panel" data-panel="vendas" hidden>
     <div class="vendas-topo">
       <h2>Vendas</h2>
+      <a class="export-btn" href="/loja" style="text-decoration:none;display:inline-flex;align-items:center;">Abrir Wonner Loja (estoque, troca, recibo) →</a>
       <label class="vendas-mes">Mês <input type="month" id="vendaMes"></label>
     </div>
     <div class="stats">
@@ -5119,8 +5120,8 @@
                 : '<option value="cortesia">Dar cortesia (usa sem pagar)</option>') +
               '<option value="7">+7 dias grátis</option><option value="30">+30 dias grátis</option>' +
               (c.vendas
-                ? '<option value="tirar-vendas">Tirar aba Vendas</option>'
-                : '<option value="vendas">Liberar aba Vendas</option>') +
+                ? '<option value="tirar-vendas">Tirar Wonner Loja / Vendas</option>'
+                : '<option value="vendas">Liberar Wonner Loja / Vendas</option>') +
             '</select></span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
@@ -5139,8 +5140,8 @@
           if (!v) return;
           if (v === "vendas" || v === "tirar-vendas") {
             var liberar = v === "vendas";
-            if (!window.confirm(liberar ? "Liberar a aba Vendas para " + email + "?"
-              : "Tirar a aba Vendas de " + email + "? As vendas dele ficam guardadas.")) { sel.value = ""; return; }
+            if (!window.confirm(liberar ? "Liberar a Wonner Loja (e a aba Vendas) para " + email + "?"
+              : "Tirar a Wonner Loja (e a aba Vendas) de " + email + "? Os dados dele ficam guardados.")) { sel.value = ""; return; }
             sel.disabled = true;
             apiJson("POST", "/api/admin/vendas-cliente", { email: email, vendas: liberar }).then(enterAdminMode).catch(function (e) {
               sel.disabled = false;

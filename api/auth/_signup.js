@@ -43,10 +43,12 @@ module.exports = async function handler(req, res) {
     // cortesia = false: só contas que existiam antes da assinatura são cortesia.
     var aprovado = config.aprovarCadastros === false;
     var dias = Math.max(0, Math.min(90, Number(config.diasTeste) || 0));
+    // Cadastro feito pela página da Wonner Loja já nasce com a loja liberada.
+    var loja = body.produto === "loja";
     await db.query(
-      "INSERT INTO users (id, email, password_hash, aprovado, cortesia, teste_ate) " +
-      "VALUES ($1, $2, $3, $4, false, now() + ($5 || ' days')::interval)",
-      [id, email, hash, aprovado, String(dias)]
+      "INSERT INTO users (id, email, password_hash, aprovado, cortesia, teste_ate, vendas) " +
+      "VALUES ($1, $2, $3, $4, false, now() + ($5 || ' days')::interval, $6)",
+      [id, email, hash, aprovado, String(dias), loja]
     );
 
     if (aprovado) auth.setSessionCookie(res, auth.createSessionToken(id));

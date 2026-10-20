@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/loja", "destination": "/loja.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -36,6 +39,15 @@
     },
     {
       "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/loja(.html)?",
       "headers": [
         {
           "key": "Cache-Control",
