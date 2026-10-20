@@ -292,6 +292,35 @@
   .selo-cobranca { color: var(--expense); border-color: var(--expense); }
   .selo-manut { color: var(--warning); border-color: var(--warning); }
   .selo-whats { color: #1FAF54; border-color: #1FAF54; }
+  .selo-vendas { color: var(--accent-ink); border-color: var(--accent); }
+
+  /* Aba Vendas */
+  .vendas-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .vendas-topo h2 { margin: 0; font-size: 20px; }
+  .vendas-mes { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-muted); }
+  .vendas-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; align-items: end;
+    margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
+  .vendas-largo { grid-column: span 2; }
+  .vendas-previa { grid-column: 1 / -1; margin: 2px 0 0; font-size: 13.5px; color: var(--ink-muted); min-height: 1.2em; }
+  .vendas-previa b.lucro { color: var(--income); }
+  .vendas-previa b.prejuizo { color: var(--expense); }
+  .field.vendas-botoes { grid-column: 1 / -1; flex-direction: row; gap: 8px; justify-content: flex-end; }
+  .vendas-botoes button { width: auto; flex: none; padding: 0 20px; }
+  .venda-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .venda-item:last-child { border-bottom: none; }
+  .venda-nome { font-weight: 600; overflow-wrap: anywhere; }
+  .venda-detalhe { font-size: 12.5px; color: var(--ink-muted); }
+  .venda-lucro { text-align: right; font-weight: 700; }
+  .venda-lucro.lucro { color: var(--income); }
+  .venda-lucro.prejuizo { color: var(--expense); }
+  .venda-lucro small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-muted); }
+  .venda-acoes { display: flex; gap: 4px; }
+  @media (max-width: 560px) {
+    .vendas-form { grid-template-columns: 1fr 1fr; }
+    .venda-item { grid-template-columns: minmax(0, 1fr) auto; }
+    .venda-acoes { grid-column: 1 / -1; justify-content: flex-end; }
+  }
   .selo-plano-assinatura { color: var(--income); border-color: var(--income); }
   .selo-plano-teste { color: var(--warning); border-color: var(--warning); }
   .selo-plano-bloqueado { color: var(--expense); border-color: var(--expense); }
@@ -3029,6 +3058,7 @@
     <button class="tab-btn" data-tab="parcelas" type="button" role="tab" aria-selected="false">Parcelas</button>
     <button class="tab-btn" data-tab="investimentos" type="button" role="tab" aria-selected="false">Investimentos &amp; metas</button>
     <button class="tab-btn" data-tab="relatorio" type="button" role="tab" aria-selected="false">Relatório</button>
+    <button class="tab-btn" data-tab="vendas" type="button" role="tab" aria-selected="false" hidden>Vendas</button>
     <button class="tab-btn" data-tab="assistente" type="button" role="tab" aria-selected="false">Assistente</button>
     <button class="tab-btn" data-tab="admin" type="button" role="tab" aria-selected="false" hidden>Administração<span class="tab-contador" id="adminTabContador" hidden></span></button>
   </div>
@@ -3536,6 +3566,86 @@
       </div>
       <p class="rel-rodape">Wonner Sols · relatório gerado em <span id="relGerado"></span></p>
     </section>
+  </div>
+
+  <!-- Liberada conta a conta pelo admin (Administração > Acesso… > Liberar Vendas). -->
+  <div class="tab-panel" data-panel="vendas" hidden>
+    <div class="vendas-topo">
+      <h2>Vendas</h2>
+      <label class="vendas-mes">Mês <input type="month" id="vendaMes"></label>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Vendido</div>
+        <div class="value num" id="vendaStatReceita">R$ 0,00</div>
+        <div class="sub" id="vendaStatQtd"></div>
+      </div>
+      <div class="stat">
+        <div class="label">CMV (custo do que vendeu)</div>
+        <div class="value expense num" id="vendaStatCmv">R$ 0,00</div>
+        <div class="sub" id="vendaStatCmvPct"></div>
+      </div>
+      <div class="stat">
+        <div class="label">Lucro</div>
+        <div class="value income num" id="vendaStatLucro">R$ 0,00</div>
+        <div class="sub" id="vendaStatTaxas"></div>
+      </div>
+      <div class="stat">
+        <div class="label">Margem</div>
+        <div class="value num" id="vendaStatMargem">0%</div>
+        <div class="sub" id="vendaStatParcelado"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Nova venda</h2>
+        <span class="hint" id="vendaCount"></span>
+      </div>
+      <form class="vendas-form" id="vendaForm">
+        <div class="field vendas-largo">
+          <label for="vendaProduto">Produto</label>
+          <input id="vendaProduto" type="text" placeholder="Ex: Tênis Nike 42" required maxlength="80">
+        </div>
+        <div class="field">
+          <label for="vendaData">Data</label>
+          <input id="vendaData" type="date" required>
+        </div>
+        <div class="field">
+          <label for="vendaQtd">Quantidade</label>
+          <input id="vendaQtd" type="number" min="1" step="1" value="1" required>
+        </div>
+        <div class="field">
+          <label for="vendaCusto">Comprei por (cada)</label>
+          <input id="vendaCusto" type="text" inputmode="numeric" placeholder="0,00" required>
+        </div>
+        <div class="field">
+          <label for="vendaPreco">Vendi por (cada)</label>
+          <input id="vendaPreco" type="text" inputmode="numeric" placeholder="0,00" required>
+        </div>
+        <div class="field">
+          <label for="vendaTaxas">Taxas / frete (opcional)</label>
+          <input id="vendaTaxas" type="text" inputmode="numeric" placeholder="0,00">
+        </div>
+        <div class="field">
+          <label for="vendaForma">Recebimento</label>
+          <select id="vendaForma">
+            <option value="avista">À vista</option>
+            <option value="parcelado">Parcelado</option>
+          </select>
+        </div>
+        <div class="field" id="vendaParcelasCampo" hidden>
+          <label for="vendaParcelas">Parcelas</label>
+          <input id="vendaParcelas" type="number" min="2" max="48" step="1" value="2">
+        </div>
+        <p class="vendas-previa num" id="vendaPrevia"></p>
+        <div class="field vendas-botoes">
+          <button type="button" class="export-btn" id="vendaCancelar" hidden>Cancelar</button>
+          <button type="submit" class="btn-add" id="vendaSalvar">Adicionar venda</button>
+        </div>
+      </form>
+      <div id="vendaLista"></div>
+    </div>
   </div>
 
   <div class="tab-panel" data-panel="assistente" hidden>
@@ -4152,6 +4262,15 @@
     if (abaAssistente.hidden && abaAssistente.classList.contains("active")) {
       document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
     }
+
+    // Vendas: só para contas que o admin liberou. Quem barra de fato é o
+    // servidor (403 em /api/data/vendas); aqui só mostra ou esconde a aba.
+    var abaVendas = document.querySelector('.tab-btn[data-tab="vendas"]');
+    abaVendas.hidden = !(state.storage === "server" && (cfg.minhasVendas || state.isAdmin));
+    if (abaVendas.hidden && abaVendas.classList.contains("active")) {
+      document.querySelector('.tab-btn[data-tab="lancamentos"]').click();
+    }
+    if (!abaVendas.hidden && !state.vendas) carregarVendas();
   }
 
   // ---------- Assinatura (cliente) ----------
@@ -5007,6 +5126,7 @@
             (c.cobranca ? '<span class="selo-pendente selo-cobranca">cobrança</span>' : "") +
             (c.manutencao ? '<span class="selo-pendente selo-manut">manutenção</span>' : "") +
             (c.whatsapp ? '<span class="selo-pendente selo-whats">WhatsApp</span>' : "") +
+            (c.vendas ? '<span class="selo-pendente selo-vendas">vendas</span>' : "") +
             seloPlano(c.plano) +
             '<select class="admin-plano-acao" data-email="' + escapeHtml(c.email) + '" aria-label="Acesso de ' + escapeHtml(c.email) + '">' +
               '<option value="">Acesso…</option>' +
@@ -5014,6 +5134,9 @@
                 ? '<option value="tirar-cortesia">Tirar cortesia (passa a pagar)</option>'
                 : '<option value="cortesia">Dar cortesia (usa sem pagar)</option>') +
               '<option value="7">+7 dias grátis</option><option value="30">+30 dias grátis</option>' +
+              (c.vendas
+                ? '<option value="tirar-vendas">Tirar aba Vendas</option>'
+                : '<option value="vendas">Liberar aba Vendas</option>') +
             '</select></span>' +
           '<span class="admin-date">desde ' + data + '</span>' +
           '<button type="button" class="export-btn admin-aprovar" data-email="' + escapeHtml(c.email) +
@@ -5030,6 +5153,18 @@
         sel.addEventListener("change", function () {
           var email = sel.getAttribute("data-email"), v = sel.value;
           if (!v) return;
+          if (v === "vendas" || v === "tirar-vendas") {
+            var liberar = v === "vendas";
+            if (!window.confirm(liberar ? "Liberar a aba Vendas para " + email + "?"
+              : "Tirar a aba Vendas de " + email + "? As vendas dele ficam guardadas.")) { sel.value = ""; return; }
+            sel.disabled = true;
+            apiJson("POST", "/api/admin/vendas-cliente", { email: email, vendas: liberar }).then(enterAdminMode).catch(function (e) {
+              sel.disabled = false;
+              sel.value = "";
+              window.alert((e && e.message) || "Não consegui agora.");
+            });
+            return;
+          }
           var corpo = v === "cortesia" ? { email: email, cortesia: true }
             : v === "tirar-cortesia" ? { email: email, cortesia: false }
             : { email: email, diasExtras: Number(v) };
@@ -7388,6 +7523,186 @@
       addInvestment({ desc: desc, amount: amount, currentValue: amount, dividends: [], type: type, date: date, createdAt: new Date().toISOString() });
     }
     resetInvestForm();
+  });
+
+  // ---------- Vendas (liberado por cliente) ----------
+  // Cada venda guarda os valores unitários e a quantidade; tudo o mais (receita,
+  // CMV, lucro, margem, valor da parcela) é calculado na hora, nunca gravado,
+  // para não ficar desatualizado quando a venda for editada.
+  state.vendas = null;
+  var editandoVendaId = null;
+  var vendaCampos = ["vendaCusto", "vendaPreco", "vendaTaxas"].map(function (id) { return document.getElementById(id); });
+  vendaCampos.forEach(attachAmountMask);
+  document.getElementById("vendaData").value = todayISO();
+  document.getElementById("vendaMes").value = todayISO().slice(0, 7);
+
+  function contaVenda(v) {
+    var qtd = Math.max(1, Number(v.qtd) || 1);
+    var receita = qtd * Number(v.preco || 0);
+    var cmv = qtd * Number(v.custo || 0);
+    var taxas = Number(v.taxas || 0);
+    var lucro = receita - cmv - taxas;
+    var parcelas = v.forma === "parcelado" ? Math.max(2, Number(v.parcelas) || 2) : 1;
+    return {
+      qtd: qtd, receita: receita, cmv: cmv, taxas: taxas, lucro: lucro, parcelas: parcelas,
+      margem: receita > 0 ? (lucro / receita) * 100 : 0,
+      cmvPct: receita > 0 ? (cmv / receita) * 100 : 0,
+      parcela: receita / parcelas,
+    };
+  }
+
+  function pct(n) { return n.toFixed(1).replace(".", ",") + "%"; }
+
+  function lerFormVenda() {
+    var forma = document.getElementById("vendaForma").value;
+    return {
+      produto: document.getElementById("vendaProduto").value.trim(),
+      data: document.getElementById("vendaData").value || todayISO(),
+      qtd: Math.max(1, Math.round(Number(document.getElementById("vendaQtd").value) || 1)),
+      custo: parseAmount(vendaCampos[0].value) || 0,
+      preco: parseAmount(vendaCampos[1].value) || 0,
+      taxas: parseAmount(vendaCampos[2].value) || 0,
+      forma: forma,
+      parcelas: forma === "parcelado" ? Math.min(48, Math.max(2, Math.round(Number(document.getElementById("vendaParcelas").value) || 2))) : 1,
+    };
+  }
+
+  function atualizarPreviaVenda() {
+    document.getElementById("vendaParcelasCampo").hidden = document.getElementById("vendaForma").value !== "parcelado";
+    var v = lerFormVenda();
+    var el = document.getElementById("vendaPrevia");
+    if (!v.preco) { el.innerHTML = ""; return; }
+    var c = contaVenda(v);
+    el.innerHTML = "Você " + (c.lucro >= 0 ? "ganha" : "perde") + ' <b class="' + (c.lucro >= 0 ? "lucro" : "prejuizo") + '">' +
+      fmt(Math.abs(c.lucro)) + "</b> nessa venda · margem " + pct(c.margem) +
+      " · CMV " + fmt(c.cmv) + " (" + pct(c.cmvPct) + " da venda)" +
+      (c.parcelas > 1 ? " · " + c.parcelas + "x de " + fmt(c.parcela) : " · à vista");
+  }
+  ["vendaQtd", "vendaCusto", "vendaPreco", "vendaTaxas", "vendaForma", "vendaParcelas"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", atualizarPreviaVenda);
+    document.getElementById(id).addEventListener("change", atualizarPreviaVenda);
+  });
+
+  function limparFormVenda() {
+    editandoVendaId = null;
+    document.getElementById("vendaProduto").value = "";
+    document.getElementById("vendaData").value = todayISO();
+    document.getElementById("vendaQtd").value = 1;
+    vendaCampos.forEach(function (el) { setAmountValue(el, null); });
+    document.getElementById("vendaForma").value = "avista";
+    document.getElementById("vendaParcelas").value = 2;
+    document.getElementById("vendaSalvar").textContent = "Adicionar venda";
+    document.getElementById("vendaCancelar").hidden = true;
+    atualizarPreviaVenda();
+  }
+  document.getElementById("vendaCancelar").addEventListener("click", limparFormVenda);
+
+  function carregarVendas() {
+    state.vendas = [];
+    serverList("vendas").then(function (lista) {
+      state.vendas = lista;
+      renderVendas();
+    }).catch(function (e) {
+      state.vendas = null;
+      document.getElementById("vendaLista").innerHTML = '<div class="empty-note">Não consegui carregar suas vendas: ' +
+        escapeHtml((e && e.message) || "erro") + '</div>';
+    });
+  }
+
+  function renderVendas() {
+    var mes = document.getElementById("vendaMes").value || todayISO().slice(0, 7);
+    var doMes = (state.vendas || []).filter(function (v) { return String(v.data || "").slice(0, 7) === mes; })
+      .sort(function (a, b) { return a.data < b.data ? 1 : -1; });
+    var t = doMes.reduce(function (s, v) {
+      var c = contaVenda(v);
+      s.receita += c.receita; s.cmv += c.cmv; s.taxas += c.taxas; s.lucro += c.lucro; s.qtd += c.qtd;
+      if (c.parcelas > 1) s.parcelado += c.receita;
+      return s;
+    }, { receita: 0, cmv: 0, taxas: 0, lucro: 0, qtd: 0, parcelado: 0 });
+
+    document.getElementById("vendaStatReceita").textContent = fmt(t.receita);
+    document.getElementById("vendaStatQtd").textContent = t.qtd + (t.qtd === 1 ? " item vendido" : " itens vendidos");
+    document.getElementById("vendaStatCmv").textContent = fmt(t.cmv);
+    document.getElementById("vendaStatCmvPct").textContent = t.receita ? pct(t.cmv / t.receita * 100) + " do que vendeu" : "";
+    var lucroEl = document.getElementById("vendaStatLucro");
+    lucroEl.textContent = fmt(t.lucro);
+    lucroEl.className = "value num " + (t.lucro < 0 ? "expense" : "income");
+    document.getElementById("vendaStatTaxas").textContent = t.taxas ? "já tirando " + fmt(t.taxas) + " de taxas" : "";
+    document.getElementById("vendaStatMargem").textContent = pct(t.receita ? t.lucro / t.receita * 100 : 0);
+    document.getElementById("vendaStatParcelado").textContent = t.parcelado ? fmt(t.parcelado) + " parcelado" : "";
+    document.getElementById("vendaCount").textContent = doMes.length + (doMes.length === 1 ? " venda no mês" : " vendas no mês");
+
+    var lista = document.getElementById("vendaLista");
+    if (!doMes.length) {
+      lista.innerHTML = '<div class="empty-note">Nenhuma venda neste mês.</div>';
+      return;
+    }
+    lista.innerHTML = doMes.map(function (v) {
+      var c = contaVenda(v);
+      var dia = new Date(v.data + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      return '<div class="venda-item">' +
+        '<div><div class="venda-nome">' + escapeHtml(v.produto) + (c.qtd > 1 ? " ×" + c.qtd : "") + '</div>' +
+          '<div class="venda-detalhe num">' + dia + " · comprou " + fmt(c.cmv) + " · vendeu " + fmt(c.receita) +
+          (c.taxas ? " · taxas " + fmt(c.taxas) : "") + " · " +
+          (c.parcelas > 1 ? c.parcelas + "x de " + fmt(c.parcela) : "à vista") + '</div></div>' +
+        '<div class="venda-lucro num ' + (c.lucro < 0 ? "prejuizo" : "lucro") + '">' + (c.lucro < 0 ? "−" : "+") + fmt(Math.abs(c.lucro)) +
+          '<small>margem ' + pct(c.margem) + " · CMV " + pct(c.cmvPct) + '</small></div>' +
+        '<div class="venda-acoes">' +
+          '<button class="icon-btn edit" data-id="' + escapeHtml(v.id) + '" title="Editar">' + ICON_EDIT + '</button>' +
+          '<button class="icon-btn del" data-id="' + escapeHtml(v.id) + '" title="Excluir">' + ICON_TRASH + '</button>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(lista.querySelectorAll(".icon-btn.edit"), function (b) {
+      b.addEventListener("click", function () { editarVenda(b.getAttribute("data-id")); });
+    });
+    Array.prototype.forEach.call(lista.querySelectorAll(".icon-btn.del"), function (b) {
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-id");
+        if (!window.confirm("Excluir esta venda?")) return;
+        serverWrite(serverDelete("vendas", id).then(function () {
+          state.vendas = state.vendas.filter(function (v) { return v.id !== id; });
+          renderVendas();
+        }), "a exclusão da venda");
+      });
+    });
+  }
+
+  function editarVenda(id) {
+    var v = (state.vendas || []).find(function (x) { return x.id === id; });
+    if (!v) return;
+    editandoVendaId = id;
+    document.getElementById("vendaProduto").value = v.produto;
+    document.getElementById("vendaData").value = v.data;
+    document.getElementById("vendaQtd").value = v.qtd || 1;
+    setAmountValue(vendaCampos[0], v.custo);
+    setAmountValue(vendaCampos[1], v.preco);
+    setAmountValue(vendaCampos[2], v.taxas || null);
+    document.getElementById("vendaForma").value = v.forma === "parcelado" ? "parcelado" : "avista";
+    document.getElementById("vendaParcelas").value = v.parcelas > 1 ? v.parcelas : 2;
+    document.getElementById("vendaSalvar").textContent = "Salvar edição";
+    document.getElementById("vendaCancelar").hidden = false;
+    atualizarPreviaVenda();
+    document.getElementById("vendaForm").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  document.getElementById("vendaMes").addEventListener("change", renderVendas);
+
+  document.getElementById("vendaForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = lerFormVenda();
+    if (!v.produto || !(v.preco > 0)) return;
+    var btn = document.getElementById("vendaSalvar");
+    btn.disabled = true;
+    var id = editandoVendaId;
+    var pedido = id ? serverUpdate("vendas", id, v) : serverAdd("vendas", Object.assign({ criadoEm: new Date().toISOString() }, v));
+    serverWrite(pedido.then(function (salva) {
+      state.vendas = (state.vendas || []).filter(function (x) { return x.id !== salva.id; }).concat([salva]);
+      // Mostra o mês da venda recém-salva, senão ela "some" ao lançar outro mês.
+      document.getElementById("vendaMes").value = String(salva.data).slice(0, 7);
+      limparFormVenda();
+      renderVendas();
+    }), "a venda", function () { btn.disabled = false; });
   });
 
   document.getElementById("goalForm").addEventListener("submit", function (e) {

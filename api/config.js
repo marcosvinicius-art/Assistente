@@ -62,6 +62,8 @@ module.exports = async function handler(req, res) {
     cfg.meuAviso = null;
     cfg.minhaCobranca = null;
     cfg.minhaManutencao = false;
+    // Aba Vendas: liberada pelo admin conta a conta (o admin sempre vê).
+    cfg.minhasVendas = !!(session && session.isAdmin);
     // O botão "WhatsApp" só aparece no app quando o agente está configurado.
     // O número é o público do agente (o mesmo que o cliente salva nos contatos).
     cfg.agenteWhatsapp = process.env.WHATSAPP_NUMERO && process.env.WHATSAPP_TOKEN
@@ -82,13 +84,14 @@ module.exports = async function handler(req, res) {
     } catch (ve) { cfg.vapidPublicKey = null; }
     if (session && !session.isAdmin) {
       var u = await db.query(
-        "SELECT aviso, cobranca, manutencao, whatsapp, wa_ultimos, cortesia, teste_ate, assinatura FROM users WHERE id = $1",
+        "SELECT aviso, cobranca, manutencao, vendas, whatsapp, wa_ultimos, cortesia, teste_ate, assinatura FROM users WHERE id = $1",
         [session.uid]
       );
       if (u.rows.length) {
         cfg.meuAviso = u.rows[0].aviso || null;
         cfg.minhaCobranca = u.rows[0].cobranca || null;
         cfg.minhaManutencao = !!u.rows[0].manutencao;
+        cfg.minhasVendas = !!u.rows[0].vendas;
         // Só o final do número: basta para a pessoa reconhecer o dela.
         var w = u.rows[0].whatsapp;
         cfg.meuWhatsapp = w ? "•••• " + w.slice(-4) : null;

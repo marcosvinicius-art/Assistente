@@ -125,6 +125,8 @@ function ensureSchema() {
       -- Usado pelo painel do admin pra mostrar quem está online agora.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS push_sub JSONB;
+      -- Aba "Vendas" (lucro e CMV por venda): só para quem o admin liberar.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS vendas BOOLEAN NOT NULL DEFAULT false;
       -- Pagamentos do Mercado Pago já processados: o mesmo aviso chegando duas
       -- vezes não estende o acesso duas vezes.
       CREATE TABLE IF NOT EXISTS pagamentos_mp (

@@ -13,6 +13,7 @@ var KIND_BY_RESOURCE = {
   budgets: "budget",     // orçamento por categoria
   recurring: "recurring", // contas fixas que se repetem todo mês
   paineis: "painel",      // painéis salvos do assistente (guardam só a pergunta)
+  vendas: "venda",        // vendas (custo x preço) — só contas liberadas pelo admin
 };
 
 // O conteúdo de cada registro é decidido pelo front-end, então este arquivo não
@@ -63,6 +64,15 @@ module.exports = async function handler(req, res) {
         error: "manutencao",
         message: "O site está em manutenção. Volte daqui a pouco — seus dados estão guardados.",
       });
+    }
+
+    // A aba Vendas é liberada conta a conta pelo admin; esconder a aba na tela
+    // não basta, então a trava de verdade é esta.
+    if (kind === "venda" && !session.isAdmin) {
+      var lib = await db.query("SELECT vendas FROM users WHERE id = $1", [userId]);
+      if (!lib.rows.length || !lib.rows[0].vendas) {
+        return res.status(403).json({ error: "vendas_bloqueado", message: "A aba Vendas não está liberada para sua conta." });
+      }
     }
 
     // Sem assinatura (teste acabou, pagamento não feito), o cliente continua
