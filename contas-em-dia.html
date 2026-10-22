@@ -7521,18 +7521,24 @@
   document.getElementById("vendaData").value = todayISO();
   document.getElementById("vendaMes").value = todayISO().slice(0, 7);
 
+  // Venda lançada pela Wonner Loja (/loja) já vem com os totais calculados
+  // ("cobrado", "taxaValor"): lá entram taxa da maquininha por parcela e troca.
+  function vendaDaLoja(v) { return v.cobrado != null; }
+
   function contaVenda(v) {
-    var qtd = Math.max(1, Number(v.qtd) || 1);
-    var receita = qtd * Number(v.preco || 0);
+    var daLoja = vendaDaLoja(v);
+    var qtd = daLoja ? 1 : Math.max(1, Number(v.qtd) || 1);
+    var receita = daLoja ? Number(v.cobrado) || 0 : qtd * Number(v.preco || 0);
     var cmv = qtd * Number(v.custo || 0);
-    var taxas = Number(v.taxas || 0);
+    var taxas = Number((daLoja ? v.taxaValor : v.taxas) || 0);
     var lucro = receita - cmv - taxas;
-    var parcelas = v.forma === "parcelado" ? Math.max(2, Number(v.parcelas) || 2) : 1;
+    var parcelas = v.forma === "parcelado" || v.forma === "credito" ? Math.max(1, Number(v.parcelas) || 1) : 1;
     return {
       qtd: qtd, receita: receita, cmv: cmv, taxas: taxas, lucro: lucro, parcelas: parcelas,
       margem: receita > 0 ? (lucro / receita) * 100 : 0,
       cmvPct: receita > 0 ? (cmv / receita) * 100 : 0,
-      parcela: receita / parcelas,
+      // Com troca, a loja parcela só a diferença paga em dinheiro/cartão.
+      parcela: daLoja && v.parcelaValor ? Number(v.parcelaValor) : receita / parcelas,
     };
   }
 
@@ -7626,16 +7632,19 @@
       var c = contaVenda(v);
       var dia = new Date(v.data + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
       return '<div class="venda-item">' +
-        '<div><div class="venda-nome">' + escapeHtml(v.produto) + (c.qtd > 1 ? " ×" + c.qtd : "") + '</div>' +
+        '<div><div class="venda-nome">' + escapeHtml(v.produto || v.descricao) + (c.qtd > 1 ? " ×" + c.qtd : "") + '</div>' +
           '<div class="venda-detalhe num">' + dia + " · comprou " + fmt(c.cmv) + " · vendeu " + fmt(c.receita) +
           (c.taxas ? " · taxas " + fmt(c.taxas) : "") + " · " +
           (c.parcelas > 1 ? c.parcelas + "x de " + fmt(c.parcela) : "à vista") + '</div></div>' +
         '<div class="venda-lucro num ' + (c.lucro < 0 ? "prejuizo" : "lucro") + '">' + (c.lucro < 0 ? "−" : "+") + fmt(Math.abs(c.lucro)) +
           '<small>margem ' + pct(c.margem) + " · CMV " + pct(c.cmvPct) + '</small></div>' +
-        '<div class="venda-acoes">' +
-          '<button class="icon-btn edit" data-id="' + escapeHtml(v.id) + '" title="Editar">' + ICON_EDIT + '</button>' +
-          '<button class="icon-btn del" data-id="' + escapeHtml(v.id) + '" title="Excluir">' + ICON_TRASH + '</button>' +
-        '</div>' +
+        // Venda da loja mexe em estoque e caixa: editar ou estornar só por lá.
+        (vendaDaLoja(v)
+          ? '<div class="venda-acoes"><a class="export-btn" href="/loja#vendas" style="text-decoration:none;">na Loja</a></div>'
+          : '<div class="venda-acoes">' +
+              '<button class="icon-btn edit" data-id="' + escapeHtml(v.id) + '" title="Editar">' + ICON_EDIT + '</button>' +
+              '<button class="icon-btn del" data-id="' + escapeHtml(v.id) + '" title="Excluir">' + ICON_TRASH + '</button>' +
+            '</div>') +
       '</div>';
     }).join("");
     Array.prototype.forEach.call(lista.querySelectorAll(".icon-btn.edit"), function (b) {

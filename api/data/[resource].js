@@ -15,11 +15,14 @@ var KIND_BY_RESOURCE = {
   paineis: "painel",      // painéis salvos do assistente (guardam só a pergunta)
   vendas: "venda",        // vendas (custo x preço) — só contas liberadas pelo admin
   estoque: "aparelho",    // Wonner Loja: aparelhos em estoque (IMEI, custo, troca)
-  loja: "loja",           // Wonner Loja: dados da loja para o recibo (um registro só)
+  loja: "loja",           // Wonner Loja: configuração da loja (taxas, recibo) — um registro só
+  caixa: "caixa",         // Wonner Loja: lançamentos do caixa da loja
 };
 
 // Tipos da Wonner Loja: só para contas com a loja liberada (coluna "vendas").
-var KINDS_DA_LOJA = ["venda", "aparelho", "loja"];
+var KINDS_DA_LOJA = ["venda", "aparelho", "loja", "caixa"];
+
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // O conteúdo de cada registro é decidido pelo front-end, então este arquivo não
 // sabe quais campos existem — mas sabe que nenhum registro legítimo é grande.
@@ -115,20 +118,27 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      var novo = req.body || {};
+      var novo = Object.assign({}, req.body || {});
       if (!cabeNoRegistro(novo)) {
         return res.status(413).json({ error: "muito_grande", message: "Esse registro é grande demais." });
       }
-      var id = crypto.randomUUID();
-      await db.query(
-        "INSERT INTO records (id, user_id, kind, data) VALUES ($1, $2, $3, $4)",
+      // A Wonner Loja liga registros entre si (venda → aparelho, caixa → venda)
+      // e por isso cria o id no navegador. Só UUID é aceito, e um id que já
+      // existe — desta conta ou de outra — é recusado em vez de sobrescrito.
+      var id = UUID.test(novo.id) ? String(novo.id).toLowerCase() : crypto.randomUUID();
+      delete novo.id;
+      var inserido = await db.query(
+        "INSERT INTO records (id, user_id, kind, data) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING",
         [id, userId, kind, JSON.stringify(novo)]
       );
+      if (!inserido.rowCount) return res.status(409).json({ error: "id_em_uso", message: "Esse registro já existe." });
       return res.status(200).json(semComprovante(Object.assign({ id: id }, novo)));
     }
 
     var alvoId = req.query.id;
     if (!alvoId) return res.status(400).json({ error: "missing_id" });
+    // Id fora do formato faria o Postgres responder com erro (500); é só "não existe".
+    if (!UUID.test(alvoId)) return res.status(404).json({ error: "not_found" });
 
     if (req.method === "PATCH") {
       var patch = req.body || {};
