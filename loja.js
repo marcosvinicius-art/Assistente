@@ -462,7 +462,7 @@ function renderDashboard() {
       <div class="card">
         <div class="card-head">
           <div><h3>Faturamento x Lucro</h3><p>Últimos 6 meses</p></div>
-          <div class="legend"><span><i style="background:#c7d2fe"></i>Faturamento</span><span><i style="background:var(--primary)"></i>Lucro</span></div>
+          <div class="legend"><span><i style="background:#52525b"></i>Faturamento</span><span><i style="background:var(--primary)"></i>Lucro</span></div>
         </div>
         ${chart6m()}
       </div>
@@ -515,7 +515,7 @@ function chart6m() {
 function formasBreakdown(vendas) {
   if (!vendas.length) return `<p class="hint">Sem vendas neste mês.</p>`;
   const total = vendas.reduce((s, v) => s + v.cobrado, 0);
-  const cores = { pix: 'var(--green)', dinheiro: '#64748b', debito: 'var(--blue)', credito: 'var(--primary)' };
+  const cores = { pix: 'var(--green)', dinheiro: '#a1a1aa', debito: 'var(--blue)', credito: 'var(--primary)' };
   return `<div class="plist">${Object.keys(FORMAS).map(f => {
     const vs = vendas.filter(v => v.forma === f);
     if (!vs.length) return '';
