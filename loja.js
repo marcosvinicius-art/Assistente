@@ -118,7 +118,11 @@ const nuvem = {
       endereco: perfil.endereco, garantiaDias: perfil.garantiaDias, termos: perfil.termos
     });
     if (config) Object.keys(config).forEach(k => config[k] == null && delete config[k]);
-    state = normalize({ config, aparelhos: aparelhos.map(migrarAparelho), vendas: vendas.map(migrarVenda), caixa });
+    // A aba Vendas do app de finanças grava no mesmo recurso, mas aquelas vendas
+    // não passaram pelo estoque nem pelo caixa da loja: ficam só lá. Como não
+    // entram em "enviado", a loja também nunca as apaga.
+    const daLoja = v => v.cobrado != null || v.aparelhoId || v.pagamento;
+    state = normalize({ config, aparelhos: aparelhos.map(migrarAparelho), vendas: vendas.filter(daLoja).map(migrarVenda), caixa });
     this.marcarEnviado();
   },
 
