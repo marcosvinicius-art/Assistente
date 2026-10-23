@@ -205,6 +205,19 @@ const monthOf = iso => (iso || '').slice(0, 7);
 const currentMonth = () => todayISO().slice(0, 7);
 const fmtDate = iso => iso ? iso.split('-').reverse().join('/') : '—';
 const num = v => parseFloat(String(v).replace(',', '.')) || 0;
+// Campos de dinheiro: o lojista digita como escreve — "10000", "10.000",
+// "10.000,50" ou "R$ 1.234,56". O campo numérico do navegador recusava o ponto
+// de milhar, e o caixa inicial de "10.000" não entrava.
+const dinheiro = v => {
+  if (typeof v === 'number') return v;
+  let s = String(v ?? '').replace(/[^\d,.-]/g, '');
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if ((s.match(/\./g) || []).length > 1 || /\.\d{3}$/.test(s)) s = s.replace(/\./g, '');
+  return round2(parseFloat(s) || 0);
+};
+// Valor já salvo, mostrado de volta no campo no mesmo formato ("2.100,00").
+const campoDinheiro = v => (v || v === 0) && v !== '' ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+const ATTR_DINHEIRO = 'type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function daysBetween(fromISO, toISO = todayISO()) {
@@ -621,8 +634,8 @@ function formAparelho(a) {
       <label class="field">Saúde da bateria (%)<input name="bateria" type="number" min="0" max="100" value="${esc(a.bateria)}"></label>
       <label class="field">Fornecedor<input name="fornecedor" value="${esc(a.fornecedor)}"></label>
       <label class="field">Data da compra<input name="dataCompra" type="date" value="${a.dataCompra}" required></label>
-      <label class="field">Valor pago (custo)<input name="custo" type="number" step="0.01" min="0" value="${a.custo ?? ''}" required></label>
-      <label class="field">Preço de venda previsto<input name="precoVenda" type="number" step="0.01" min="0" value="${a.precoVenda ?? ''}"></label>
+      <label class="field">Valor pago (custo)<input name="custo" ${ATTR_DINHEIRO} value="${campoDinheiro(a.custo)}" required></label>
+      <label class="field">Preço de venda previsto<input name="precoVenda" ${ATTR_DINHEIRO} value="${campoDinheiro(a.precoVenda)}"></label>
       <div class="field" style="justify-content:flex-end"><div class="summary" id="prevLucro"></div></div>
       <label class="field full">Observações<textarea name="obs" rows="2">${esc(a.obs)}</textarea></label>
       ${ed ? '' : `<label class="check full"><input type="checkbox" name="descontar" checked> Descontar o valor do caixa (saída "Compra de aparelho")</label>`}
@@ -634,7 +647,7 @@ function formAparelho(a) {
 
 function updatePrevLucro(form) {
   $('#imeiAviso').textContent = avisoImei(form.imei.value, form.dataset.id);
-  const c = num(form.custo.value), p = num(form.precoVenda.value);
+  const c = dinheiro(form.custo.value), p = dinheiro(form.precoVenda.value);
   $('#prevLucro').innerHTML = `<div><span>Lucro previsto</span><b class="${p - c >= 0 ? 'pos' : 'neg'}">${brl(p - c)}</b></div><div><span>Margem</span><b>${pct(p ? ((p - c) / p) * 100 : 0)}</b></div>`;
 }
 
@@ -644,7 +657,7 @@ function salvarAparelho(form) {
   const dados = {
     marca: f.marca.trim(), modelo: f.modelo.trim(), armazenamento: f.armazenamento.trim(), cor: f.cor.trim(),
     imei: f.imei.trim(), condicao: f.condicao, bateria: f.bateria, fornecedor: f.fornecedor.trim(),
-    dataCompra: f.dataCompra, custo: num(f.custo), precoVenda: num(f.precoVenda), obs: f.obs.trim()
+    dataCompra: f.dataCompra, custo: dinheiro(f.custo), precoVenda: dinheiro(f.precoVenda), obs: f.obs.trim()
   };
   const aviso = avisoImei(dados.imei, id);
   if (/Já existe/.test(aviso)) return toast(aviso);
@@ -747,7 +760,7 @@ function formVenda(aparelhoId) {
     <div class="form-grid">
       <label class="field full">Aparelho<select name="aparelhoId" required>${est.map(a => `<option value="${a.id}" ${a.id === sel.id ? 'selected' : ''}>${esc(nomeAparelho(a))} ${a.cor ? '· ' + esc(a.cor) : ''} — custo ${brl(a.custo)}</option>`).join('')}</select></label>
       <label class="field">Data da venda<input name="data" type="date" value="${todayISO()}" required></label>
-      <label class="field">Preço à vista<input name="preco" type="number" step="0.01" min="0" value="${sel.precoVenda || ''}" required></label>
+      <label class="field">Preço à vista<input name="preco" ${ATTR_DINHEIRO} value="${campoDinheiro(sel.precoVenda || '')}" required></label>
       <label class="field">Cliente<input name="cliente"></label>
       <label class="field">WhatsApp do cliente<input name="telefone" type="tel" placeholder="(11) 99999-9999"></label>
       <label class="field">CPF (opcional)<input name="cpf" inputmode="numeric"></label>
@@ -759,7 +772,7 @@ function formVenda(aparelhoId) {
         <label class="field">Cor<input name="trocaCor"></label>
         <label class="field">Bateria (%)<input name="trocaBateria" type="number" min="0" max="100"></label>
         <label class="field">IMEI do usado<input name="trocaImei" inputmode="numeric"><span class="aviso-imei" id="trocaImeiAviso"></span></label>
-        <label class="field">Valor abatido<input name="trocaValor" type="number" step="0.01" min="0"></label>
+        <label class="field">Valor abatido<input name="trocaValor" ${ATTR_DINHEIRO}></label>
         <p class="hint full">O usado entra no estoque com esse valor como custo, e o cliente paga só a diferença.</p>
       </div>
       <label class="field">Forma de pagamento<select name="forma">${Object.entries(FORMAS).map(([k, f]) => `<option value="${k}">${f.nome}</option>`).join('')}</select></label>
@@ -775,8 +788,8 @@ function formVenda(aparelhoId) {
 // Com troca, o usado paga parte do preço: a maquininha (e o juro) incide só
 // sobre a diferença que o cliente paga em dinheiro ou cartão.
 function calcVendaComTroca(form) {
-  const preco = num(form.preco.value);
-  const troca = form.temTroca.checked ? Math.min(num(form.trocaValor.value), preco) : 0;
+  const preco = dinheiro(form.preco.value);
+  const troca = form.temTroca.checked ? Math.min(dinheiro(form.trocaValor.value), preco) : 0;
   const forma = form.forma.value;
   const parcelas = forma === 'credito' ? Number(form.parcelas.value) : 1;
   const c = calcVenda({ preco: round2(preco - troca), forma, parcelas, repassar: form.repassar.checked });
@@ -785,7 +798,7 @@ function calcVendaComTroca(form) {
 
 function updateVendaResumo(form, trocouAparelho) {
   const a = state.aparelhos.find(x => x.id === form.aparelhoId.value);
-  if (trocouAparelho) form.preco.value = a.precoVenda || '';
+  if (trocouAparelho) form.preco.value = campoDinheiro(a.precoVenda || '');
   $('#trocaCampos').hidden = !form.temTroca.checked;
   $('#trocaImeiAviso').textContent = form.temTroca.checked ? avisoImei(form.trocaImei.value) : '';
   const { troca, forma, parcelas, c } = calcVendaComTroca(form);
@@ -963,7 +976,7 @@ function formLancamento() {
       <label class="field">Tipo<select name="tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></label>
       <label class="field">Categoria<select name="categoria">${CATEGORIAS_CAIXA.entrada.map(c => `<option>${c}</option>`).join('')}</select></label>
       <label class="field">Data<input name="data" type="date" value="${todayISO()}" required></label>
-      <label class="field">Valor<input name="valor" type="number" step="0.01" min="0.01" required></label>
+      <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
       <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Caixa inicial, aluguel, frete…"></label>
     </div>
     <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Lançar</button></div>
@@ -972,13 +985,15 @@ function formLancamento() {
 
 function salvarLancamento(form) {
   const f = Object.fromEntries(new FormData(form));
-  state.caixa.push({ id: uid(), data: f.data, tipo: f.tipo, categoria: f.categoria, descricao: f.descricao.trim(), valor: num(f.valor) });
+  const valor = dinheiro(f.valor);
+  if (!(valor > 0)) return toast('Digite um valor maior que zero.');
+  state.caixa.push({ id: uid(), data: f.data, tipo: f.tipo, categoria: f.categoria, descricao: f.descricao.trim(), valor });
   save(); closeModal(); rerender(); toast('Lançamento registrado.');
 }
 
 /* ---------- Parcelamento & Juros ---------- */
 function renderParcelamento() {
-  const valor = num(ui.simValor);
+  const valor = dinheiro(ui.simValor);
   const t = state.config.taxas;
   const r = resumoMes(ui.mes);
   const cartao = r.vendas.filter(v => v.forma === 'credito' || v.forma === 'debito');
@@ -990,7 +1005,7 @@ function renderParcelamento() {
       <div class="card">
         <div class="card-head">
           <div><h3>Simulador de parcelamento</h3><p>Quanto cobrar do cliente para receber o valor à vista</p></div>
-          <div class="toolbar"><span class="muted">Valor à vista</span><input type="number" step="0.01" min="0" data-bind="simValor" value="${ui.simValor}" style="width:140px"></div>
+          <div class="toolbar"><span class="muted">Valor à vista</span><input ${ATTR_DINHEIRO} data-bind="simValor" value="${esc(ui.simValor)}" style="width:140px"></div>
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>Forma</th><th class="num">Taxa</th><th class="num">Cliente paga (repassando)</th><th class="num">Parcela</th><th class="num">Juros ao cliente</th><th class="num">Você recebe sem repassar</th></tr></thead>
