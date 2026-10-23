@@ -893,6 +893,12 @@ function imprimirRecibo(id) {
   window.print();
 }
 
+// Termo longo (várias cláusulas) estoura o link do WhatsApp: vai só o aviso,
+// e o texto completo segue no recibo impresso.
+function termosCurtos(t) {
+  return t.length <= 600 ? t : 'Os termos completos da garantia estão no recibo entregue com o aparelho.';
+}
+
 function mandarWhatsapp(id) {
   const v = state.vendas.find(x => x.id === id);
   if (!v) return;
@@ -904,7 +910,7 @@ function mandarWhatsapp(id) {
     `*Recibo de venda* — ${fmtDate(v.data)}\nProduto: ${v.descricao}` + (v.imei ? `\nIMEI: ${v.imei}` : '') +
     (v.troca ? `\nTroca: ${v.troca.modelo} (− ${brl(v.troca.valor)})` : '') +
     `\nTotal pago: ${brl(v.troca ? v.pagoDinheiro : v.cobrado)} (${(FORMAS[v.forma] || { nome: v.forma }).nome}${v.forma === 'credito' && v.parcelas > 1 ? ' ' + v.parcelas + 'x' : ''})` +
-    (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n${L.termos || TERMOS_PADRAO}` : '');
+    (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n${termosCurtos(L.termos || TERMOS_PADRAO)}` : '');
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
 }
 
@@ -1056,7 +1062,7 @@ function renderConfig() {
           <label class="field">Telefone / WhatsApp<input name="telefone" value="${esc(c.telefone)}"></label>
           <label class="field full">Endereço<input name="endereco" value="${esc(c.endereco)}"></label>
           <label class="field">Garantia padrão (dias)<input name="garantiaDias" type="number" min="0" max="730" value="${num(c.garantiaDias)}"></label>
-          <label class="field full">Termos da garantia<textarea name="termos" rows="4" maxlength="1500">${esc(c.termos)}</textarea></label>
+          <label class="field full">Termos da garantia<textarea name="termos" rows="14" maxlength="10000">${esc(c.termos)}</textarea></label>
         </div>
         <div class="form-actions"><button class="btn primary">Salvar configurações</button></div>
       </form>
