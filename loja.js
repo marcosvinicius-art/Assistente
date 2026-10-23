@@ -355,6 +355,7 @@ const ROUTES = {
   estoque: { title: 'Estoque', render: renderEstoque },
   vendas: { title: 'Vendas', render: renderVendas },
   caixa: { title: 'Caixa', render: renderCaixa },
+  simulador: { title: 'Simular margem', render: renderSimulador },
   parcelamento: { title: 'Parcelamento & Juros', render: renderParcelamento },
   config: { title: 'Configurações', render: renderConfig }
 };
@@ -365,7 +366,15 @@ const ui = {
   estoqueBusca: '',
   vendaForma: '',
   vendaBusca: '',
-  simValor: 3000
+  simValor: 3000,
+  // Simular margem (antes de comprar)
+  simCompra: '',
+  simVenda: '',
+  simExtras: '',
+  simForma: 'pix',
+  simParcelas: '1',
+  simRepassar: 'sim',
+  simMeta: '25'
 };
 
 function route() {
@@ -620,9 +629,10 @@ function renderEstoque() {
     </div>`;
 }
 
+// Sem id é compra nova; o simulador de margem chega aqui com custo e preço já preenchidos.
 function formAparelho(a) {
-  const ed = !!a;
-  a = a || { dataCompra: todayISO(), condicao: 'Seminovo' };
+  const ed = !!(a && a.id);
+  a = ed ? a : { dataCompra: todayISO(), condicao: 'Seminovo', ...a };
   return `<form data-form="aparelho" data-id="${a.id || ''}">
     <div class="form-grid">
       <label class="field">Marca<input name="marca" value="${esc(a.marca)}" placeholder="Apple, Samsung, Xiaomi…" required list="marcas"></label>
@@ -1058,6 +1068,99 @@ function renderParcelamento() {
 }
 
 /* ---------- Configurações ---------- */
+/* ---------- Simular margem ---------- */
+// A conta de antes de comprar: quanto sobra entre pagar X e vender por Y,
+// já com a taxa da maquininha da forma de pagamento escolhida.
+function simulacao(compra, extras, venda, forma, parcelas, repassar) {
+  const c = calcVenda({ preco: venda, forma, parcelas, repassar });
+  const custo = round2(compra + extras);
+  const lucro = round2(c.liquido - custo);
+  return { ...c, custo, lucro, margem: c.cobrado ? (lucro / c.cobrado) * 100 : 0, markup: custo ? (lucro / custo) * 100 : 0 };
+}
+
+// Preço à vista para a margem desejada (lucro ÷ o que o cliente paga, como no resto da loja).
+// Repassando, o cliente paga preço ÷ (1 − taxa); sem repassar, a taxa sai do preço.
+function precoParaMargem(custo, metaPct, taxaPct, repassar) {
+  const m = metaPct / 100, t = taxaPct / 100;
+  const div = repassar ? 1 - m / (1 - t) : (1 - t) - m;
+  return div > 0 ? round2(custo / div) : null;
+}
+
+function renderSimulador() {
+  const compra = dinheiro(ui.simCompra), venda = dinheiro(ui.simVenda), extras = dinheiro(ui.simExtras);
+  const forma = ui.simForma;
+  const max = state.config.taxas.credito.length;
+  const parcelas = forma === 'credito' ? Math.min(max, Math.max(1, Number(ui.simParcelas) || 1)) : 1;
+  const repassar = ui.simRepassar === 'sim';
+  const pronto = compra > 0 && venda > 0;
+  const s = simulacao(compra, extras, venda, forma, parcelas, repassar);
+  const meta = dinheiro(ui.simMeta);
+  const sugerido = compra > 0 ? precoParaMargem(compra + extras, meta, taxaPara(forma, parcelas), repassar) : null;
+  const sug = sugerido ? simulacao(compra, extras, sugerido, forma, parcelas, repassar) : null;
+  const sel = (bind, opcoes) => `<select data-bind="${bind}">${opcoes.map(([v, n]) => `<option value="${v}" ${ui[bind] === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+
+  return `
+    <div class="grid cols-3-1">
+      <div class="card">
+        <div class="card-head"><div><h3>Quanto vou ganhar?</h3><p>Antes de comprar: coloque quanto vai pagar no aparelho e por quanto pretende vender</p></div></div>
+        <div class="form-grid">
+          <label class="field">Vou pagar no aparelho<input ${ATTR_DINHEIRO} data-bind="simCompra" value="${esc(ui.simCompra)}"></label>
+          <label class="field">Vou vender por (à vista)<input ${ATTR_DINHEIRO} data-bind="simVenda" value="${esc(ui.simVenda)}"></label>
+          <label class="field">Outros custos (película, capinha, frete, reparo)<input ${ATTR_DINHEIRO} data-bind="simExtras" value="${esc(ui.simExtras)}"></label>
+          <label class="field">Forma de pagamento${sel('simForma', Object.entries(FORMAS).map(([k, f]) => [k, f.nome]))}</label>
+          ${forma === 'credito' ? `<label class="field">Parcelas${sel('simParcelas', Array.from({ length: max }, (_, i) => [String(i + 1), `${i + 1}x (taxa ${pct(num(state.config.taxas.credito[i]))})`]))}</label>` : ''}
+          ${s.taxaPct ? `<label class="field">Taxa da maquininha${sel('simRepassar', [['sim', 'Cliente paga (repasso a taxa)'], ['nao', 'Eu pago (sai do meu lucro)']])}</label>` : ''}
+        </div>
+        ${pronto ? `
+        <div class="summary" style="margin-top:16px">
+          <div><span>Cliente paga</span><b>${brl(s.cobrado)}${forma === 'credito' ? ` <span class="muted">(${parcelas}x de ${brl(s.parcelaValor)})</span>` : ''}</b></div>
+          <div><span>Taxa da maquininha (${pct(s.taxaPct)})</span><span class="neg">${s.taxaValor ? '-' + brl(s.taxaValor) : '—'}</span></div>
+          <div><span>Você recebe</span><b>${brl(s.liquido)}</b></div>
+          <div><span>Custo total (aparelho + outros)</span><span>-${brl(s.custo)}</span></div>
+          <div class="total"><span>Lucro</span><span class="${s.lucro >= 0 ? 'pos' : 'neg'}">${brl(s.lucro)}</span></div>
+          <div><span>Margem sobre a venda</span><b class="${s.lucro >= 0 ? 'pos' : 'neg'}">${pct(s.margem)}</b></div>
+          <div><span>Retorno sobre o que você investiu</span><b class="${s.lucro >= 0 ? 'pos' : 'neg'}">${pct(s.markup)}</b></div>
+        </div>
+        <div class="form-actions"><button class="btn primary" data-action="sim-cadastrar">Comprei — cadastrar no estoque</button></div>`
+        : `<p class="hint" style="margin-top:14px">Preencha quanto vai pagar e por quanto vai vender para ver o lucro e a margem.</p>`}
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Por quanto vender?</h3><p>O preço para ter a margem que você quer</p></div></div>
+        <label class="field">Margem que eu quero (%)<input type="text" inputmode="decimal" data-bind="simMeta" value="${esc(ui.simMeta)}" placeholder="25"></label>
+        ${compra > 0 ? (sug ? `
+        <div class="summary" style="margin-top:14px">
+          <div class="total"><span>Venda por (à vista)</span><span>${brl(sugerido)}</span></div>
+          <div><span>Cliente paga</span><b>${brl(sug.cobrado)}${forma === 'credito' ? ` <span class="muted">(${parcelas}x)</span>` : ''}</b></div>
+          <div><span>Lucro</span><b class="pos">${brl(sug.lucro)}</b></div>
+        </div>
+        <div class="form-actions"><button class="btn" data-action="sim-usar-preco" data-v="${sugerido}">Usar esse preço</button></div>`
+        : `<p class="hint" style="margin-top:14px">Com essa taxa da maquininha não dá para chegar a ${pct(meta)} de margem. Tente uma margem menor ou repasse a taxa ao cliente.</p>`)
+        : `<p class="hint" style="margin-top:14px">Preencha quanto vai pagar no aparelho.</p>`}
+        <p class="hint" style="margin-top:14px">Margem = lucro ÷ o que o cliente paga. Retorno = lucro ÷ o que você gastou no aparelho.</p>
+      </div>
+    </div>
+    ${pronto ? `
+    <div class="card">
+      <div class="card-head"><div><h3>Margem em cada forma de pagamento</h3><p>Pagando ${brl(compra + extras)} e vendendo por ${brl(venda)} à vista — ${repassar ? 'repassando a taxa ao cliente' : 'você paga a taxa'}</p></div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Forma</th><th class="num">Taxa</th><th class="num">Cliente paga</th><th class="num">Você recebe</th><th class="num">Lucro</th><th class="num">Margem</th></tr></thead>
+        <tbody>
+          ${[['pix', 1], ['dinheiro', 1], ['debito', 1], ...state.config.taxas.credito.map((_, i) => ['credito', i + 1])].map(([f, n]) => {
+            const r = simulacao(compra, extras, venda, f, n, repassar);
+            return `<tr>
+              <td><b>${f === 'credito' ? `Crédito ${n}x` : FORMAS[f].nome}</b></td>
+              <td class="num">${pct(r.taxaPct)}</td>
+              <td class="num">${brl(r.cobrado)}${f === 'credito' && n > 1 ? `<div class="cell-sub">${n}x ${brl(r.parcelaValor)}</div>` : ''}</td>
+              <td class="num">${brl(r.liquido)}</td>
+              <td class="num ${r.lucro >= 0 ? 'pos' : 'neg'}"><b>${brl(r.lucro)}</b></td>
+              <td class="num ${r.lucro >= 0 ? 'pos' : 'neg'}">${pct(r.margem)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>` : ''}`;
+}
+
 function renderConfig() {
   const c = state.config;
   return `
@@ -1226,6 +1329,14 @@ document.addEventListener('click', e => {
     case 'nova-venda': return openModal('Nova venda', formVenda());
     case 'vender': return openModal('Nova venda', formVenda(id));
     case 'excluir-venda': return excluirVenda(id);
+    case 'sim-usar-preco': ui.simVenda = campoDinheiro(Number(el.dataset.v)); return rerender();
+    case 'sim-cadastrar': {
+      const extras = dinheiro(ui.simExtras);
+      return openModal('Comprar aparelho', formAparelho({
+        custo: round2(dinheiro(ui.simCompra) + extras), precoVenda: dinheiro(ui.simVenda),
+        obs: extras ? `Custo inclui ${brl(extras)} de outros custos` : ''
+      }));
+    }
     case 'recibo': return imprimirRecibo(id);
     case 'whatsapp': return mandarWhatsapp(id);
     case 'novo-lancamento': return openModal('Lançamento no caixa', formLancamento());
