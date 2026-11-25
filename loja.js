@@ -923,6 +923,13 @@ function garantiaBadge(v) {
 }
 
 /* ---------- Recibo e WhatsApp ---------- */
+// Deixa o lojista escrever {{cliente}} em qualquer trecho dos Termos da garantia
+// (ex.: "Cliente: {{cliente}}" no fim de um contrato próprio) e sai sozinho com o
+// nome da venda — sem precisar editar o texto de Configurações a cada venda.
+function aplicarTokensTermos(texto, v) {
+  return String(texto || '').replace(/\{\{\s*cliente\s*\}\}/gi, v.cliente || '');
+}
+
 function imprimirRecibo(id) {
   const v = state.vendas.find(x => x.id === id);
   if (!v) return;
@@ -947,7 +954,7 @@ function imprimirRecibo(id) {
     </table>
     ${ate ? `<p><b>Garantia:</b> ${v.garantiaDias} dias — válida até <b>${fmtDate(ate)}</b>.</p>
     <p><b>Termo de garantia de ${esc(v.cliente || 'cliente')}:</b></p>
-    <div class="r-termos">${esc(L.termos || TERMOS_PADRAO)}</div>` : '<p><b>Sem garantia.</b></p>'}
+    <div class="r-termos">${esc(aplicarTokensTermos(L.termos || TERMOS_PADRAO, v))}</div>` : '<p><b>Sem garantia.</b></p>'}
     ${v.troca ? '<p class="r-pequeno">O cliente declara ser o proprietário do aparelho entregue na troca e que ele não tem origem ilícita, bloqueio ou restrição.</p>' : ''}
     <div class="r-assin"><div>${esc(L.loja)}</div><div>${esc(v.cliente || 'Cliente')}</div></div>`;
   window.print();
@@ -970,7 +977,7 @@ function mandarWhatsapp(id) {
     `*Recibo de venda* — ${fmtDate(v.data)}\nProduto: ${v.descricao}` + (v.imei ? `\nIMEI: ${v.imei}` : '') +
     (v.troca ? `\nTroca: ${v.troca.modelo} (− ${brl(v.troca.valor)})` : '') +
     `\nTotal pago: ${brl(v.troca ? v.pagoDinheiro : v.cobrado)} (${(FORMAS[v.forma] || { nome: v.forma }).nome}${v.forma === 'credito' && v.parcelas > 1 ? ' ' + v.parcelas + 'x' : ''})` +
-    (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n*Termo de garantia de ${v.cliente || 'cliente'}:*\n${termosCurtos(L.termos || TERMOS_PADRAO)}` : '');
+    (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n*Termo de garantia de ${v.cliente || 'cliente'}:*\n${termosCurtos(aplicarTokensTermos(L.termos || TERMOS_PADRAO, v))}` : '');
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
 }
 
@@ -1218,6 +1225,7 @@ function renderConfig() {
           <label class="field full">Endereço<input name="endereco" value="${esc(c.endereco)}"></label>
           <label class="field">Garantia padrão (dias)<input name="garantiaDias" type="number" min="0" max="730" value="${num(c.garantiaDias)}"></label>
           <label class="field full">Termos da garantia<textarea name="termos" rows="14" maxlength="10000">${esc(c.termos)}</textarea></label>
+          <p class="hint full">Use <code>{{cliente}}</code> em qualquer parte do texto (ex.: "Cliente: {{cliente}}") que na hora de imprimir o recibo ou mandar no WhatsApp ele vira o nome do cliente daquela venda, sozinho.</p>
         </div>
         <div class="form-actions"><button class="btn primary">Salvar configurações</button></div>
       </form>
