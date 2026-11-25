@@ -923,11 +923,15 @@ function garantiaBadge(v) {
 }
 
 /* ---------- Recibo e WhatsApp ---------- */
-// Deixa o lojista escrever {{cliente}} em qualquer trecho dos Termos da garantia
-// (ex.: "Cliente: {{cliente}}" no fim de um contrato próprio) e sai sozinho com o
-// nome da venda — sem precisar editar o texto de Configurações a cada venda.
+// Deixa o lojista escrever {{cliente}}, {{dataCompra}} e {{dataEntrega}} em
+// qualquer trecho dos Termos da garantia (ex.: "Cliente: {{cliente}}") e eles
+// saem sozinhos com os dados da venda — sem editar o texto a cada venda. Não
+// existe campo de data de entrega separado no app (a entrega é na hora da
+// venda), então os dois tokens de data usam a mesma data da venda.
 function aplicarTokensTermos(texto, v) {
-  return String(texto || '').replace(/\{\{\s*cliente\s*\}\}/gi, v.cliente || '');
+  return String(texto || '')
+    .replace(/\{\{\s*cliente\s*\}\}/gi, v.cliente || '')
+    .replace(/\{\{\s*data(Compra|Entrega)?\s*\}\}/gi, fmtDate(v.data));
 }
 
 function imprimirRecibo(id) {
@@ -1225,7 +1229,7 @@ function renderConfig() {
           <label class="field full">Endereço<input name="endereco" value="${esc(c.endereco)}"></label>
           <label class="field">Garantia padrão (dias)<input name="garantiaDias" type="number" min="0" max="730" value="${num(c.garantiaDias)}"></label>
           <label class="field full">Termos da garantia<textarea name="termos" rows="14" maxlength="10000">${esc(c.termos)}</textarea></label>
-          <p class="hint full">Use <code>{{cliente}}</code> em qualquer parte do texto (ex.: "Cliente: {{cliente}}") que na hora de imprimir o recibo ou mandar no WhatsApp ele vira o nome do cliente daquela venda, sozinho.</p>
+          <p class="hint full">Use <code>{{cliente}}</code>, <code>{{dataCompra}}</code> e <code>{{dataEntrega}}</code> em qualquer parte do texto (ex.: "Cliente: {{cliente}}" ou "Data da compra: {{dataCompra}}") que na hora de imprimir o recibo ou mandar no WhatsApp eles saem sozinhos com os dados daquela venda.</p>
         </div>
         <div class="form-actions"><button class="btn primary">Salvar configurações</button></div>
       </form>
