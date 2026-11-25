@@ -741,7 +741,7 @@ function renderVendas() {
             <td class="num">${brl(v.cobrado)}</td>
             <td class="num neg">${v.taxaValor ? '-' + brl(v.taxaValor) : '—'}<div class="cell-sub">${v.taxaPct ? pct(v.taxaPct) : ''}</div></td>
             <td class="num">${brl(v.liquido)}</td>
-            <td class="num">${brl(v.custo)}</td>
+            <td class="num">${brl(v.custo)}${v.brindes ? `<div class="cell-sub">+ brindes ${brl(v.brindes)}</div>` : ''}</td>
             <td class="num ${v.lucro >= 0 ? 'pos' : 'neg'}"><b>${brl(v.lucro)}</b><div class="cell-sub">${pct(v.cobrado ? (v.lucro / v.cobrado) * 100 : 0)}</div></td>
             <td class="num">
               <button class="btn sm" data-action="recibo" data-id="${v.id}">Recibo</button>
@@ -775,6 +775,7 @@ function formVenda(aparelhoId) {
       <label class="field">WhatsApp do cliente<input name="telefone" type="tel" placeholder="(11) 99999-9999"></label>
       <label class="field">CPF (opcional)<input name="cpf" inputmode="numeric"></label>
       <label class="field">Garantia (dias)<input name="garantiaDias" type="number" min="0" max="730" value="${num(state.config.garantiaDias)}"></label>
+      <label class="field">Brindes dados ao cliente<input name="brindes" ${ATTR_DINHEIRO}></label>
       <label class="check full"><input type="checkbox" name="temTroca"> Cliente deu um aparelho na troca</label>
       <div class="full form-grid troca-campos" id="trocaCampos" hidden>
         <label class="field">Modelo do usado<input name="trocaModelo" placeholder="Ex.: iPhone 11" list="modelosTroca"></label>
@@ -812,9 +813,11 @@ function updateVendaResumo(form, trocouAparelho) {
   $('#trocaCampos').hidden = !form.temTroca.checked;
   $('#trocaImeiAviso').textContent = form.temTroca.checked ? avisoImei(form.trocaImei.value) : '';
   const { troca, forma, parcelas, c } = calcVendaComTroca(form);
+  const brindes = dinheiro(form.brindes.value);
   $('#parcelasField').hidden = forma !== 'credito';
   $('#repassarField').hidden = c.taxaPct === 0;
-  const lucro = c.liquido + troca - a.custo;
+  const custoTotal = a.custo + brindes;
+  const lucro = c.liquido + troca - custoTotal;
   const total = c.cobrado + troca;
   $('#vendaResumo').innerHTML = `
     ${troca ? `<div><span>Aparelho na troca</span><span>${brl(troca)}</span></div>` : ''}
@@ -823,6 +826,8 @@ function updateVendaResumo(form, trocouAparelho) {
     <div><span>Taxa da maquininha (${pct(c.taxaPct)})</span><span class="neg">${c.taxaValor ? '-' + brl(c.taxaValor) : '—'}</span></div>
     <div><span>Você recebe${troca ? ' em dinheiro' : ''}</span><b>${brl(c.liquido)}</b></div>
     <div><span>Custo do aparelho (CMV)</span><span>-${brl(a.custo)}</span></div>
+    ${brindes ? `<div><span>Brindes para o cliente</span><span>-${brl(brindes)}</span></div>
+    <div><span>Valor total da compra (aparelho + brindes)</span><b>${brl(custoTotal)}</b></div>` : ''}
     <div class="total"><span>Lucro</span><span class="${lucro >= 0 ? 'pos' : 'neg'}">${brl(lucro)} · ${pct(total ? (lucro / total) * 100 : 0)}</span></div>`;
 }
 
@@ -833,12 +838,13 @@ function salvarVenda(form) {
   if (troca && !f.trocaModelo.trim()) return toast('Informe o modelo do aparelho da troca.');
   const imeiTroca = digitos(f.trocaImei);
   if (troca && imeiTroca && avisoImei(imeiTroca) && !confirm(avisoImei(imeiTroca) + '\n\nRegistrar a troca assim mesmo?')) return;
+  const brindes = dinheiro(f.brindes);
   const v = {
     id: uid(), aparelhoId: a.id, descricao: nomeAparelho(a), imei: a.imei || '', condicao: a.condicao || '', dataCompra: a.dataCompra,
     data: f.data, cliente: f.cliente.trim(), telefone: f.telefone.trim(), cpf: f.cpf.trim(),
     garantiaDias: Math.max(0, parseInt(f.garantiaDias) || 0),
     forma, parcelas, repassar: !!f.repassar && c.taxaPct > 0, preco,
-    ...c, custo: a.custo
+    ...c, custo: a.custo, brindes
   };
   if (troca) {
     // O usado entra no estoque com o valor abatido como custo — sem saída no
@@ -855,7 +861,7 @@ function salvarVenda(form) {
     v.cobrado = round2(c.cobrado + troca);
     v.liquido = round2(c.liquido + troca);
   }
-  v.lucro = round2(v.liquido - a.custo);
+  v.lucro = round2(v.liquido - a.custo - brindes);
   state.vendas.push(v);
   a.status = 'vendido';
   if (c.liquido > 0) {
