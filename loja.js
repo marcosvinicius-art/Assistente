@@ -945,7 +945,9 @@ function imprimirRecibo(id) {
       ${v.troca ? `<tr><td>Aparelho recebido na troca: ${esc(v.troca.modelo)}${v.troca.cor ? ' · ' + esc(v.troca.cor) : ''}</td><td>${esc(v.troca.imei || '—')}</td><td>− ${brl(v.troca.valor)}</td></tr>` : ''}
       <tr class="r-total"><td colspan="2">Total pago (${esc(pagamento)})</td><td>${brl(pago)}</td></tr>
     </table>
-    ${ate ? `<p><b>Garantia:</b> ${v.garantiaDias} dias — válida até <b>${fmtDate(ate)}</b>.</p><div class="r-termos">${esc(L.termos || TERMOS_PADRAO)}</div>` : '<p><b>Sem garantia.</b></p>'}
+    ${ate ? `<p><b>Garantia:</b> ${v.garantiaDias} dias — válida até <b>${fmtDate(ate)}</b>.</p>
+    <p><b>Termo de garantia de ${esc(v.cliente || 'cliente')}:</b></p>
+    <div class="r-termos">${esc(L.termos || TERMOS_PADRAO)}</div>` : '<p><b>Sem garantia.</b></p>'}
     ${v.troca ? '<p class="r-pequeno">O cliente declara ser o proprietário do aparelho entregue na troca e que ele não tem origem ilícita, bloqueio ou restrição.</p>' : ''}
     <div class="r-assin"><div>${esc(L.loja)}</div><div>${esc(v.cliente || 'Cliente')}</div></div>`;
   window.print();
@@ -968,7 +970,7 @@ function mandarWhatsapp(id) {
     `*Recibo de venda* — ${fmtDate(v.data)}\nProduto: ${v.descricao}` + (v.imei ? `\nIMEI: ${v.imei}` : '') +
     (v.troca ? `\nTroca: ${v.troca.modelo} (− ${brl(v.troca.valor)})` : '') +
     `\nTotal pago: ${brl(v.troca ? v.pagoDinheiro : v.cobrado)} (${(FORMAS[v.forma] || { nome: v.forma }).nome}${v.forma === 'credito' && v.parcelas > 1 ? ' ' + v.parcelas + 'x' : ''})` +
-    (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n${termosCurtos(L.termos || TERMOS_PADRAO)}` : '');
+    (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n*Termo de garantia de ${v.cliente || 'cliente'}:*\n${termosCurtos(L.termos || TERMOS_PADRAO)}` : '');
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
 }
 
