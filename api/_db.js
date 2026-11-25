@@ -51,6 +51,10 @@ function pool() {
       connectionString: url,
       ssl: { rejectUnauthorized: false },
     });
+    // Sem isto, um cliente ocioso que o banco fechou do outro lado emite um
+    // "error" que ninguém escuta — e isso derruba o processo inteiro (não só
+    // a requisição atual) pela regra do Node para EventEmitter sem listener.
+    global.__pgPool.on("error", function () {});
   }
   return global.__pgPool;
 }
@@ -180,9 +184,28 @@ function ensureSchema() {
   return global.__schemaReady;
 }
 
+// Neon/Supabase (os bancos grátis que a Vercel oferece) derrubam a conexão
+// ociosa depois de um tempo sem uso. O pool fica guardado em "global" entre
+// chamadas (pra não abrir conexão nova toda hora), mas depois de uma folga
+// grande — o cliente saiu e voltou, por exemplo — a primeira consulta cai
+// numa conexão que já morreu do lado do banco, e dá erro 500 à toa. Repetir
+// a mesma consulta já resolve: o pool novo abre uma conexão nova de verdade.
+function conexaoMorreu(e) {
+  var codigos = ["ECONNRESET", "ETIMEDOUT", "EPIPE", "08006", "08003", "57P01"];
+  return !!e && (codigos.indexOf(e.code) !== -1 || /Connection terminated|server closed the connection|idle-in-transaction/i.test(e.message || ""));
+}
+
 async function query(text, params) {
-  await ensureSchema();
-  return pool().query(text, params);
+  try {
+    await ensureSchema();
+    return await pool().query(text, params);
+  } catch (e) {
+    if (!conexaoMorreu(e)) throw e;
+    global.__pgPool = null;
+    global.__schemaReady = null;
+    await ensureSchema();
+    return pool().query(text, params);
+  }
 }
 
 // Erro de configuração precisa chegar até a tela. Escondido atrás de um "tenta de
