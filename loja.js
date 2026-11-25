@@ -928,10 +928,16 @@ function garantiaBadge(v) {
 // saem sozinhos com os dados da venda — sem editar o texto a cada venda. Não
 // existe campo de data de entrega separado no app (a entrega é na hora da
 // venda), então os dois tokens de data usam a mesma data da venda.
+// Quem não usar os tokens e só deixar "Cliente:", "Data da compra:" ou
+// "Data de entrega:" em branco no fim da linha também recebe o preenchimento
+// automático, para não depender de editar o texto antes de funcionar.
 function aplicarTokensTermos(texto, v) {
   return String(texto || '')
     .replace(/\{\{\s*cliente\s*\}\}/gi, v.cliente || '')
-    .replace(/\{\{\s*data(Compra|Entrega)?\s*\}\}/gi, fmtDate(v.data));
+    .replace(/\{\{\s*data(Compra|Entrega)?\s*\}\}/gi, fmtDate(v.data))
+    .replace(/(cliente\s*:)[ \t\r]*$/gim, (_, rotulo) => `${rotulo} ${v.cliente || ''}`)
+    .replace(/(data\s*(?:da)?\s*compra\s*:)[ \t\r]*$/gim, (_, rotulo) => `${rotulo} ${fmtDate(v.data)}`)
+    .replace(/(data\s*(?:de)?\s*entrega\s*:)[ \t\r]*$/gim, (_, rotulo) => `${rotulo} ${fmtDate(v.data)}`);
 }
 
 function imprimirRecibo(id) {
@@ -1229,7 +1235,7 @@ function renderConfig() {
           <label class="field full">Endereço<input name="endereco" value="${esc(c.endereco)}"></label>
           <label class="field">Garantia padrão (dias)<input name="garantiaDias" type="number" min="0" max="730" value="${num(c.garantiaDias)}"></label>
           <label class="field full">Termos da garantia<textarea name="termos" rows="14" maxlength="10000">${esc(c.termos)}</textarea></label>
-          <p class="hint full">Use <code>{{cliente}}</code>, <code>{{dataCompra}}</code> e <code>{{dataEntrega}}</code> em qualquer parte do texto (ex.: "Cliente: {{cliente}}" ou "Data da compra: {{dataCompra}}") que na hora de imprimir o recibo ou mandar no WhatsApp eles saem sozinhos com os dados daquela venda.</p>
+          <p class="hint full">Deixe uma linha terminando em "Cliente:", "Data da compra:" ou "Data de entrega:" (sem nada depois) que o nome e as datas da venda são preenchidos sozinhos ao imprimir o recibo ou mandar no WhatsApp. Se preferir, também pode usar <code>{{cliente}}</code>, <code>{{dataCompra}}</code> e <code>{{dataEntrega}}</code> em qualquer parte do texto.</p>
         </div>
         <div class="form-actions"><button class="btn primary">Salvar configurações</button></div>
       </form>
