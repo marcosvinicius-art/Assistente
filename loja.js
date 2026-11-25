@@ -698,7 +698,7 @@ function formBrinde() {
     <div class="form-grid">
       <label class="field">Data da compra<input name="data" type="date" value="${todayISO()}" required></label>
       <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
-      <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Capinhas, películas, fones de ouvido…"></label>
+      <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Capinha, película, carregador completo ou só a fonte…"></label>
       <p class="hint full">O valor sai do caixa na hora, como quando você compra um aparelho.</p>
     </div>
     <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Registrar compra</button></div>
