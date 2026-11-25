@@ -698,15 +698,14 @@ function formBrinde() {
     <div class="form-grid">
       <label class="field">Data da compra<input name="data" type="date" value="${todayISO()}" required></label>
       <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
-      <label class="field">Tipo<select name="tipo">
-        <option value="">Selecione…</option>
-        <option>Capinha</option>
-        <option>Película</option>
-        <option>Carregador completo</option>
-        <option>Só a fonte</option>
-        <option value="">Outro (descreva ao lado)</option>
-      </select></label>
-      <label class="field">Descrição<input name="descricao" placeholder="Detalhe, se quiser"></label>
+      <div class="field full">Tipo (marque quantos comprou)
+        <div class="check-group">
+          ${['Capinha', 'Película', 'Carregador completo', 'Só a fonte'].map(t =>
+            `<label class="check"><input type="checkbox" name="tipo" value="${t}"> ${t}</label>`
+          ).join('')}
+        </div>
+      </div>
+      <label class="field full">Descrição<input name="descricao" placeholder="Detalhe, se quiser"></label>
       <p class="hint full">O valor sai do caixa na hora, como quando você compra um aparelho.</p>
     </div>
     <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Registrar compra</button></div>
@@ -1413,8 +1412,9 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   if (e.target.dataset.action === 'importar' && e.target.files[0]) importar(e.target.files[0]);
   if (e.target.form?.dataset.form === 'venda') updateVendaResumo(e.target.form, e.target.name === 'aparelhoId');
-  if (e.target.form?.dataset.form === 'brinde' && e.target.name === 'tipo' && e.target.value) {
-    e.target.form.descricao.value = e.target.value;
+  if (e.target.form?.dataset.form === 'brinde' && e.target.name === 'tipo') {
+    const marcados = [...e.target.form.querySelectorAll('input[name="tipo"]:checked')].map(c => c.value);
+    e.target.form.descricao.value = marcados.join(', ');
   }
 });
 
