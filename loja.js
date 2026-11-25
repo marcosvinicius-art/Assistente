@@ -33,7 +33,7 @@ const FORMAS = {
 
 const CATEGORIAS_CAIXA = {
   entrada: ['Aporte', 'Outras entradas'],
-  saida: ['Despesa', 'Retirada (pró-labore)', 'Outras saídas']
+  saida: ['Despesa', 'Brindes', 'Retirada (pró-labore)', 'Outras saídas']
 };
 
 /* ---------- Estado ---------- */
@@ -595,7 +595,7 @@ function renderEstoque() {
           </div>
           <input type="search" placeholder="Buscar modelo, IMEI, cor…" data-bind="estoqueBusca" value="${esc(ui.estoqueBusca)}">
         </div>
-        <button class="btn primary" data-action="nova-compra">+ Comprar aparelho</button>
+        <div><button class="btn" data-action="novo-brinde">+ Comprar brindes</button> <button class="btn primary" data-action="nova-compra">+ Comprar aparelho</button></div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
@@ -689,6 +689,28 @@ function salvarAparelho(form) {
     toast('Compra cadastrada.');
   }
   save(); closeModal(); rerender();
+}
+
+// Brindes (capinha, película, fone…) não entram no estoque como aparelho:
+// é só uma saída de caixa na hora da compra, igual a compra de um aparelho.
+function formBrinde() {
+  return `<form data-form="brinde">
+    <div class="form-grid">
+      <label class="field">Data da compra<input name="data" type="date" value="${todayISO()}" required></label>
+      <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
+      <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Capinhas, películas, fones de ouvido…"></label>
+      <p class="hint full">O valor sai do caixa na hora, como quando você compra um aparelho.</p>
+    </div>
+    <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Registrar compra</button></div>
+  </form>`;
+}
+
+function salvarBrinde(form) {
+  const f = Object.fromEntries(new FormData(form));
+  const valor = dinheiro(f.valor);
+  if (!(valor > 0)) return toast('Digite um valor maior que zero.');
+  state.caixa.push({ id: uid(), data: f.data, tipo: 'saida', categoria: 'Brindes', descricao: f.descricao.trim() || 'Compra de brindes', valor });
+  save(); closeModal(); rerender(); toast('Compra de brindes registrada.');
 }
 
 function excluirAparelho(id) {
@@ -1346,6 +1368,7 @@ document.addEventListener('click', e => {
     case 'recibo': return imprimirRecibo(id);
     case 'whatsapp': return mandarWhatsapp(id);
     case 'novo-lancamento': return openModal('Lançamento no caixa', formLancamento());
+    case 'novo-brinde': return openModal('Comprar brindes', formBrinde());
     case 'excluir-lancamento':
       if (!confirm('Excluir este lançamento?')) return;
       state.caixa = state.caixa.filter(l => l.id !== id);
@@ -1387,7 +1410,7 @@ document.addEventListener('change', e => {
 document.addEventListener('submit', e => {
   const form = e.target;
   e.preventDefault();
-  ({ aparelho: salvarAparelho, venda: salvarVenda, lancamento: salvarLancamento, config: salvarConfig })[form.dataset.form]?.(form);
+  ({ aparelho: salvarAparelho, venda: salvarVenda, lancamento: salvarLancamento, config: salvarConfig, brinde: salvarBrinde })[form.dataset.form]?.(form);
 });
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
