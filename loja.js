@@ -674,7 +674,7 @@ function renderEstoque() {
             const lucro = venda ? venda.lucro : precoV - a.custo;
             const dias = venda ? daysBetween(a.dataCompra, venda.data) : daysBetween(a.dataCompra);
             return `<tr>
-              <td><div class="cell-title">${esc(nomeAparelho(a))}</div><div class="cell-sub">${esc(a.cor || '')}${a.imei ? ' · IMEI ' + esc(a.imei) : ''}</div>${a.anuncios && a.anuncios.length ? `<div class="cell-sub">📣 ${a.anuncios.map(esc).join(', ')}</div>` : ''}</td>
+              <td><div class="cell-title">${esc(nomeAparelho(a))}</div><div class="cell-sub">${esc(a.cor || '')}${a.imei ? ' · IMEI ' + esc(a.imei) : ''}</div>${a.anuncios && a.anuncios.length ? `<span class="badge b-gray" title="${a.anuncios.map(esc).join(', ')}">📣 ${a.anuncios.length} plataforma${a.anuncios.length > 1 ? 's' : ''}</span>` : ''}</td>
               <td>${a.condicao ? `<span class="badge b-gray">${esc(a.condicao)}</span>` : ''}${a.origem === 'troca' ? ' <span class="badge b-amber">troca</span>' : ''}${a.bateria ? ` <span class="cell-sub">🔋${esc(a.bateria)}%</span>` : ''}</td>
               <td>${fmtDate(a.dataCompra)}<div class="cell-sub">${esc(a.fornecedor || '')}</div></td>
               <td>${venda ? `<span class="badge b-blue">Vendido em ${dias}d</span>` : paradoBadge(dias)}</td>
