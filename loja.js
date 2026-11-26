@@ -31,6 +31,8 @@ const FORMAS = {
   credito: { nome: 'Crédito', badge: 'b-purple' }
 };
 
+const PLATAFORMAS = ['OLX', 'Mercado Livre', 'Instagram', 'Facebook', 'WhatsApp', 'Indicação', 'Loja física'];
+
 const CATEGORIAS_CAIXA = {
   entrada: ['Aporte', 'Outras entradas'],
   saida: ['Despesa', 'Brindes', 'Retirada (pró-labore)', 'Outras saídas']
@@ -365,6 +367,7 @@ const ui = {
   estoqueFiltro: 'estoque',
   estoqueBusca: '',
   vendaForma: '',
+  vendaPlataforma: '',
   vendaBusca: '',
   simValor: 3000,
   // Simular margem (antes de comprar)
@@ -733,9 +736,10 @@ function renderVendas() {
   // Buscando, procura em todos os meses: quem volta pela garantia nem sempre lembra quando comprou.
   const busca = ui.vendaBusca.trim().toLowerCase();
   let vendas = busca
-    ? state.vendas.filter(v => [v.descricao, v.imei, v.cliente, v.telefone, v.cpf].join(' ').toLowerCase().includes(busca))
+    ? state.vendas.filter(v => [v.descricao, v.imei, v.cliente, v.telefone, v.cpf, v.plataforma].join(' ').toLowerCase().includes(busca))
     : state.vendas.filter(v => monthOf(v.data) === ui.mes);
   if (ui.vendaForma) vendas = vendas.filter(v => v.forma === ui.vendaForma);
+  if (ui.vendaPlataforma) vendas = vendas.filter(v => v.plataforma === ui.vendaPlataforma);
   vendas.sort((a, b) => b.data.localeCompare(a.data));
   const t = k => vendas.reduce((s, v) => s + v[k], 0);
   const fat = t('cobrado'), lucro = t('lucro');
@@ -752,6 +756,7 @@ function renderVendas() {
         <div class="toolbar">
           ${monthPicker()}
           <select data-bind="vendaForma"><option value="">Todas as formas</option>${Object.entries(FORMAS).map(([k, f]) => `<option value="${k}" ${ui.vendaForma === k ? 'selected' : ''}>${f.nome}</option>`).join('')}</select>
+          <select data-bind="vendaPlataforma"><option value="">Todas as plataformas</option>${[...new Set(state.vendas.map(v => v.plataforma).filter(Boolean))].map(p => `<option value="${esc(p)}" ${ui.vendaPlataforma === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>
           <input type="search" placeholder="Cliente, IMEI, modelo (todos os meses)" data-bind="vendaBusca" value="${esc(ui.vendaBusca)}">
         </div>
         <button class="btn primary" data-action="nova-venda">+ Nova venda</button>
@@ -765,7 +770,7 @@ function renderVendas() {
           ${vendas.length ? vendas.map(v => `<tr>
             <td>${fmtDate(v.data)}</td>
             <td><div class="cell-title">${esc(v.descricao)}</div><div class="cell-sub">${v.imei ? 'IMEI ' + esc(v.imei) : ''}${v.troca ? `${v.imei ? ' · ' : ''}troca: ${esc(v.troca.modelo)} (${brl(v.troca.valor)})` : ''}</div>${garantiaBadge(v)}</td>
-            <td>${esc(v.cliente || '—')}<div class="cell-sub">${esc(v.telefone || '')}</div></td>
+            <td>${esc(v.cliente || '—')}<div class="cell-sub">${esc(v.telefone || '')}${v.plataforma ? `${v.telefone ? ' · ' : ''}${esc(v.plataforma)}` : ''}</div></td>
             <td>${formaBadge(v)}${v.forma === 'credito' ? `<div class="cell-sub">${v.parcelas}x ${brl(v.parcelaValor)}${v.repassar ? ' · juros repassado' : ''}</div>` : ''}</td>
             <td class="num">${brl(v.cobrado)}</td>
             <td class="num neg">${v.taxaValor ? '-' + brl(v.taxaValor) : '—'}<div class="cell-sub">${v.taxaPct ? pct(v.taxaPct) : ''}</div></td>
@@ -803,6 +808,7 @@ function formVenda(aparelhoId) {
       <label class="field">Cliente<input name="cliente"></label>
       <label class="field">WhatsApp do cliente<input name="telefone" type="tel" placeholder="(11) 99999-9999"></label>
       <label class="field">CPF (opcional)<input name="cpf" inputmode="numeric"></label>
+      <label class="field">Onde anunciou<input name="plataforma" list="plataformas" placeholder="Ex.: OLX, Instagram…"></label>
       <label class="field">Garantia (dias)<input name="garantiaDias" type="number" min="0" max="730" value="${num(state.config.garantiaDias)}"></label>
       <label class="field">Brindes dados ao cliente<input name="brindes" ${ATTR_DINHEIRO}></label>
       <label class="check full"><input type="checkbox" name="temTroca"> Cliente deu um aparelho na troca</label>
@@ -820,6 +826,7 @@ function formVenda(aparelhoId) {
       <label class="check full" id="repassarField"><input type="checkbox" name="repassar" checked> Repassar a taxa/juros da maquininha para o cliente</label>
       <div class="full summary" id="vendaResumo"></div>
       <datalist id="modelosTroca">${[...new Set(state.aparelhos.map(x => x.modelo).filter(Boolean))].map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+      <datalist id="plataformas">${[...new Set([...PLATAFORMAS, ...state.vendas.map(v => v.plataforma)].filter(Boolean))].map(p => `<option value="${esc(p)}">`).join('')}</datalist>
     </div>
     <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Confirmar venda</button></div>
   </form>`;
@@ -871,6 +878,7 @@ function salvarVenda(form) {
   const v = {
     id: uid(), aparelhoId: a.id, descricao: nomeAparelho(a), imei: a.imei || '', condicao: a.condicao || '', dataCompra: a.dataCompra,
     data: f.data, cliente: f.cliente.trim(), telefone: f.telefone.trim(), cpf: f.cpf.trim(),
+    plataforma: f.plataforma.trim(),
     garantiaDias: Math.max(0, parseInt(f.garantiaDias) || 0),
     forma, parcelas, repassar: !!f.repassar && c.taxaPct > 0, preco,
     ...c, custo: a.custo, brindes
