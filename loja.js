@@ -549,18 +549,22 @@ function renderPlataformas() {
     </div>`;
 }
 
+// Um aparelho costuma estar em várias plataformas ao mesmo tempo, então as
+// contagens se sobrepõem — uma barra de proporção (% de um total) ficaria
+// cheia e igual em todas as linhas. Por isso aqui é um cartão por plataforma,
+// não uma lista de barras.
 function aparelhosBreakdown(anunciados) {
   if (!anunciados.length) return `<p class="hint">Nenhum aparelho em estoque com plataforma marcada — edite um aparelho e marque "Onde pode anunciar".</p>`;
   const grupos = {};
   anunciados.forEach(a => a.anuncios.forEach(p => (grupos[p] = grupos[p] || []).push(a)));
   const ordenadas = Object.keys(grupos).sort((x, y) => grupos[y].length - grupos[x].length);
-  const total = anunciados.length;
-  return `<div class="plist">${ordenadas.map((p, i) => {
+  return `<div class="grid kpis">${ordenadas.map((p, i) => {
     const itens = grupos[p];
     const valor = itens.reduce((s, a) => s + (a.precoVenda || 0), 0);
-    return `<div class="row">
-      <div class="row-top"><span><b>${esc(p)}</b> <span class="muted">· ${itens.length} aparelho(s)</span></span><span>${brl(valor)}</span></div>
-      <div class="track"><div style="width:${(itens.length / total) * 100}%;background:${CORES_PLATAFORMA[i % CORES_PLATAFORMA.length]}"></div></div>
+    return `<div class="card kpi">
+      <div class="label" style="color:${CORES_PLATAFORMA[i % CORES_PLATAFORMA.length]}">📣 ${esc(p)}</div>
+      <div class="value">${itens.length} <span class="muted" style="font-size:13px;font-weight:500">aparelho${itens.length > 1 ? 's' : ''}</span></div>
+      <div class="sub">${brl(valor)} em estoque</div>
     </div>`;
   }).join('')}</div>`;
 }
