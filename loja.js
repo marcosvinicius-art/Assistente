@@ -359,7 +359,8 @@ const ROUTES = {
   caixa: { title: 'Caixa', render: renderCaixa },
   simulador: { title: 'Simular margem', render: renderSimulador },
   parcelamento: { title: 'Parcelamento & Juros', render: renderParcelamento },
-  config: { title: 'Configurações', render: renderConfig }
+  config: { title: 'Configurações', render: renderConfig },
+  plataformas: { title: 'Plataformas', render: renderPlataformas }
 };
 
 const ui = {
@@ -521,6 +522,41 @@ function renderDashboard() {
       </div>
     </div>
   `;
+}
+
+/* ---------- Plataformas (onde o produto foi anunciado) ---------- */
+const CORES_PLATAFORMA = ['var(--primary)', 'var(--green)', 'var(--blue)', '#f59e0b', '#ec4899', '#a1a1aa', '#8b5cf6'];
+
+function renderPlataformas() {
+  const r = resumoMes(ui.mes);
+  const semPlataforma = r.vendas.filter(v => !v.plataforma).length;
+  return `
+    <div class="toolbar">${monthPicker()}<span class="muted">Vendas por plataforma de anúncio no mês selecionado</span></div>
+    <div class="grid kpis">
+      <div class="card kpi"><div class="label">Faturamento</div><div class="value">${brl(r.fat)}</div><div class="sub">${r.vendas.length} venda(s)</div></div>
+      <div class="card kpi"><div class="label">Lucro</div><div class="value ${r.lucro >= 0 ? 'pos' : 'neg'}">${brl(r.lucro)}</div><div class="sub">Margem ${pct(r.fat ? (r.lucro / r.fat) * 100 : 0)}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>Vendas por plataforma</h3><p>${monthLabel(ui.mes)}</p></div></div>
+      ${plataformasBreakdown(r.vendas)}
+      ${semPlataforma ? `<p class="hint">${semPlataforma} venda(s) deste mês sem plataforma registrada — informe "Onde anunciou" ao registrar a venda.</p>` : ''}
+    </div>`;
+}
+
+function plataformasBreakdown(vendas) {
+  const vs = vendas.filter(v => v.plataforma);
+  if (!vs.length) return `<p class="hint">Nenhuma venda com plataforma registrada neste mês.</p>`;
+  const total = vs.reduce((s, v) => s + v.cobrado, 0);
+  const grupos = [...new Set(vs.map(v => v.plataforma))]
+    .sort((a, b) => vs.filter(v => v.plataforma === b).reduce((s, v) => s + v.cobrado, 0) - vs.filter(v => v.plataforma === a).reduce((s, v) => s + v.cobrado, 0));
+  return `<div class="plist">${grupos.map((p, i) => {
+    const ps = vs.filter(v => v.plataforma === p);
+    const val = ps.reduce((s, v) => s + v.cobrado, 0);
+    return `<div class="row">
+      <div class="row-top"><span><b>${esc(p)}</b> <span class="muted">· ${ps.length} venda(s)</span></span><span>${brl(val)} <span class="muted">${pct((val / total) * 100)}</span></span></div>
+      <div class="track"><div style="width:${(val / total) * 100}%;background:${CORES_PLATAFORMA[i % CORES_PLATAFORMA.length]}"></div></div>
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function chart6m() {
