@@ -530,7 +530,13 @@ const CORES_PLATAFORMA = ['var(--primary)', 'var(--green)', 'var(--blue)', '#f59
 function renderPlataformas() {
   const r = resumoMes(ui.mes);
   const semPlataforma = r.vendas.filter(v => !v.plataforma).length;
+  const anunciados = emEstoque().filter(a => a.anuncios && a.anuncios.length);
   return `
+    <div class="card">
+      <div class="card-head"><div><h3>Aparelhos anunciados agora</h3><p>Estoque disponível, por plataforma</p></div><a class="btn sm" href="#estoque">Ver estoque</a></div>
+      ${aparelhosBreakdown(anunciados)}
+    </div>
+
     <div class="toolbar">${monthPicker()}<span class="muted">Vendas por plataforma de anúncio no mês selecionado</span></div>
     <div class="grid kpis">
       <div class="card kpi"><div class="label">Faturamento</div><div class="value">${brl(r.fat)}</div><div class="sub">${r.vendas.length} venda(s)</div></div>
@@ -541,6 +547,22 @@ function renderPlataformas() {
       ${plataformasBreakdown(r.vendas)}
       ${semPlataforma ? `<p class="hint">${semPlataforma} venda(s) deste mês sem plataforma registrada — informe "Onde anunciou" ao registrar a venda.</p>` : ''}
     </div>`;
+}
+
+function aparelhosBreakdown(anunciados) {
+  if (!anunciados.length) return `<p class="hint">Nenhum aparelho em estoque com plataforma marcada — edite um aparelho e marque "Onde pode anunciar".</p>`;
+  const grupos = {};
+  anunciados.forEach(a => a.anuncios.forEach(p => (grupos[p] = grupos[p] || []).push(a)));
+  const ordenadas = Object.keys(grupos).sort((x, y) => grupos[y].length - grupos[x].length);
+  const total = anunciados.length;
+  return `<div class="plist">${ordenadas.map((p, i) => {
+    const itens = grupos[p];
+    const valor = itens.reduce((s, a) => s + (a.precoVenda || 0), 0);
+    return `<div class="row">
+      <div class="row-top"><span><b>${esc(p)}</b> <span class="muted">· ${itens.length} aparelho(s)</span></span><span>${brl(valor)}</span></div>
+      <div class="track"><div style="width:${(itens.length / total) * 100}%;background:${CORES_PLATAFORMA[i % CORES_PLATAFORMA.length]}"></div></div>
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function plataformasBreakdown(vendas) {
@@ -648,7 +670,7 @@ function renderEstoque() {
             const lucro = venda ? venda.lucro : precoV - a.custo;
             const dias = venda ? daysBetween(a.dataCompra, venda.data) : daysBetween(a.dataCompra);
             return `<tr>
-              <td><div class="cell-title">${esc(nomeAparelho(a))}</div><div class="cell-sub">${esc(a.cor || '')}${a.imei ? ' · IMEI ' + esc(a.imei) : ''}</div></td>
+              <td><div class="cell-title">${esc(nomeAparelho(a))}</div><div class="cell-sub">${esc(a.cor || '')}${a.imei ? ' · IMEI ' + esc(a.imei) : ''}</div>${a.anuncios && a.anuncios.length ? `<div class="cell-sub">📣 ${a.anuncios.map(esc).join(', ')}</div>` : ''}</td>
               <td>${a.condicao ? `<span class="badge b-gray">${esc(a.condicao)}</span>` : ''}${a.origem === 'troca' ? ' <span class="badge b-amber">troca</span>' : ''}${a.bateria ? ` <span class="cell-sub">🔋${esc(a.bateria)}%</span>` : ''}</td>
               <td>${fmtDate(a.dataCompra)}<div class="cell-sub">${esc(a.fornecedor || '')}</div></td>
               <td>${venda ? `<span class="badge b-blue">Vendido em ${dias}d</span>` : paradoBadge(dias)}</td>
@@ -687,6 +709,13 @@ function formAparelho(a) {
       <label class="field">Preço de venda previsto<input name="precoVenda" ${ATTR_DINHEIRO} value="${campoDinheiro(a.precoVenda)}"></label>
       <div class="field" style="justify-content:flex-end"><div class="summary" id="prevLucro"></div></div>
       <label class="field full">Observações<textarea name="obs" rows="2">${esc(a.obs)}</textarea></label>
+      <div class="field full">Onde pode anunciar (marque quantas usar)
+        <div class="check-group">
+          ${PLATAFORMAS.map(p =>
+            `<label class="check"><input type="checkbox" name="anuncios" value="${esc(p)}" ${(a.anuncios || []).includes(p) ? 'checked' : ''}> ${esc(p)}</label>`
+          ).join('')}
+        </div>
+      </div>
       ${ed ? '' : `<label class="check full"><input type="checkbox" name="descontar" checked> Descontar o valor do caixa (saída "Compra de aparelho")</label>`}
     </div>
     <datalist id="marcas">${['Apple', 'Samsung', 'Xiaomi', 'Motorola', 'Realme', 'Poco', 'Google', 'Asus'].map(m => `<option value="${m}">`).join('')}</datalist>
@@ -706,7 +735,8 @@ function salvarAparelho(form) {
   const dados = {
     marca: f.marca.trim(), modelo: f.modelo.trim(), armazenamento: f.armazenamento.trim(), cor: f.cor.trim(),
     imei: f.imei.trim(), condicao: f.condicao, bateria: f.bateria, fornecedor: f.fornecedor.trim(),
-    dataCompra: f.dataCompra, custo: dinheiro(f.custo), precoVenda: dinheiro(f.precoVenda), obs: f.obs.trim()
+    dataCompra: f.dataCompra, custo: dinheiro(f.custo), precoVenda: dinheiro(f.precoVenda), obs: f.obs.trim(),
+    anuncios: new FormData(form).getAll('anuncios')
   };
   const aviso = avisoImei(dados.imei, id);
   if (/Já existe/.test(aviso)) return toast(aviso);
