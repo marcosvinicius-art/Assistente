@@ -28,7 +28,8 @@ const FORMAS = {
   pix: { nome: 'Pix', badge: 'b-green' },
   dinheiro: { nome: 'Dinheiro', badge: 'b-gray' },
   debito: { nome: 'Débito', badge: 'b-blue' },
-  credito: { nome: 'Crédito', badge: 'b-purple' }
+  credito: { nome: 'Crédito', badge: 'b-purple' },
+  misto: { nome: 'Misto', badge: 'b-amber' }
 };
 
 const PLATAFORMAS = ['OLX', 'Mercado Livre', 'Instagram', 'Facebook', 'WhatsApp', 'Indicação', 'Loja física'];
@@ -291,9 +292,25 @@ function paradoBadge(dias) {
 }
 
 function formaBadge(v) {
+  if (v.pagamentos && v.pagamentos.length > 1) return v.pagamentos.map(formaBadge).join(' ');
   const f = FORMAS[v.forma] || { nome: v.forma, badge: 'b-gray' };
   const extra = v.forma === 'credito' ? ` ${v.parcelas}x` : '';
   return `<span class="badge ${f.badge}">${f.nome}${extra}</span>`;
+}
+
+// Vendas salvas antes de existir pagamento dividido não têm v.pagamentos —
+// aqui elas viram uma "lista de um pagamento só" com os campos de sempre,
+// pra todo relatório poder olhar só pra pagamentosDe(v) sem casos especiais.
+function pagamentosDe(v) {
+  return v.pagamentos && v.pagamentos.length ? v.pagamentos
+    : [{ forma: v.forma, parcelas: v.parcelas, repassar: v.repassar, taxaPct: v.taxaPct, taxaValor: v.taxaValor, jurosCliente: v.jurosCliente, cobrado: v.cobrado, liquido: v.liquido, parcelaValor: v.parcelaValor, valor: v.preco }];
+}
+
+function pagamentoLabel(v) {
+  if (v.pagamentos && v.pagamentos.length > 1) {
+    return v.pagamentos.map(p => (FORMAS[p.forma] || { nome: p.forma }).nome + (p.forma === 'credito' && p.parcelas > 1 ? ` ${p.parcelas}x` : '')).join(' + ');
+  }
+  return (FORMAS[v.forma] || { nome: v.forma }).nome + (v.forma === 'credito' && v.parcelas > 1 ? ` em ${v.parcelas}x de ${brl(v.parcelaValor)}` : '');
 }
 
 /* ---------- Cálculos ---------- */
@@ -599,17 +616,21 @@ function chart6m() {
     </div>`).join('')}</div>`;
 }
 
+// Soma por forma de pagamento, não por venda: uma venda dividida entre Pix e
+// Crédito entra com o valor de cada parte na forma certa (nunca em "Misto"),
+// senão o total das barras não bateria com o faturamento do mês.
 function formasBreakdown(vendas) {
   if (!vendas.length) return `<p class="hint">Sem vendas neste mês.</p>`;
-  const total = vendas.reduce((s, v) => s + v.cobrado, 0);
+  const linhas = vendas.flatMap(pagamentosDe);
+  const total = linhas.reduce((s, p) => s + p.cobrado, 0);
   const cores = { pix: 'var(--green)', dinheiro: '#a1a1aa', debito: 'var(--blue)', credito: 'var(--primary)' };
-  return `<div class="plist">${Object.keys(FORMAS).map(f => {
-    const vs = vendas.filter(v => v.forma === f);
-    if (!vs.length) return '';
-    const val = vs.reduce((s, v) => s + v.cobrado, 0);
+  const chaves = [...new Set(linhas.map(p => p.forma))];
+  return `<div class="plist">${chaves.map(f => {
+    const ps = linhas.filter(p => p.forma === f);
+    const val = ps.reduce((s, p) => s + p.cobrado, 0);
     return `<div class="row">
-      <div class="row-top"><span><b>${FORMAS[f].nome}</b> <span class="muted">· ${vs.length} venda(s)</span></span><span>${brl(val)} <span class="muted">${pct((val / total) * 100)}</span></span></div>
-      <div class="track"><div style="width:${(val / total) * 100}%;background:${cores[f]}"></div></div>
+      <div class="row-top"><span><b>${(FORMAS[f] || { nome: f }).nome}</b> <span class="muted">· ${ps.length} venda(s)</span></span><span>${brl(val)} <span class="muted">${pct(total ? (val / total) * 100 : 0)}</span></span></div>
+      <div class="track"><div style="width:${total ? (val / total) * 100 : 0}%;background:${cores[f] || 'var(--amber)'}"></div></div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -808,7 +829,11 @@ function renderVendas() {
   let vendas = busca
     ? state.vendas.filter(v => [v.descricao, v.imei, v.cliente, v.telefone, v.cpf, v.plataforma].join(' ').toLowerCase().includes(busca))
     : state.vendas.filter(v => monthOf(v.data) === ui.mes);
-  if (ui.vendaForma) vendas = vendas.filter(v => v.forma === ui.vendaForma);
+  if (ui.vendaForma) {
+    vendas = ui.vendaForma === 'misto'
+      ? vendas.filter(v => v.pagamentos && v.pagamentos.length > 1)
+      : vendas.filter(v => pagamentosDe(v).some(p => p.forma === ui.vendaForma));
+  }
   if (ui.vendaPlataforma) vendas = vendas.filter(v => v.plataforma === ui.vendaPlataforma);
   vendas.sort((a, b) => b.data.localeCompare(a.data));
   const t = k => vendas.reduce((s, v) => s + v[k], 0);
@@ -841,7 +866,7 @@ function renderVendas() {
             <td>${fmtDate(v.data)}</td>
             <td><div class="cell-title">${esc(v.descricao)}</div><div class="cell-sub">${v.imei ? 'IMEI ' + esc(v.imei) : ''}${v.troca ? `${v.imei ? ' · ' : ''}troca: ${esc(v.troca.modelo)} (${brl(v.troca.valor)})` : ''}</div>${garantiaBadge(v)}</td>
             <td>${esc(v.cliente || '—')}<div class="cell-sub">${esc(v.telefone || '')}${v.plataforma ? `${v.telefone ? ' · ' : ''}${esc(v.plataforma)}` : ''}</div></td>
-            <td>${formaBadge(v)}${v.forma === 'credito' ? `<div class="cell-sub">${v.parcelas}x ${brl(v.parcelaValor)}${v.repassar ? ' · juros repassado' : ''}</div>` : ''}</td>
+            <td>${formaBadge(v)}${(() => { const cred = pagamentosDe(v).find(p => p.forma === 'credito'); return cred ? `<div class="cell-sub">${cred.parcelas}x ${brl(cred.parcelaValor)}${cred.repassar ? ' · juros repassado' : ''}</div>` : ''; })()}</td>
             <td class="num">${brl(v.cobrado)}</td>
             <td class="num neg">${v.taxaValor ? '-' + brl(v.taxaValor) : '—'}<div class="cell-sub">${v.taxaPct ? pct(v.taxaPct) : ''}</div></td>
             <td class="num">${brl(v.liquido)}</td>
@@ -891,8 +916,15 @@ function formVenda(aparelhoId) {
         <label class="field">Valor abatido<input name="trocaValor" ${ATTR_DINHEIRO}></label>
         <p class="hint full">O usado entra no estoque com esse valor como custo, e o cliente paga só a diferença.</p>
       </div>
-      <label class="field">Forma de pagamento<select name="forma">${Object.entries(FORMAS).map(([k, f]) => `<option value="${k}">${f.nome}</option>`).join('')}</select></label>
-      <label class="field" id="parcelasField" hidden>Parcelas<select name="parcelas">${Array.from({ length: max }, (_, i) => `<option value="${i + 1}">${i + 1}x (taxa ${pct(num(state.config.taxas.credito[i]))})</option>`).join('')}</select></label>
+      <div class="field full">Forma de pagamento (marque quantas usar)
+        <div class="check-group">
+          ${Object.entries(FORMAS).filter(([k]) => k !== 'misto').map(([k, f]) =>
+            `<label class="check"><input type="checkbox" name="formas" value="${k}" ${k === 'pix' ? 'checked' : ''}> ${f.nome}</label>`
+          ).join('')}
+        </div>
+      </div>
+      <div class="full form-grid" id="splitCampos" hidden></div>
+      <label class="field" id="parcelasField" hidden>Parcelas (no crédito)<select name="parcelas">${Array.from({ length: max }, (_, i) => `<option value="${i + 1}">${i + 1}x (taxa ${pct(num(state.config.taxas.credito[i]))})</option>`).join('')}</select></label>
       <label class="check full" id="repassarField"><input type="checkbox" name="repassar" checked> Repassar a taxa/juros da maquininha para o cliente</label>
       <div class="full summary" id="vendaResumo"></div>
       <datalist id="modelosTroca">${[...new Set(state.aparelhos.map(x => x.modelo).filter(Boolean))].map(m => `<option value="${esc(m)}">`).join('')}</datalist>
@@ -902,15 +934,64 @@ function formVenda(aparelhoId) {
   </form>`;
 }
 
+function formasMarcadas(form) {
+  return [...form.querySelectorAll('input[name="formas"]:checked')].map(i => i.value);
+}
+
 // Com troca, o usado paga parte do preço: a maquininha (e o juro) incide só
-// sobre a diferença que o cliente paga em dinheiro ou cartão.
+// sobre a diferença que o cliente paga em dinheiro ou cartão. Com mais de uma
+// forma marcada, o valor restante é dividido entre elas (campos em #splitCampos)
+// e a taxa é calculada em cima do pedaço de cada forma, não do total.
 function calcVendaComTroca(form) {
   const preco = dinheiro(form.preco.value);
   const troca = form.temTroca.checked ? Math.min(dinheiro(form.trocaValor.value), preco) : 0;
-  const forma = form.forma.value;
-  const parcelas = forma === 'credito' ? Number(form.parcelas.value) : 1;
-  const c = calcVenda({ preco: round2(preco - troca), forma, parcelas, repassar: form.repassar.checked });
-  return { preco, troca, forma, parcelas, c };
+  const restante = round2(preco - troca);
+  const formas = formasMarcadas(form);
+  const principal = formas[0] || 'pix';
+  const parcelas = formas.includes('credito') ? Number(form.parcelas.value) : 1;
+  const repassar = form.repassar.checked;
+  let pagamentos;
+  if (formas.length <= 1) {
+    const c0 = calcVenda({ preco: restante, forma: principal, parcelas, repassar });
+    pagamentos = [{ forma: principal, valor: restante, parcelas, repassar: repassar && c0.taxaPct > 0, ...c0 }];
+  } else {
+    pagamentos = formas.map(f => {
+      const campo = form[`valor_${f}`];
+      const valor = campo ? dinheiro(campo.value) : 0;
+      const p = f === 'credito' ? parcelas : 1;
+      const c0 = calcVenda({ preco: valor, forma: f, parcelas: p, repassar });
+      return { forma: f, valor, parcelas: p, repassar: repassar && c0.taxaPct > 0, ...c0 };
+    });
+  }
+  const somaValores = round2(pagamentos.reduce((s, p) => s + p.valor, 0));
+  const c = {
+    taxaPct: restante ? round2((pagamentos.reduce((s, p) => s + p.taxaValor, 0) / restante) * 100) : 0,
+    cobrado: round2(pagamentos.reduce((s, p) => s + p.cobrado, 0)),
+    liquido: round2(pagamentos.reduce((s, p) => s + p.liquido, 0)),
+    taxaValor: round2(pagamentos.reduce((s, p) => s + p.taxaValor, 0)),
+    jurosCliente: round2(pagamentos.reduce((s, p) => s + p.jurosCliente, 0)),
+    parcelaValor: (pagamentos.find(p => p.forma === 'credito') || {}).parcelaValor || 0
+  };
+  const forma = formas.length > 1 ? 'misto' : principal;
+  return { preco, troca, restante, forma, formas, parcelas, pagamentos, somaValores, c };
+}
+
+// Refaz os campos de valor por forma sempre que o conjunto de formas marcadas
+// muda — divide o restante em partes iguais; o lojista ajusta cada uma à mão.
+function updateFormasSplit(form) {
+  const formas = formasMarcadas(form);
+  const el = $('#splitCampos');
+  if (formas.length <= 1) { el.hidden = true; el.innerHTML = ''; return; }
+  const preco = dinheiro(form.preco.value);
+  const troca = form.temTroca.checked ? Math.min(dinheiro(form.trocaValor.value), preco) : 0;
+  const restante = round2(preco - troca);
+  const base = Math.floor((restante / formas.length) * 100) / 100;
+  el.hidden = false;
+  el.innerHTML = `<p class="hint full">Dividindo ${brl(restante)} entre as formas marcadas — ajuste o valor de cada uma, se precisar.</p>` +
+    formas.map((f, i) => {
+      const valor = i === formas.length - 1 ? round2(restante - base * (formas.length - 1)) : base;
+      return `<label class="field">Valor no ${FORMAS[f].nome}<input name="valor_${f}" ${ATTR_DINHEIRO} value="${campoDinheiro(valor)}"></label>`;
+    }).join('');
 }
 
 function updateVendaResumo(form, trocouAparelho) {
@@ -918,18 +999,21 @@ function updateVendaResumo(form, trocouAparelho) {
   if (trocouAparelho) form.preco.value = campoDinheiro(a.precoVenda || '');
   $('#trocaCampos').hidden = !form.temTroca.checked;
   $('#trocaImeiAviso').textContent = form.temTroca.checked ? avisoImei(form.trocaImei.value) : '';
-  const { troca, forma, parcelas, c } = calcVendaComTroca(form);
+  const { troca, formas, parcelas, pagamentos, somaValores, restante, c } = calcVendaComTroca(form);
   const brindes = dinheiro(form.brindes.value);
-  $('#parcelasField').hidden = forma !== 'credito';
-  $('#repassarField').hidden = c.taxaPct === 0;
+  $('#parcelasField').hidden = !formas.includes('credito');
+  $('#repassarField').hidden = !pagamentos.some(p => p.taxaPct > 0);
   const custoTotal = a.custo + brindes;
   const lucro = c.liquido + troca - custoTotal;
   const total = c.cobrado + troca;
+  const divergencia = formas.length > 1 ? round2(somaValores - restante) : 0;
   $('#vendaResumo').innerHTML = `
     ${troca ? `<div><span>Aparelho na troca</span><span>${brl(troca)}</span></div>` : ''}
-    <div><span>Cliente paga${troca ? ' (diferença)' : ''}</span><b>${brl(c.cobrado)}${forma === 'credito' ? ` <span class="muted">(${parcelas}x de ${brl(c.parcelaValor)})</span>` : ''}</b></div>
+    ${formas.length > 1 ? pagamentos.map(p => `<div><span>${FORMAS[p.forma].nome}${p.forma === 'credito' ? ` ${p.parcelas}x de ${brl(p.parcelaValor)}` : ''}</span><b>${brl(p.cobrado)}</b></div>`).join('') : ''}
+    ${divergencia ? `<div class="hint" style="color:var(--red)">A soma por forma ficou ${brl(Math.abs(divergencia))} ${divergencia > 0 ? 'acima' : 'abaixo'} do valor a pagar (${brl(restante)}).</div>` : ''}
+    <div><span>Cliente paga${troca ? ' (diferença)' : ''}</span><b>${brl(c.cobrado)}${formas.length === 1 && formas[0] === 'credito' ? ` <span class="muted">(${parcelas}x de ${brl(c.parcelaValor)})</span>` : ''}</b></div>
     ${c.jurosCliente > 0 ? `<div><span>Juros cobrados do cliente</span><span>${brl(c.jurosCliente)}</span></div>` : ''}
-    <div><span>Taxa da maquininha (${pct(c.taxaPct)})</span><span class="neg">${c.taxaValor ? '-' + brl(c.taxaValor) : '—'}</span></div>
+    <div><span>Taxa da maquininha${formas.length === 1 ? ` (${pct(c.taxaPct)})` : ''}</span><span class="neg">${c.taxaValor ? '-' + brl(c.taxaValor) : '—'}</span></div>
     <div><span>Você recebe${troca ? ' em dinheiro' : ''}</span><b>${brl(c.liquido)}</b></div>
     <div><span>Custo do aparelho (CMV)</span><span>-${brl(a.custo)}</span></div>
     ${brindes ? `<div><span>Brindes para o cliente</span><span>-${brl(brindes)}</span></div>
@@ -940,7 +1024,11 @@ function updateVendaResumo(form, trocouAparelho) {
 function salvarVenda(form) {
   const f = Object.fromEntries(new FormData(form));
   const a = state.aparelhos.find(x => x.id === f.aparelhoId);
-  const { preco, troca, forma, parcelas, c } = calcVendaComTroca(form);
+  const { preco, troca, forma, formas, parcelas, pagamentos, somaValores, restante, c } = calcVendaComTroca(form);
+  if (!formas.length) return toast('Marque pelo menos uma forma de pagamento.');
+  if (formas.length > 1 && Math.abs(somaValores - restante) > 0.01) {
+    return toast(`A soma dos valores por forma (${brl(somaValores)}) não bate com o valor a pagar (${brl(restante)}).`);
+  }
   if (troca && !f.trocaModelo.trim()) return toast('Informe o modelo do aparelho da troca.');
   const imeiTroca = digitos(f.trocaImei);
   if (troca && imeiTroca && avisoImei(imeiTroca) && !confirm(avisoImei(imeiTroca) + '\n\nRegistrar a troca assim mesmo?')) return;
@@ -950,8 +1038,8 @@ function salvarVenda(form) {
     data: f.data, cliente: f.cliente.trim(), telefone: f.telefone.trim(), cpf: f.cpf.trim(),
     plataforma: f.plataforma.trim(),
     garantiaDias: Math.max(0, parseInt(f.garantiaDias) || 0),
-    forma, parcelas, repassar: !!f.repassar && c.taxaPct > 0, preco,
-    ...c, custo: a.custo, brindes
+    forma, parcelas, repassar: !!f.repassar && pagamentos.some(p => p.taxaPct > 0), preco,
+    pagamentos, ...c, custo: a.custo, brindes
   };
   if (troca) {
     // O usado entra no estoque com o valor abatido como custo — sem saída no
@@ -1024,7 +1112,7 @@ function imprimirRecibo(id) {
   const L = state.config;
   const ate = garantiaAte(v);
   const pago = v.troca ? v.pagoDinheiro : v.cobrado;
-  const pagamento = (FORMAS[v.forma] || { nome: v.forma }).nome + (v.forma === 'credito' && v.parcelas > 1 ? ` em ${v.parcelas}x de ${brl(v.parcelaValor)}` : '');
+  const pagamento = pagamentoLabel(v);
   $('#recibo').innerHTML = `
     <div class="r-topo">
       <div><h1>${esc(L.loja)}</h1>
@@ -1064,7 +1152,7 @@ function mandarWhatsapp(id) {
   const texto = `Olá${v.cliente ? ', ' + v.cliente.split(' ')[0] : ''}! Obrigado pela compra na ${L.loja}.\n\n` +
     `*Recibo de venda* — ${fmtDate(v.data)}\nProduto: ${v.descricao}` + (v.imei ? `\nIMEI: ${v.imei}` : '') +
     (v.troca ? `\nTroca: ${v.troca.modelo} (− ${brl(v.troca.valor)})` : '') +
-    `\nTotal pago: ${brl(v.troca ? v.pagoDinheiro : v.cobrado)} (${(FORMAS[v.forma] || { nome: v.forma }).nome}${v.forma === 'credito' && v.parcelas > 1 ? ' ' + v.parcelas + 'x' : ''})` +
+    `\nTotal pago: ${brl(v.troca ? v.pagoDinheiro : v.cobrado)} (${v.pagamentos && v.pagamentos.length > 1 ? v.pagamentos.map(p => (FORMAS[p.forma] || { nome: p.forma }).nome + (p.forma === 'credito' && p.parcelas > 1 ? ' ' + p.parcelas + 'x' : '')).join(' + ') : (FORMAS[v.forma] || { nome: v.forma }).nome + (v.forma === 'credito' && v.parcelas > 1 ? ' ' + v.parcelas + 'x' : '')})` +
     (ate ? `\n\n*Garantia:* ${v.garantiaDias} dias, até ${fmtDate(ate)}.\n*Termo de garantia de ${v.cliente || 'cliente'}:*\n${termosCurtos(aplicarTokensTermos(L.termos || TERMOS_PADRAO, v))}` : '');
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
 }
@@ -1138,9 +1226,12 @@ function renderParcelamento() {
   const valor = dinheiro(ui.simValor);
   const t = state.config.taxas;
   const r = resumoMes(ui.mes);
-  const cartao = r.vendas.filter(v => v.forma === 'credito' || v.forma === 'debito');
-  const pix = r.vendas.filter(v => v.forma === 'pix' || v.forma === 'dinheiro');
-  const soma = (vs, k) => vs.reduce((s, v) => s + v[k], 0);
+  // Por pagamento, não por venda: uma venda dividida em Pix + Crédito entra
+  // com cada pedaço na coluna certa, em vez de jogar o valor cheio em "cartão".
+  const linhas = r.vendas.flatMap(v => pagamentosDe(v).map(p => ({ ...p, venda: v })));
+  const cartao = linhas.filter(p => p.forma === 'credito' || p.forma === 'debito');
+  const pix = linhas.filter(p => p.forma === 'pix' || p.forma === 'dinheiro');
+  const soma = (ps, k) => ps.reduce((s, p) => s + p[k], 0);
 
   return `
     <div class="grid cols-3-1">
@@ -1189,10 +1280,10 @@ function renderParcelamento() {
       <div class="table-wrap"><table>
         <thead><tr><th>Data</th><th>Aparelho</th><th>Cliente</th><th>Pagamento</th><th class="num">À vista</th><th class="num">Cobrado</th><th class="num">Juros cliente</th><th class="num">Taxa</th><th class="num">Líquido</th></tr></thead>
         <tbody>
-          ${cartao.length ? cartao.map(v => `<tr>
-            <td>${fmtDate(v.data)}</td><td>${esc(v.descricao)}</td><td>${esc(v.cliente || '—')}</td>
-            <td>${formaBadge(v)}</td><td class="num">${brl(v.preco)}</td><td class="num">${brl(v.cobrado)}</td>
-            <td class="num">${v.jurosCliente ? brl(v.jurosCliente) : '—'}</td><td class="num neg">-${brl(v.taxaValor)}</td><td class="num"><b>${brl(v.liquido)}</b></td>
+          ${cartao.length ? cartao.map(p => `<tr>
+            <td>${fmtDate(p.venda.data)}</td><td>${esc(p.venda.descricao)}</td><td>${esc(p.venda.cliente || '—')}</td>
+            <td>${formaBadge(p)}</td><td class="num">${brl(p.valor)}</td><td class="num">${brl(p.cobrado)}</td>
+            <td class="num">${p.jurosCliente ? brl(p.jurosCliente) : '—'}</td><td class="num neg">-${brl(p.taxaValor)}</td><td class="num"><b>${brl(p.liquido)}</b></td>
           </tr>`).join('') : `<tr><td colspan="9" class="empty">Nenhuma venda no cartão neste mês.</td></tr>`}
         </tbody>
       </table></div>
@@ -1509,6 +1600,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('change', e => {
   if (e.target.dataset.action === 'importar' && e.target.files[0]) importar(e.target.files[0]);
+  if (e.target.form?.dataset.form === 'venda' && e.target.name === 'formas') updateFormasSplit(e.target.form);
   if (e.target.form?.dataset.form === 'venda') updateVendaResumo(e.target.form, e.target.name === 'aparelhoId');
   if (e.target.form?.dataset.form === 'brinde' && e.target.name === 'tipo') {
     const marcados = [...e.target.form.querySelectorAll('input[name="tipo"]:checked')].map(c => c.value);
