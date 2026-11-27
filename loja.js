@@ -1231,28 +1231,39 @@ function renderInsumos() {
   const doMes = todos.filter(l => monthOf(l.data) === ui.mes).sort((a, b) => b.data.localeCompare(a.data));
   const totalMes = doMes.reduce((s, l) => s + l.valor, 0);
   const totalGeral = todos.reduce((s, l) => s + l.valor, 0);
+  const media = doMes.length ? totalMes / doMes.length : 0;
+  const porItem = {};
+  doMes.forEach(l => { const k = l.descricao || 'Outro'; porItem[k] = (porItem[k] || 0) + l.valor; });
+  const itens = Object.entries(porItem).sort((a, b) => b[1] - a[1]);
   return `
     <div class="grid kpis">
       <div class="card kpi accent"><div class="label">Gasto com insumos no mês</div><div class="value neg">${brl(totalMes)}</div><div class="sub">${doMes.length} lançamento(s)</div></div>
+      <div class="card kpi"><div class="label">Média por lançamento</div><div class="value">${brl(media)}</div></div>
       <div class="card kpi"><div class="label">Total gasto (todo período)</div><div class="value neg">${brl(totalGeral)}</div></div>
     </div>
-    <div class="card">
-      <div class="card-head">
-        <div class="toolbar">${monthPicker()}</div>
-        <button class="btn primary" data-action="novo-insumo">+ Lançamento</button>
+    <div class="grid cols-3-1">
+      <div class="card">
+        <div class="card-head">
+          <div class="toolbar">${monthPicker()}</div>
+          <button class="btn primary" data-action="novo-insumo">+ Lançamento</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead>
+          <tbody>
+            ${doMes.length ? doMes.map(l => `<tr>
+              <td>${fmtDate(l.data)}</td>
+              <td>${esc(l.descricao || '—')}</td>
+              <td class="num neg"><b>-${brl(l.valor)}</b></td>
+              <td class="num"><button class="btn sm danger" data-action="excluir-lancamento" data-id="${l.id}">Excluir</button></td>
+            </tr>`).join('') : `<tr><td colspan="4" class="empty">Nenhum gasto com insumos neste mês.</td></tr>`}
+          </tbody>
+        </table></div>
       </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead>
-        <tbody>
-          ${doMes.length ? doMes.map(l => `<tr>
-            <td>${fmtDate(l.data)}</td>
-            <td>${esc(l.descricao || '—')}</td>
-            <td class="num neg"><b>-${brl(l.valor)}</b></td>
-            <td class="num"><button class="btn sm danger" data-action="excluir-lancamento" data-id="${l.id}">Excluir</button></td>
-          </tr>`).join('') : `<tr><td colspan="4" class="empty">Nenhum gasto com insumos neste mês.</td></tr>`}
-        </tbody>
-      </table></div>
-      <p class="hint" style="margin-top:14px">Sacola, adesivo, etiqueta, embalagem, caixinha... tudo que você compra pra vender ou entregar o aparelho.</p>
+      <div class="card">
+        <div class="card-head"><div><h3>Por item</h3><p>${monthLabel(ui.mes)}</p></div></div>
+        ${itens.length ? `<div class="summary">${itens.map(([k, v]) => `<div><span>${esc(k)}</span><b class="neg">-${brl(v)}</b></div>`).join('')}</div>` : '<p class="hint">Sem gastos neste mês.</p>'}
+        <p class="hint" style="margin-top:14px">Sacola, adesivo, etiqueta, embalagem, caixinha... tudo que você compra pra vender ou entregar o aparelho.</p>
+      </div>
     </div>`;
 }
 
@@ -1261,6 +1272,13 @@ function formInsumo() {
     <div class="form-grid">
       <label class="field">Data<input name="data" type="date" value="${todayISO()}" required></label>
       <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
+      <div class="field full">O que comprou (marque quantos usar)
+        <div class="check-group">
+          ${['Sacola', 'Adesivo', 'Etiqueta', 'Caixa/embalagem', 'Fita/lacre'].map(t =>
+            `<label class="check"><input type="checkbox" name="itens" value="${t}"> ${t}</label>`
+          ).join('')}
+        </div>
+      </div>
       <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Sacola, adesivo, etiqueta..."></label>
     </div>
     <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Lançar</button></div>
@@ -1659,6 +1677,10 @@ document.addEventListener('change', e => {
   if (e.target.form?.dataset.form === 'venda') updateVendaResumo(e.target.form, e.target.name === 'aparelhoId');
   if (e.target.form?.dataset.form === 'brinde' && e.target.name === 'tipo') {
     const marcados = [...e.target.form.querySelectorAll('input[name="tipo"]:checked')].map(c => c.value);
+    e.target.form.descricao.value = marcados.join(', ');
+  }
+  if (e.target.form?.dataset.form === 'insumo' && e.target.name === 'itens') {
+    const marcados = [...e.target.form.querySelectorAll('input[name="itens"]:checked')].map(c => c.value);
     e.target.form.descricao.value = marcados.join(', ');
   }
 });
