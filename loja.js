@@ -36,7 +36,7 @@ const PLATAFORMAS = ['OLX', 'Mercado Livre', 'Instagram', 'Facebook', 'WhatsApp'
 
 const CATEGORIAS_CAIXA = {
   entrada: ['Aporte', 'Outras entradas'],
-  saida: ['Despesa', 'Brindes', 'Retirada (pró-labore)', 'Outras saídas']
+  saida: ['Despesa', 'Insumos', 'Brindes', 'Retirada (pró-labore)', 'Outras saídas']
 };
 
 /* ---------- Estado ---------- */
@@ -1195,7 +1195,7 @@ function renderCaixa() {
       <div class="card">
         <div class="card-head"><div><h3>Por categoria</h3><p>${monthLabel(ui.mes)}</p></div></div>
         ${Object.keys(porCat).length ? `<div class="summary">${Object.entries(porCat).map(([k, v]) => `<div><span>${esc(k)}</span><b class="${v >= 0 ? 'pos' : 'neg'}">${brl(v)}</b></div>`).join('')}</div>` : '<p class="hint">Sem movimentação.</p>'}
-        <p class="hint" style="margin-top:14px">Compras de aparelhos e vendas entram no caixa automaticamente. Use “Lançamento” para aportes, despesas (aluguel, frete, peças…) e retiradas.</p>
+        <p class="hint" style="margin-top:14px">Compras de aparelhos e vendas entram no caixa automaticamente. Use “Lançamento” para aportes, despesas (aluguel, frete…), insumos (sacola, adesivo, embalagem…) e retiradas.</p>
       </div>
     </div>`;
 }
@@ -1207,7 +1207,7 @@ function formLancamento() {
       <label class="field">Categoria<select name="categoria">${CATEGORIAS_CAIXA.entrada.map(c => `<option>${c}</option>`).join('')}</select></label>
       <label class="field">Data<input name="data" type="date" value="${todayISO()}" required></label>
       <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
-      <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Caixa inicial, aluguel, frete…"></label>
+      <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Caixa inicial, aluguel, sacola, adesivo…"></label>
     </div>
     <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Lançar</button></div>
   </form>`;
