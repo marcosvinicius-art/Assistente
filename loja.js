@@ -377,7 +377,8 @@ const ROUTES = {
   simulador: { title: 'Simular margem', render: renderSimulador },
   parcelamento: { title: 'Parcelamento & Juros', render: renderParcelamento },
   config: { title: 'Configurações', render: renderConfig },
-  plataformas: { title: 'Plataformas', render: renderPlataformas }
+  plataformas: { title: 'Plataformas', render: renderPlataformas },
+  insumos: { title: 'Insumos', render: renderInsumos }
 };
 
 const ui = {
@@ -1221,6 +1222,59 @@ function salvarLancamento(form) {
   save(); closeModal(); rerender(); toast('Lançamento registrado.');
 }
 
+/* ---------- Insumos ---------- */
+// Insumos são só lançamentos de caixa com categoria "Insumos" — ficam aqui numa
+// aba própria pra ser fácil lançar e ver o total, mas continuam contando no
+// saldo do caixa e no resumo "Por categoria" normalmente.
+function renderInsumos() {
+  const todos = state.caixa.filter(l => l.categoria === 'Insumos');
+  const doMes = todos.filter(l => monthOf(l.data) === ui.mes).sort((a, b) => b.data.localeCompare(a.data));
+  const totalMes = doMes.reduce((s, l) => s + l.valor, 0);
+  const totalGeral = todos.reduce((s, l) => s + l.valor, 0);
+  return `
+    <div class="grid kpis">
+      <div class="card kpi accent"><div class="label">Gasto com insumos no mês</div><div class="value neg">${brl(totalMes)}</div><div class="sub">${doMes.length} lançamento(s)</div></div>
+      <div class="card kpi"><div class="label">Total gasto (todo período)</div><div class="value neg">${brl(totalGeral)}</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="toolbar">${monthPicker()}</div>
+        <button class="btn primary" data-action="novo-insumo">+ Lançamento</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead>
+        <tbody>
+          ${doMes.length ? doMes.map(l => `<tr>
+            <td>${fmtDate(l.data)}</td>
+            <td>${esc(l.descricao || '—')}</td>
+            <td class="num neg"><b>-${brl(l.valor)}</b></td>
+            <td class="num"><button class="btn sm danger" data-action="excluir-lancamento" data-id="${l.id}">Excluir</button></td>
+          </tr>`).join('') : `<tr><td colspan="4" class="empty">Nenhum gasto com insumos neste mês.</td></tr>`}
+        </tbody>
+      </table></div>
+      <p class="hint" style="margin-top:14px">Sacola, adesivo, etiqueta, embalagem, caixinha... tudo que você compra pra vender ou entregar o aparelho.</p>
+    </div>`;
+}
+
+function formInsumo() {
+  return `<form data-form="insumo">
+    <div class="form-grid">
+      <label class="field">Data<input name="data" type="date" value="${todayISO()}" required></label>
+      <label class="field">Valor<input name="valor" ${ATTR_DINHEIRO} required></label>
+      <label class="field full">Descrição<input name="descricao" placeholder="Ex.: Sacola, adesivo, etiqueta..."></label>
+    </div>
+    <div class="form-actions"><button type="button" class="btn" data-close>Cancelar</button><button class="btn primary">Lançar</button></div>
+  </form>`;
+}
+
+function salvarInsumo(form) {
+  const f = Object.fromEntries(new FormData(form));
+  const valor = dinheiro(f.valor);
+  if (!(valor > 0)) return toast('Digite um valor maior que zero.');
+  state.caixa.push({ id: uid(), data: f.data, tipo: 'saida', categoria: 'Insumos', descricao: f.descricao.trim() || 'Insumos', valor });
+  save(); closeModal(); rerender(); toast('Gasto com insumos registrado.');
+}
+
 /* ---------- Parcelamento & Juros ---------- */
 function renderParcelamento() {
   const valor = dinheiro(ui.simValor);
@@ -1565,6 +1619,7 @@ document.addEventListener('click', e => {
     case 'whatsapp': return mandarWhatsapp(id);
     case 'novo-lancamento': return openModal('Lançamento no caixa', formLancamento());
     case 'novo-brinde': return openModal('Comprar brindes', formBrinde());
+    case 'novo-insumo': return openModal('Gasto com insumos', formInsumo());
     case 'excluir-lancamento':
       if (!confirm('Excluir este lançamento?')) return;
       state.caixa = state.caixa.filter(l => l.id !== id);
@@ -1611,7 +1666,7 @@ document.addEventListener('change', e => {
 document.addEventListener('submit', e => {
   const form = e.target;
   e.preventDefault();
-  ({ aparelho: salvarAparelho, venda: salvarVenda, lancamento: salvarLancamento, config: salvarConfig, brinde: salvarBrinde })[form.dataset.form]?.(form);
+  ({ aparelho: salvarAparelho, venda: salvarVenda, lancamento: salvarLancamento, config: salvarConfig, brinde: salvarBrinde, insumo: salvarInsumo })[form.dataset.form]?.(form);
 });
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
